@@ -5,7 +5,7 @@ One Capacitor project (`android/`) builds two Play Store apps as Gradle product 
 | Flavor     | App                 | Package                | How screens get updated |
 |------------|---------------------|------------------------|-------------------------|
 | `customer` | BuildCity           | `com.buildcity.app`    | Bundled web app, plus over-the-air (OTA) updates after every deploy of `main` |
-| `partner`  | BuildCity Partner   | `com.buildcity.vendor` | Loads the live site `https://www.buildcity.in` in vendor mode: every deploy of `main` is live on the next launch |
+| `partner`  | BuildCity Partner   | `com.buildcity.vendor` | Opens the live site at `https://www.buildcity.in/vendor/login` in vendor mode: every deploy of `main` is live on the next launch |
 
 A Play Store release is only needed for **native** changes: a new or upgraded Capacitor plugin, Android
 permissions, icons/app name, or the Capacitor/Gradle setup.
@@ -32,7 +32,8 @@ permissions, icons/app name, or the Capacitor/Gradle setup.
 
 ## Partner app: live site
 
-`scripts/android.mjs partner` sets `server.url` to `https://www.buildcity.in` and appends `BuildCityPartner`
+`scripts/android.mjs partner` sets `server.url` to `https://www.buildcity.in/vendor/login` (partners who are
+already signed in are sent straight to their dashboard) and appends `BuildCityPartner`
 to the WebView user agent. `src/config/appMode.js` sees that marker and renders the vendor app, so the same
 Vercel deployment serves the storefront in browsers and the vendor app inside the partner app.
 

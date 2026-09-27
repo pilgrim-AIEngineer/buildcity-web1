@@ -83,6 +83,20 @@ function VendorRoot() {
   return <Navigate to="/login" replace />;
 }
 
+// /vendor/login is where the BuildCity Partner app opens: partners who are already signed in go straight
+// to their dashboard, everyone else gets the partner (password) login.
+function VendorLoginRoute() {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return Capacitor.isNativePlatform() ? <SplashScreen minDuration={800} /> : null;
+  }
+  const role = (user?.role || "").toLowerCase();
+  if (role === "admin") return <Navigate to="/admin/dashboard" replace />;
+  if (role === "dr") return <Navigate to="/dr/dashboard" replace />;
+  if (role === "vendor" || user?.vendorInfo || user?.vendorId) return <Navigate to="/vendor/dashboard" replace />;
+  return <Login forceVendorMode />;
+}
+
 function CatchAll() {
   const { user, loading } = useAuth();
   if (loading) return null;
@@ -165,7 +179,7 @@ export default function App() {
                         <Routes>
                   <Route path="/login" element={<Login />} />
                   {/* Vendor (partner) password login on the web */}
-                  <Route path="/vendor/login" element={<Login forceVendorMode />} />
+                  <Route path="/vendor/login" element={<VendorLoginRoute />} />
                   <Route path="/register" element={<Register />} />
 
                   {/* Public Storefront or Dedicated Vendor Root */}

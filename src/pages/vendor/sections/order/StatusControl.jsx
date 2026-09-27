@@ -1,4 +1,3 @@
-import { Button } from "../../ui/primitives";
 import { PhoneIcon, ChevronDownIcon } from "../../ui/icons";
 import { ORDER_STATUS, cx } from "../../ui/format";
 
@@ -10,9 +9,17 @@ export default function StatusControl({ orderId, status, phone, customerName, is
   return (
     <div className="flex items-center gap-2">
       {phone && (
-        <Button as="a" href={`tel:${phone}`} variant="success" className="w-11 shrink-0 !px-0" aria-label={`Call ${customerName}`}>
+        // Same surface as the status dropdown beside it, so the pair reads as one control row
+        <a
+          href={`tel:${phone}`}
+          aria-label={`Call ${customerName}`}
+          className={cx(
+            "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset transition-colors duration-300 active:scale-[0.98] cursor-pointer",
+            statusCfg.select
+          )}
+        >
           <PhoneIcon className="h-[18px] w-[18px]" />
-        </Button>
+        </a>
       )}
       <label className={cx("relative flex-1", statusCfg.text)}>
         <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center gap-1.5 text-sm opacity-80">

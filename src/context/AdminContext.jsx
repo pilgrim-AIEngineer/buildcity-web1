@@ -254,6 +254,11 @@ export function AdminProvider({ children }) {
   const [products, setProducts] = useState(loadInitialProducts);
   const [productsLoading, setProductsLoading] = useState(true);
   const isFetchingRef = useRef(false);
+  // A sync requested while the logged-out public-catalog fetch is in flight (e.g. right after
+  // login) runs once it finishes instead of being dropped. Requests during a staff sync are still
+  // dropped: that sync already returns the latest data.
+  const syncQueuedRef = useRef(false);
+  const fetchCloudDataRef = useRef(null);
   const lastEventSyncRef = useRef(0);
   const recentEditsRef = useRef(new Map());
 
@@ -401,7 +406,10 @@ export function AdminProvider({ children }) {
 
   // Single Source of Truth: Supabase Cloud DB se live data sync karne ke liye (Admin / DR / Vendor)
   const fetchCloudData = async () => {
-    if (isFetchingRef.current) return;
+    if (isFetchingRef.current) {
+      syncQueuedRef.current = true;
+      return;
+    }
     isFetchingRef.current = true;
 
     let currentUser = user;
@@ -420,6 +428,7 @@ export function AdminProvider({ children }) {
         await fetchPublicCatalog();
       } finally {
         isFetchingRef.current = false;
+        runQueuedSync();
       }
       return;
     }
@@ -659,7 +668,9 @@ export function AdminProvider({ children }) {
       }
 
       let fetchedOrders = ordersRes;
-      if (!Array.isArray(fetchedOrders) || fetchedOrders.length === 0) {
+      // Vendors get no orders from cloud-sync (their dashboard loads them itself), and GET /orders
+      // is admin/DR only, so the fallback would just be an extra round trip ending in a 403.
+      if (currentRole !== "vendor" && (!Array.isArray(fetchedOrders) || fetchedOrders.length === 0)) {
         fetchedOrders = await authFetch(`${API_BASE_URL}/api/v1/orders${ordersPageQuery(null)}`)
           .then((r) => r.json())
           .then((data) => readOrdersPage(data).orders)
@@ -709,7 +720,9 @@ export function AdminProvider({ children }) {
           if (recent) item = { ...item, ...recent };
           return item;
         });
-        localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(formattedListings));
+        try {
+          localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(formattedListings));
+        } catch {}
         setProducts((prev) => {
           const prevMap = new Map(prev.map((p) => [p.id, p]));
           let hasChanged = prev.length !== formattedListings.length;
@@ -742,7 +755,18 @@ export function AdminProvider({ children }) {
     } finally {
       isFetchingRef.current = false;
       setProductsLoading(false);
+      syncQueuedRef.current = false;
     }
+  };
+  fetchCloudDataRef.current = fetchCloudData;
+
+  const runQueuedSync = () => {
+    if (!syncQueuedRef.current) return;
+    syncQueuedRef.current = false;
+    // Only worth re-running if someone signed in meanwhile; otherwise the catalog is already fresh
+    let hasToken = false;
+    try { hasToken = Boolean(localStorage.getItem("buildcity_token")); } catch {}
+    if (hasToken) fetchCloudDataRef.current?.();
   };
 
   // Smart Real-time Sync: Instant Event Sync + Focus/Visibility Aware Refresh (Zero waste when tab is inactive)

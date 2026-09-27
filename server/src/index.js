@@ -209,23 +209,41 @@ function canonicalDistrict(name) {
   return clean;
 }
 
-// Region IDs covering the logged-in DR's assigned district(s)
+// Region IDs covering the logged-in DR's assigned district(s).
+// A DR dashboard load sends several requests at once (cloud-sync, orders, summary, vendors,
+// listings) that each need this, so results are cached briefly; any mutation clears the cache
+// (see invalidateCache), so a DR reassignment still applies immediately.
+const DR_REGION_CACHE_TTL_MS = 30000;
+const drRegionIdsCache = new Map();
+
 async function resolveCallerDrRegionIds(auth) {
   const last10 = String(auth?.phone || "").replace(/\D/g, "").slice(-10);
   const or = [];
   if (auth?.userId) or.push({ id: auth.userId }, { userId: auth.userId });
   if (last10.length === 10) or.push({ phone: { endsWith: last10 } });
   if (or.length === 0) return [];
-  const drs = await prisma.dR.findMany({ where: { OR: or }, include: { region: true } }).catch(() => []);
-  const regionIds = new Set(drs.map((d) => d.regionId).filter(Boolean));
-  const districts = new Set(drs.map((d) => canonicalDistrict(d.region?.name)).filter(Boolean));
-  if (districts.size > 0) {
-    const regions = await prisma.region.findMany({ select: { id: true, name: true } }).catch(() => []);
+
+  const cacheKey = `${auth?.userId || ""}|${last10}`;
+  const cached = drRegionIdsCache.get(cacheKey);
+  // Callers get their own copy so none can alter the cached list
+  if (cached && cached.expiresAt > Date.now()) return cached.promise.then((ids) => ids.slice());
+
+  const promise = (async () => {
+    // Both reads in parallel: the region list is small, and this saves a sequential round trip
+    const [drs, regions] = await Promise.all([
+      prisma.dR.findMany({ where: { OR: or }, include: { region: true } }).catch(() => []),
+      prisma.region.findMany({ select: { id: true, name: true } }).catch(() => []),
+    ]);
+    const regionIds = new Set(drs.map((d) => d.regionId).filter(Boolean));
+    const districts = new Set(drs.map((d) => canonicalDistrict(d.region?.name)).filter(Boolean));
     for (const r of regions) {
       if (districts.has(canonicalDistrict(r.name))) regionIds.add(r.id);
     }
-  }
-  return Array.from(regionIds);
+    return Array.from(regionIds);
+  })();
+  drRegionIdsCache.set(cacheKey, { promise, expiresAt: Date.now() + DR_REGION_CACHE_TTL_MS });
+  promise.catch(() => drRegionIdsCache.delete(cacheKey));
+  return promise.then((ids) => ids.slice());
 }
 
 // DRs may only manage shops (and their listings) in their own district
@@ -330,6 +348,7 @@ function setCached(key, data, ttlMs = 60000) {
 function invalidateCache(prefix) {
   if (!prefix) {
     memoryCache.clear();
+    drRegionIdsCache.clear();
   } else {
     for (const k of memoryCache.keys()) {
       if (k.startsWith(prefix)) memoryCache.delete(k);
@@ -478,6 +497,11 @@ app.get("/api/v1/public-catalog", async (req, res) => {
   }
 });
 
+// A listing belongs to a district through its shop or its own region
+const listingsInRegionsWhere = (regionIds) => ({
+  OR: [{ vendor: { regionId: { in: regionIds } } }, { regionId: { in: regionIds } }],
+});
+
 const CLOUD_SYNC_CACHE_TTL_MS = 15000;
 const SYNC_ORDERS_PAGE_SIZE = 50;
 const SYNC_USERS_PAGE_SIZE = 100;
@@ -502,6 +526,8 @@ app.get("/api/v1/cloud-sync", requireAuth, requireRole("ADMIN", "DR", "VENDOR"),
     const isVendor = role === "VENDOR";
     // DRs get only their own district's team, shops and orders
     const drRegionIds = role === "DR" ? await resolveCallerDrRegionIds(req.auth) : null;
+    // Only the admin dashboard reads orders, totals, coupons and banners from the sync
+    const skipsSyncOrders = role !== "ADMIN";
 
     // Short per-role cache: a full sync reads almost every table, so many open dashboards (or a
     // client refresh bug) must not translate 1:1 into database egress. Any catalog/order mutation
@@ -532,7 +558,10 @@ app.get("/api/v1/cloud-sync", requireAuth, requireRole("ADMIN", "DR", "VENDOR"),
       prisma.category.findMany().catch(() => []),
       prisma.region.findMany({ orderBy: { name: "asc" } }).catch(() => []),
       // Orders: newest page plus every still-open order; older ones load via GET /orders?cursor=
-      listOrders(
+      // Vendors and DRs skip this: their dashboards load orders and totals themselves
+      // (/orders/vendor/:id, /orders?regionId=, /orders/summary), so computing them here too
+      // only slowed down the sync right after login.
+      skipsSyncOrders ? Promise.resolve({ orders: [], nextCursor: null, hasMore: false }) : listOrders(
         { query: { limit: String(SYNC_ORDERS_PAGE_SIZE), includeOpen: "1" } },
         ordersScope,
         { include: STAFF_ORDER_INCLUDE }
@@ -547,7 +576,12 @@ app.get("/api/v1/cloud-sync", requireAuth, requireRole("ADMIN", "DR", "VENDOR"),
         console.error("Cloud sync orders error:", err);
         return { orders: [], nextCursor: null, hasMore: false };
       }),
+      // Vendors only ever use their own listings and DRs only their district's; sending every shop's
+      // catalog made this the slowest query in the sync and bloated the payload right after login.
       prisma.vendorProduct.findMany({
+        where: isVendor
+          ? { vendorId: ownVendor.id }
+          : drRegionIds ? listingsInRegionsWhere(drRegionIds) : undefined,
         include: {
           vendor: {
             select: {
@@ -562,12 +596,13 @@ app.get("/api/v1/cloud-sync", requireAuth, requireRole("ADMIN", "DR", "VENDOR"),
         },
         orderBy: { submittedOn: "desc" },
       }).catch(() => []),
-      prisma.coupon.findMany({ orderBy: { createdAt: "desc" } }).catch(() => []),
-      prisma.banner.findMany({ orderBy: { displayOrder: "asc" } }).catch(() => []),
+      // Coupons and banners are unused on the vendor and DR dashboards
+      skipsSyncOrders ? Promise.resolve([]) : prisma.coupon.findMany({ orderBy: { createdAt: "desc" } }).catch(() => []),
+      skipsSyncOrders ? Promise.resolve([]) : prisma.banner.findMany({ orderBy: { displayOrder: "asc" } }).catch(() => []),
     ];
 
     fetchPromises.push(
-      computeOrdersSummary(ordersScope, isVendor ? { vendorId: ownVendor.id } : {}).catch((err) => {
+      skipsSyncOrders ? Promise.resolve(null) : computeOrdersSummary(ordersScope).catch((err) => {
         console.error("Cloud sync summary error:", err);
         return null;
       })
@@ -603,7 +638,7 @@ app.get("/api/v1/cloud-sync", requireAuth, requireRole("ADMIN", "DR", "VENDOR"),
       coupons: coupons || [],
       users: usersPage ? usersPage.items : [],
       usersPage: usersPage ? { nextCursor: usersPage.nextCursor, hasMore: usersPage.hasMore, total: usersTotal, customers: customersTotal } : null,
-      banners: dbBanners && dbBanners.length > 0 ? dbBanners : bannersList,
+      banners: skipsSyncOrders ? [] : dbBanners && dbBanners.length > 0 ? dbBanners : bannersList,
     };
 
     setCached(cacheKey, data, CLOUD_SYNC_CACHE_TTL_MS);
@@ -659,17 +694,23 @@ app.post("/api/v1/auth/vendor/login", partnerLoginLimiter, async (req, res) => {
       });
     }
 
-    // 2. Lookup User in DB by phone to check assigned role
-    let userInDb = await prisma.user.findFirst({
-      where: { OR: [{ phone: cleanPhone }, { phone }] },
-    }).catch(() => null);
+    // 2-4. Look up the User, DR and Vendor rows for this phone in parallel (one DB round trip
+    // instead of three back-to-back ones); the role checks below still run in the same order.
+    const [userInDb, drInDb, vendor] = await Promise.all([
+      prisma.user.findFirst({
+        where: { OR: [{ phone: cleanPhone }, { phone }] },
+      }).catch(() => null),
+      prisma.dR.findFirst({
+        where: { OR: [{ phone: cleanPhone }, { phone }] },
+        include: { user: true, region: true },
+      }).catch(() => null),
+      prisma.vendor.findFirst({
+        where: { OR: [{ phone: cleanPhone }, { phone }] },
+        include: { region: true, user: true },
+      }).catch(() => null),
+    ]);
 
     // 3. District Representative (DR) Check
-    let drInDb = await prisma.dR.findFirst({
-      where: { OR: [{ phone: cleanPhone }, { phone }] },
-      include: { user: true, region: true },
-    }).catch(() => null);
-
     if (drInDb || userInDb?.role === "DR") {
       const storedPassword =
         drInDb?.password ||
@@ -705,17 +746,12 @@ app.post("/api/v1/auth/vendor/login", partnerLoginLimiter, async (req, res) => {
       });
     }
 
-    // 4. Find Vendor record by phone number
-    let vendor = await prisma.vendor.findFirst({
-      where: {
-        OR: [{ phone: cleanPhone }, { phone }],
-      },
-      include: { region: true, user: true },
-    }).catch(() => null);
-
+    // 4. Vendor record (looked up above)
     let user = null;
     if (vendor && vendor.user) {
       user = vendor.user;
+    } else if (userInDb && userInDb.role === "VENDOR" && userInDb.phone === cleanPhone) {
+      user = userInDb;
     } else {
       user = await prisma.user.findFirst({
         where: {
@@ -765,18 +801,16 @@ app.post("/api/v1/auth/vendor/login", partnerLoginLimiter, async (req, res) => {
     };
     const token = issueToken(vendorUserObj);
 
-    // ⚡ Atomic FCM Device Token Registration directly during login:
-    // Guarantees the token is saved in DB BEFORE the login response returns!
+    // FCM device token registration during login. saveToken() puts the token in its in-memory
+    // map synchronously (so pushes work immediately), then persists it to the DB with several
+    // round trips; those run in the background so they don't hold up the login response.
     if (fcmToken) {
-      try {
+      const vId = vendor?.id || vendor?.userId || resUser.id;
+      if (vId) {
         const { saveToken } = require("./pushService");
-        const vId = vendor?.id || vendor?.userId || resUser.id;
-        if (vId) {
-          await saveToken(vId, fcmToken, cleanPhone);
-          console.log(`✅ Atomic FCM device token saved during login for vendor ${vId}`);
-        }
-      } catch (fcmErr) {
-        console.warn("Login FCM save note:", fcmErr.message);
+        saveToken(vId, fcmToken, cleanPhone)
+          .then(() => console.log(`✅ FCM device token saved during login for vendor ${vId}`))
+          .catch((fcmErr) => console.warn("Login FCM save note:", fcmErr.message));
       }
     }
 
@@ -1965,9 +1999,12 @@ app.delete("/api/v1/master-products/:id", requireAuth, requireRole("ADMIN"), asy
 });
 
 // 5. VENDOR PRODUCT LISTINGS & APPROVALS ENDPOINTS (Public Storefront - Zero PII / Zero Password)
-app.get("/api/v1/vendor/listings", async (req, res) => {
+app.get("/api/v1/vendor/listings", optionalAuth, async (req, res) => {
   try {
+    // Opt-in `?mine=1` from a signed-in DR returns only their district; everyone else gets the full catalog
+    const drRegionIds = req.query.mine === "1" && req.auth?.role === "DR" ? await resolveCallerDrRegionIds(req.auth) : null;
     const listings = await prisma.vendorProduct.findMany({
+      where: drRegionIds ? listingsInRegionsWhere(drRegionIds) : undefined,
       include: {
         vendor: {
           select: {

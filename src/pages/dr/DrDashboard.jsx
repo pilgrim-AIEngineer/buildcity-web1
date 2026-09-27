@@ -290,7 +290,7 @@ export default function DrDashboard() {
   // Fetch live vendor products/listings directly from DB endpoint (/api/v1/vendor/listings) with deep equality guard
   const fetchLiveProductsDirect = async () => {
     try {
-      const res = await authFetch(`${API_BASE_URL}/api/v1/vendor/listings`);
+      const res = await authFetch(`${API_BASE_URL}/api/v1/vendor/listings?mine=1`);
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data)) {
@@ -345,8 +345,10 @@ export default function DrDashboard() {
 
   // Smart Real-time Sync for DR Dashboard: Instant Event Sync + Focus/Visibility Aware (Zero waste on inactive tabs)
   useEffect(() => {
-    if (fetchCloudData) fetchCloudData();
-    fetchLiveOrdersDirect();
+    // AdminContext already runs a cloud-sync whenever the signed-in user changes, so a mount
+    // sync here only duplicated it right after login. Once the district is known, the
+    // districtRegionParam effect below loads the orders, so don't send the same request twice.
+    if (!districtRegionParamRef.current) fetchLiveOrdersDirect();
     fetchLiveVendorsDirect();
     fetchLiveProductsDirect();
 

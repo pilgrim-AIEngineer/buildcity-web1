@@ -32,7 +32,7 @@ export function ProductRowSkeleton() {
 
 function stockLabel(qty) {
   const n = Number(qty) || 0;
-  return n > 0 ? { text: `${n.toLocaleString("en-IN")} in stock`, cls: "text-slate-500" } : { text: "Out of stock", cls: "text-brand-700 font-medium" };
+  return n > 0 ? { text: `${n.toLocaleString("en-IN")} in stock`, cls: "text-emerald-700" } : { text: "Out of stock", cls: "text-brand-700 font-medium" };
 }
 
 function ProductRow({ product, index = 0, imageFor, onEdit }) {
@@ -47,13 +47,18 @@ function ProductRow({ product, index = 0, imageFor, onEdit }) {
       type="button"
       onClick={() => onEdit(product)}
       style={{ "--i": index }}
-      className="group grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50 active:bg-slate-100 cursor-pointer md:grid-cols-[auto_minmax(0,1fr)_8rem_8rem_6rem_1.25rem] md:gap-4 sm:px-5"
+      className="group grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-brand-50/40 active:bg-brand-50/70 cursor-pointer md:grid-cols-[auto_minmax(0,1fr)_8rem_8rem_6rem_1.25rem] md:gap-4 sm:px-5"
     >
       <ProductThumb src={img.src} fallback={img.fallback} alt={product.name} />
 
       <div className="min-w-0">
         <p className="truncate text-sm font-medium text-slate-900">{product.name}</p>
-        {meta && <p className="mt-0.5 truncate text-xs text-slate-500">{meta}</p>}
+        {meta && (
+          <p className="mt-0.5 truncate text-xs text-slate-500">
+            {product.brand && <span className="font-medium text-brand-700">{product.brand}</span>}
+            {product.brand ? meta.slice(String(product.brand).length) : meta}
+          </p>
+        )}
         <div className="mt-1 flex items-center gap-2 md:hidden">
           <ApprovalBadge status={product.approvalStatus} />
           <span className={cx("text-xs", stock.cls)}>{stock.text}</span>
@@ -63,7 +68,12 @@ function ProductRow({ product, index = 0, imageFor, onEdit }) {
       {/* Phone: price on the right */}
       <div className="text-right md:hidden">
         <p className="text-sm font-semibold tabular-nums text-slate-900">{inr(price)}</p>
-        {mrp > price && <p className="text-xs tabular-nums text-slate-400 line-through">{inr(mrp)}</p>}
+        {mrp > price && (
+          <p className="mt-0.5 flex items-center justify-end gap-1 text-xs tabular-nums">
+            <span className="text-slate-400 line-through">{inr(mrp)}</span>
+            <span className="rounded bg-emerald-50 px-1 font-semibold text-emerald-700">{Math.round(((mrp - price) / mrp) * 100)}%</span>
+          </p>
+        )}
       </div>
 
       {/* Desktop columns */}
@@ -75,7 +85,7 @@ function ProductRow({ product, index = 0, imageFor, onEdit }) {
         {mrp > price && (
           <p className="text-xs tabular-nums text-slate-400">
             <span className="line-through">{inr(mrp)}</span>
-            <span className="ml-1 text-brand-700">{Math.round(((mrp - price) / mrp) * 100)}% off</span>
+            <span className="ml-1.5 rounded bg-emerald-50 px-1 font-semibold text-emerald-700">{Math.round(((mrp - price) / mrp) * 100)}% off</span>
           </p>
         )}
       </div>
@@ -83,7 +93,7 @@ function ProductRow({ product, index = 0, imageFor, onEdit }) {
       <div className="hidden md:block">
         <ApprovalBadge status={product.approvalStatus} />
       </div>
-      <ChevronRightIcon className="hidden h-4 w-4 text-slate-300 transition-colors group-hover:text-slate-500 md:block" />
+      <ChevronRightIcon className="hidden h-4 w-4 text-slate-300 transition-[color,transform] duration-200 group-hover:translate-x-0.5 group-hover:text-brand-500 md:block" />
     </button>
   );
 }
@@ -145,6 +155,7 @@ export default function ProductsTab({
         ) : products.length === 0 ? (
           <EmptyState
             icon={PackageIcon}
+            tone="bg-indigo-50 text-indigo-600 ring-1 ring-inset ring-indigo-100"
             title="No products yet"
             description="Pick products from the BuildCity catalogue and set your price."
             action={

@@ -23,7 +23,7 @@ export function ApprovalBadge({ status }) {
   const base = "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset whitespace-nowrap";
   if (status === "PENDING_REVIEW") {
     return (
-      <span className={cx(base, "bg-slate-100 text-slate-600 ring-slate-500/10")}>
+      <span className={cx(base, "bg-amber-50 text-amber-800 ring-amber-600/20")}>
         <ClockIcon className="h-3 w-3" strokeWidth={2} />
         In review
       </span>
@@ -31,14 +31,14 @@ export function ApprovalBadge({ status }) {
   }
   if (status === "REJECTED") {
     return (
-      <span className={cx(base, "bg-brand-50 text-brand-700 ring-brand-600/20")}>
+      <span className={cx(base, "bg-rose-50 text-rose-700 ring-rose-600/20")}>
         <CloseIcon className="h-3 w-3" strokeWidth={2.5} />
         Rejected
       </span>
     );
   }
   return (
-    <span className={cx(base, "bg-white text-slate-800 ring-slate-200")}>
+    <span className={cx(base, "bg-emerald-50 text-emerald-700 ring-emerald-600/20")}>
       <CheckIcon className="h-3 w-3" strokeWidth={2.5} />
       Live
     </span>
@@ -46,8 +46,9 @@ export function ApprovalBadge({ status }) {
 }
 
 const BUTTON_VARIANTS = {
-  primary: "bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-700",
-  dark: "bg-slate-900 text-white hover:bg-slate-800 active:bg-slate-800",
+  primary: "bg-gradient-to-b from-brand-500 to-brand-600 text-white shadow-[0_1px_2px_rgba(154,52,18,0.25),inset_0_1px_0_rgba(255,255,255,0.14)] hover:from-brand-600 hover:to-brand-700 active:to-brand-700",
+  dark: "bg-navy-950 text-white hover:bg-[#0d224d] active:bg-[#0d224d]",
+  success: "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200 hover:bg-emerald-100 active:bg-emerald-100",
   secondary: "bg-white text-slate-800 ring-1 ring-inset ring-slate-200 hover:bg-slate-50 active:bg-slate-100",
   ghost: "text-slate-600 hover:bg-slate-100 hover:text-slate-900 active:bg-slate-200",
   danger: "bg-white text-rose-700 ring-1 ring-inset ring-rose-200 hover:bg-rose-50 active:bg-rose-100",
@@ -94,10 +95,13 @@ export function PageHeader({ title, subtitle, actions }) {
   );
 }
 
-export function SectionTitle({ children, action }) {
+export function SectionTitle({ children, action, accent = "bg-brand-500" }) {
   return (
     <div className="flex items-center justify-between gap-3 px-4 pt-4 pb-2 sm:px-5">
-      <h2 className="text-sm font-semibold text-slate-900">{children}</h2>
+      <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+        <span className={cx("h-3.5 w-1 rounded-full", accent)} aria-hidden="true" />
+        {children}
+      </h2>
       {action}
     </div>
   );
@@ -113,7 +117,7 @@ export function SearchField({ value, onChange, placeholder, label }) {
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         aria-label={label || placeholder}
-        className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-10 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-colors focus:border-slate-400 [&::-webkit-search-cancel-button]:hidden"
+        className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-10 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-[border-color,box-shadow] focus:border-brand-400 focus:ring-4 focus:ring-brand-500/10 [&::-webkit-search-cancel-button]:hidden"
       />
       {value && (
         <button
@@ -129,7 +133,8 @@ export function SearchField({ value, onChange, placeholder, label }) {
   );
 }
 
-export function Chip({ active, onClick, children, count }) {
+// `dot` adds a small colour key (e.g. an order status colour) before the label
+export function Chip({ active, onClick, children, count, dot }) {
   return (
     <button
       type="button"
@@ -137,9 +142,10 @@ export function Chip({ active, onClick, children, count }) {
       aria-pressed={active}
       className={cx(
         "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm font-medium whitespace-nowrap transition-colors duration-150 cursor-pointer",
-        active ? "bg-slate-900 text-white" : "bg-white text-slate-600 ring-1 ring-inset ring-slate-200 hover:bg-slate-50 hover:text-slate-900"
+        active ? "bg-navy-950 text-white shadow-[0_4px_12px_-4px_rgba(7,19,43,0.45)]" : "bg-white text-slate-600 ring-1 ring-inset ring-slate-200 hover:bg-slate-50 hover:text-slate-900"
       )}
     >
+      {dot && <span className={cx("h-2 w-2 rounded-full", dot, active && "ring-2 ring-white/25")} aria-hidden="true" />}
       {children}
       {count !== undefined && (
         <span className={cx("tabular-nums text-xs", active ? "text-slate-300" : "text-slate-400")}>{count}</span>
@@ -186,11 +192,11 @@ export function Segmented({ options, value, onChange, label }) {
   );
 }
 
-export function EmptyState({ icon: IconCmp, title, description, action }) {
+export function EmptyState({ icon: IconCmp, title, description, action, tone = "bg-brand-50 text-brand-600 ring-1 ring-inset ring-brand-100" }) {
   return (
     <div className="flex flex-col items-center px-6 py-12 text-center">
       {IconCmp && (
-        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-500">
+        <div className={cx("mb-3 flex h-12 w-12 items-center justify-center rounded-2xl", tone)}>
           <IconCmp className="h-6 w-6" />
         </div>
       )}
@@ -212,7 +218,7 @@ export function Field({ label, prefix, suffix, hint, className = "", inputClassN
       <label htmlFor={id} className="mb-1.5 block text-sm font-medium text-slate-700">
         {label}
       </label>
-      <div className="flex h-11 items-center rounded-xl border border-slate-200 bg-white transition-colors focus-within:border-slate-400">
+      <div className="flex h-11 items-center rounded-xl border border-slate-200 bg-white transition-[border-color,box-shadow] focus-within:border-brand-400 focus-within:ring-4 focus-within:ring-brand-500/10">
         {prefix && <span className="pl-3.5 text-sm text-slate-400">{prefix}</span>}
         <input
           id={id}
@@ -227,7 +233,8 @@ export function Field({ label, prefix, suffix, hint, className = "", inputClassN
 }
 
 // Bottom sheet on phones, centred dialog from sm: up
-export function Sheet({ open, onClose, title, subtitle, leading, footer, children, size = "md", fullHeightMobile = false }) {
+// `hero` gives the header the navy landing-page surface (used for the catalogue)
+export function Sheet({ open, onClose, title, subtitle, leading, footer, children, size = "md", fullHeightMobile = false, hero = false }) {
   const titleId = useId();
 
   useEffect(() => {
@@ -254,17 +261,22 @@ export function Sheet({ open, onClose, title, subtitle, leading, footer, childre
           size === "lg" ? "sm:max-w-2xl" : "sm:max-w-md"
         )}
       >
-        <div className="flex shrink-0 items-center gap-3 border-b border-slate-100 px-4 py-3 sm:px-5 sm:py-4">
+        {!hero && <span className="vd-hairline absolute inset-x-0 top-0 z-10 hidden h-0.5 sm:block" aria-hidden="true" />}
+        <div className={cx("relative flex shrink-0 items-center gap-3 overflow-hidden px-4 py-3 sm:px-5 sm:py-4", hero ? "vd-hero text-white" : "border-b border-slate-100")}>
+          {hero && <span className="vd-blueprint absolute inset-0" aria-hidden="true" />}
           {leading}
-          <div className="min-w-0 flex-1">
-            <h2 id={titleId} className="truncate text-base font-semibold text-slate-900">{title}</h2>
-            {subtitle && <p className="truncate text-sm text-slate-500">{subtitle}</p>}
+          <div className="relative min-w-0 flex-1">
+            <h2 id={titleId} className={cx("truncate text-base font-semibold", hero ? "text-white" : "text-slate-900")}>{title}</h2>
+            {subtitle && <p className={cx("truncate text-sm", hero ? "text-slate-300" : "text-slate-500")}>{subtitle}</p>}
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="-mr-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
+            className={cx(
+              "relative -mr-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-[background-color,transform] duration-300 hover:rotate-90 cursor-pointer",
+              hero ? "text-slate-300 hover:bg-white/10 hover:text-white" : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+            )}
           >
             <CloseIcon className="h-5 w-5" />
           </button>

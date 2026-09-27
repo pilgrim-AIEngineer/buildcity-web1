@@ -29,15 +29,17 @@ export default function VendorShell({ shopName, ownerName, districtName, activeT
     <div data-vendor-app className="min-h-dvh bg-slate-50 text-slate-900">
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-slate-200 bg-white md:flex">
+        <span className="vd-hairline h-0.5 shrink-0" aria-hidden="true" />
         <div className="flex h-16 items-center gap-2 px-5">
           <Logo size="sm" hideSubtitle />
-          <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Partner</span>
+          <span className="rounded-md bg-brand-50 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-brand-700 ring-1 ring-inset ring-brand-600/15">Partner</span>
         </div>
 
-        <div className="mx-3 mb-4 rounded-xl border border-slate-200 px-3 py-3">
-          <p className="truncate text-sm font-semibold text-slate-900" title={shopName}>{shopName}</p>
-          <p className="mt-0.5 flex items-center gap-1 truncate text-xs text-slate-500">
-            <MapPinIcon className="h-3.5 w-3.5 shrink-0" />
+        <div className="vd-hero relative mx-3 mb-4 overflow-hidden rounded-xl px-3 py-3 text-white">
+          <span className="vd-blueprint absolute inset-0" aria-hidden="true" />
+          <p className="relative truncate text-sm font-semibold" title={shopName}>{shopName}</p>
+          <p className="relative mt-0.5 flex items-center gap-1 truncate text-xs text-slate-300">
+            <MapPinIcon className="h-3.5 w-3.5 shrink-0 text-brand-400" />
             {districtName}
           </p>
         </div>
@@ -45,7 +47,7 @@ export default function VendorShell({ shopName, ownerName, districtName, activeT
         <nav aria-label="Main" className="relative flex-1 space-y-0.5 px-3">
           <span
             aria-hidden="true"
-            className="absolute left-3 right-3 top-0 h-11 rounded-xl bg-slate-100 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+            className="absolute left-3 right-3 top-0 h-11 rounded-xl bg-brand-50 ring-1 ring-inset ring-brand-600/10 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
             style={{ transform: `translateY(calc(${activeIndex} * (2.75rem + 0.125rem)))` }}
           />
           {VENDOR_TABS.map(({ key, label, icon: TabIcon }) => {
@@ -58,7 +60,7 @@ export default function VendorShell({ shopName, ownerName, districtName, activeT
                 aria-current={active ? "page" : undefined}
                 className={cx(
                   "relative z-10 flex h-11 w-full items-center gap-3 rounded-xl px-3 text-sm font-medium transition-colors duration-200 cursor-pointer",
-                  active ? "text-slate-900" : "text-slate-600 hover:text-slate-900"
+                  active ? "text-brand-800" : "text-slate-600 hover:text-slate-900"
                 )}
               >
                 <TabIcon className={cx("h-5 w-5 transition-colors duration-200", active ? "text-brand-600" : "text-slate-400")} strokeWidth={active ? 2 : 1.75} />
@@ -73,7 +75,7 @@ export default function VendorShell({ shopName, ownerName, districtName, activeT
           <button
             type="button"
             onClick={onAddProduct}
-            className="group flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand-600 text-sm font-semibold text-white shadow-[0_1px_2px_rgba(154,52,18,0.25),inset_0_1px_0_rgba(255,255,255,0.12)] transition-[background-color,transform] hover:bg-brand-700 active:scale-[0.98] cursor-pointer"
+            className="group flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-brand-500 to-brand-600 text-sm font-semibold text-white shadow-[0_6px_16px_-6px_rgba(194,65,12,0.55),inset_0_1px_0_rgba(255,255,255,0.14)] transition-[filter,transform] hover:brightness-105 active:scale-[0.98] cursor-pointer"
           >
             <PlusIcon className="h-4 w-4 transition-transform duration-300 group-hover:rotate-90" strokeWidth={2.25} />
             Add product
@@ -83,11 +85,15 @@ export default function VendorShell({ shopName, ownerName, districtName, activeT
 
       {/* Phone top bar */}
       <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur md:hidden">
+        <span className="vd-hairline block h-0.5" aria-hidden="true" />
         <div className="flex h-14 items-center gap-2.5 px-4">
           <Logo size="sm" iconOnly />
           <div className="min-w-0 flex-1 leading-tight">
             <p className="truncate text-[15px] font-semibold text-slate-900">{shopName}</p>
-            <p className="truncate text-xs text-slate-500">{districtName}</p>
+            <p className="flex items-center gap-1 truncate text-xs text-slate-500">
+              <MapPinIcon className="h-3 w-3 shrink-0 text-brand-500" />
+              {districtName}
+            </p>
           </div>
           <button
             type="button"
@@ -95,7 +101,9 @@ export default function VendorShell({ shopName, ownerName, districtName, activeT
             aria-label="Account"
             className={cx(
               "flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold transition-colors cursor-pointer",
-              activeTab === "profile" ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+              activeTab === "profile"
+                ? "bg-gradient-to-br from-brand-500 to-amber-500 text-white ring-2 ring-brand-200"
+                : "bg-brand-50 text-brand-700 ring-1 ring-inset ring-brand-200 hover:bg-brand-100"
             )}
           >
             {initialOf(ownerName)}
@@ -128,7 +136,7 @@ export default function VendorShell({ shopName, ownerName, districtName, activeT
                 aria-current={active ? "page" : undefined}
                 className={cx(
                   "relative flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors cursor-pointer",
-                  active ? "text-slate-900" : "text-slate-400 active:text-slate-600"
+                  active ? "text-brand-700" : "text-slate-400 active:text-slate-600"
                 )}
               >
                 <span className={cx("relative transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]", active && "-translate-y-0.5")}>

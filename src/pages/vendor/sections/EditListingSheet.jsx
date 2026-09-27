@@ -47,13 +47,15 @@ export default function EditListingSheet({ product, image, onClose, onSubmit, on
           <Field label="Stock" type="number" inputMode="numeric" required min="0" value={product.stockQty} onChange={(e) => onStockChange(e.target.value)} />
         </div>
 
-        <div className="rounded-xl bg-slate-50 px-4 py-3">
-          <p className="text-xs text-slate-500">Customers see</p>
+        <div className="rounded-xl bg-gradient-to-br from-emerald-50 to-white px-4 py-3 ring-1 ring-inset ring-emerald-200/70">
+          <p className="text-xs font-medium text-emerald-700">Customers see</p>
           <p className="mt-1 flex flex-wrap items-baseline gap-x-2 text-sm">
             <span className="text-base font-semibold tabular-nums text-slate-900">{inr(price)}</span>
             <span className="text-slate-400">/ {product.unit || "unit"}</span>
             {mrp > price && <span className="tabular-nums text-slate-400 line-through">{inr(mrp)}</span>}
-            {discount > 0 && <span className="font-medium text-brand-700">{discount}% off</span>}
+            {discount > 0 && (
+              <span key={discount} className="vd-page rounded-md bg-emerald-600 px-1.5 py-0.5 text-xs font-semibold text-white">{discount}% off</span>
+            )}
           </p>
         </div>
       </form>

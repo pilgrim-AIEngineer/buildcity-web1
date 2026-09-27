@@ -2,6 +2,7 @@ import LoadMoreButton from "../../../components/LoadMoreButton";
 import OrderCard from "./OrderCard";
 import { InboxIcon, SearchIcon } from "../ui/icons";
 import { PageHeader, Segmented, Chip, ChipRow, SearchField, Card, EmptyState, Button } from "../ui/primitives";
+import { ORDER_STATUS } from "../ui/format";
 
 const countBy = (list, status) => list.filter((o) => (o.status || "PENDING").toUpperCase() === status).length;
 
@@ -65,11 +66,11 @@ export default function OrdersTab({
 
         <ChipRow>
           {filters.map((f) => (
-            <Chip key={f.value} active={statusFilter === f.value} count={f.count} onClick={() => onStatusFilterChange(f.value)}>
+            <Chip key={f.value} active={statusFilter === f.value} count={f.count} dot={ORDER_STATUS[f.value]?.dot} onClick={() => onStatusFilterChange(f.value)}>
               {f.label}
             </Chip>
           ))}
-          <Chip active={statusFilter === "REPEAT_BUYERS"} onClick={() => onStatusFilterChange(statusFilter === "REPEAT_BUYERS" ? "ALL" : "REPEAT_BUYERS")}>
+          <Chip active={statusFilter === "REPEAT_BUYERS"} dot="bg-amber-400" onClick={() => onStatusFilterChange(statusFilter === "REPEAT_BUYERS" ? "ALL" : "REPEAT_BUYERS")}>
             Repeat customers
           </Chip>
         </ChipRow>
@@ -80,7 +81,7 @@ export default function OrdersTab({
       <div className="mt-4">
         {vendorOrders.length === 0 ? (
           <Card>
-            <EmptyState icon={InboxIcon} title="No orders yet" description="New orders will show up here." />
+            <EmptyState icon={InboxIcon} tone="bg-amber-50 text-amber-600 ring-1 ring-inset ring-amber-100" title="No orders yet" description="New orders will show up here." />
           </Card>
         ) : filteredOrders.length === 0 ? (
           <Card>

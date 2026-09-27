@@ -58,7 +58,7 @@ export default function WeeklyActivity({ orders }) {
                 <span
                   className={cx(
                     "vd-bar block w-full max-w-9 rounded-t-[4px] transition-colors duration-200",
-                    i === 6 ? "bg-brand-500" : active === i ? "bg-slate-500" : "bg-slate-300 group-hover:bg-slate-400"
+                    i === 6 ? "bg-gradient-to-t from-brand-600 to-amber-400" : active === i ? "bg-sky-500" : "bg-sky-200 group-hover:bg-sky-300"
                   )}
                   style={{ height: `${h}%`, "--i": i }}
                 />
@@ -71,7 +71,7 @@ export default function WeeklyActivity({ orders }) {
       </div>
       <div className="mt-2 grid grid-cols-7 gap-2 border-t border-slate-100 pt-2 sm:gap-3">
         {days.map((d, i) => (
-          <span key={i} className={cx("text-center text-[11px]", i === 6 || active === i ? "font-semibold text-slate-900" : "text-slate-400")}>
+          <span key={i} className={cx("text-center text-[11px]", i === 6 ? "font-semibold text-brand-700" : active === i ? "font-semibold text-sky-700" : "text-slate-400")}>
             {i === 6 ? "Today" : d.date.toLocaleDateString("en-IN", { weekday: "short" })}
           </span>
         ))}

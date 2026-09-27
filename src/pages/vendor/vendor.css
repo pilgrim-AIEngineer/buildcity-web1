@@ -1,5 +1,37 @@
 /* Vendor app motion — calm, purposeful, and off under prefers-reduced-motion */
 
+/* Colour: the storefront landing hero (deep navy gradient + warm orange glow)
+   carried into the partner app for headline surfaces */
+.vd-hero {
+  background-color: #07132b;
+  background-image:
+    radial-gradient(120% 140% at 100% 0%, rgba(234, 88, 12, 0.24) 0%, rgba(234, 88, 12, 0) 48%),
+    linear-gradient(100deg, #07132b 0%, #0a1a3a 55%, #0d224d 100%);
+}
+/* Faint blueprint grid, fading in from the right */
+.vd-blueprint {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 22px 22px;
+  -webkit-mask-image: linear-gradient(115deg, transparent 30%, #000 100%);
+  mask-image: linear-gradient(115deg, transparent 30%, #000 100%);
+  pointer-events: none;
+}
+/* Brand hairline: the orange-to-amber of the roof mark */
+.vd-hairline {
+  background-image: linear-gradient(90deg, #c2410c 0%, #f97316 55%, #fbbf24 100%);
+}
+
+/* Soft ring pulse for the one thing that needs the vendor right now */
+@keyframes vd-ring {
+  0% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.55); }
+  70%, 100% { box-shadow: 0 0 0 7px rgba(251, 191, 36, 0); }
+}
+.vd-ring {
+  animation: vd-ring 1.8s ease-out infinite;
+}
+
 [data-vendor-app] {
   --vd-ease: cubic-bezier(0.22, 1, 0.36, 1);
   -webkit-tap-highlight-color: transparent;
@@ -112,7 +144,8 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-  [data-vendor-app] .vd-countdown {
+  [data-vendor-app] .vd-countdown,
+  [data-vendor-app] .vd-ring {
     animation: none !important;
   }
 }

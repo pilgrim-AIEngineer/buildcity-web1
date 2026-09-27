@@ -10,7 +10,7 @@ import StatusControl from "./order/StatusControl";
 /**
  * Order tile — each fact once, whitespace instead of dividers:
  *   Customer name ──────────────── total
- *   ● status · time · 2nd order     Collect / Paid
+ *   time · 2nd order                Collect / Paid
  *   📍 address (2 lines)             Map
  *   qty × item ………………………………… line total
  *        Delivery ………………………………… fee
@@ -58,11 +58,7 @@ export default function OrderCard({ order, index = 0, now, districtName, custome
               {isHighlighted && <span className="shrink-0 rounded-full bg-brand-600 px-2 py-0.5 text-[11px] font-semibold text-white">New</span>}
             </div>
             <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-slate-500">
-              <span className={cx("inline-flex items-center gap-1 font-medium", statusCfg.text)}>
-                <span className={cx("h-1.5 w-1.5 rounded-full", statusCfg.dot)} aria-hidden="true" />
-                {statusCfg.label}
-              </span>
-              <span aria-hidden="true">·</span>
+              {/* Status itself is shown by the tile colour and the status control at the bottom */}
               <span title={view.time.full}>{view.time.short}</span>
               {view.status === "PENDING" && view.ageMinutes >= 60 && <span className="text-coral-700">(waiting {view.age})</span>}
               {orderCount > 1 && (

@@ -101,6 +101,14 @@ function CatchAll() {
   return <Navigate to={target} replace />;
 }
 
+// TEMP-VENDOR-WEB-LOGIN: keeps the delivery-location picker off the temporary /vendor/login page.
+// Remove before merging into main (and render <FirstTimeLocationModal /> directly again).
+function StorefrontLocationModal() {
+  const { pathname } = useLocation();
+  if (pathname === "/vendor/login") return null;
+  return <FirstTimeLocationModal />;
+}
+
 function ScrollToTop() {
   const { pathname } = useLocation();
 
@@ -153,11 +161,13 @@ export default function App() {
                       <BrowserRouter>
                         <ScrollToTop />
                         <NativeBackButtonHandler />
-                        {!isVendorApp && <FirstTimeLocationModal />}
+                        {!isVendorApp && <StorefrontLocationModal />}
                         <StorefrontMobileNav />
                         {!isVendorApp && <FloatingCartBar />}
                         <Routes>
                   <Route path="/login" element={<Login />} />
+                  {/* TEMP-VENDOR-WEB-LOGIN: temporary vendor password login on web. Remove before merging into main. */}
+                  <Route path="/vendor/login" element={<Login forceVendorMode />} />
                   <Route path="/register" element={<Register />} />
 
                   {/* Public Storefront or Dedicated Vendor Root */}

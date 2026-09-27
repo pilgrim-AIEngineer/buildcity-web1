@@ -10,7 +10,9 @@ import { initVendorPushNotifications, getDeviceFcmToken } from "../../utils/push
 const isVendorApp = import.meta.env.VITE_APP_MODE === "vendor";
 
 // Login Page component — User / Vendor / DR / Admin ka universal login screen
-export default function Login() {
+// TEMP-VENDOR-WEB-LOGIN: `forceVendorMode` powers the temporary /vendor/login web route.
+// Remove it (and the route in App.jsx) before merging into main.
+export default function Login({ forceVendorMode = false }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/";
@@ -18,7 +20,7 @@ export default function Login() {
   const { requestOtp, verifyOtp, vendorLogin } = useAuth();
 
   // Mode: "standard" (OTP for Customer) vs "vendor" (Phone & Password for Vendor / DR / Admin Partners)
-  const [mode, setMode] = useState(isVendorApp ? "vendor" : "standard");
+  const [mode, setMode] = useState(isVendorApp || forceVendorMode ? "vendor" : "standard");
   const [step, setStep] = useState("phone"); // "phone" | "otp"
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -231,7 +233,7 @@ export default function Login() {
       )}
 
       <h1 className="text-2xl font-black text-navy-900 mb-1 tracking-tight">
-        {isVendorApp ? "BuildCity Partner Login 🏬" : mode === "vendor" ? "Partner Portal Login 🏬" : "Welcome back 👋"}
+        {isVendorApp || forceVendorMode ? "BuildCity Partner Login 🏬" : mode === "vendor" ? "Partner Portal Login 🏬" : "Welcome back 👋"}
       </h1>
       <p className="text-xs text-slate-500 mb-6">
         {isVendorApp || mode === "vendor"

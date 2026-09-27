@@ -10,8 +10,7 @@ import { initVendorPushNotifications, getDeviceFcmToken, markFcmTokenSynced } fr
 const isVendorApp = import.meta.env.VITE_APP_MODE === "vendor";
 
 // Login Page component — User / Vendor / DR / Admin ka universal login screen
-// TEMP-VENDOR-WEB-LOGIN: `forceVendorMode` powers the temporary /vendor/login web route.
-// Remove it (and the route in App.jsx) before merging into main.
+// `forceVendorMode` powers the /vendor/login web route (vendor password login on the web).
 export default function Login({ forceVendorMode = false }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();

@@ -1,13 +1,12 @@
 import { getOrderView } from "../orderView";
-import { PhoneIcon, MapPinIcon, ChevronDownIcon, MoreIcon } from "../ui/icons";
+import { PhoneIcon, MapPinIcon, ChevronDownIcon } from "../ui/icons";
 import { Button, StatusBadge, Spinner } from "../ui/primitives";
-import { ORDER_STATUS, NEXT_ORDER_STEP, cx, inr } from "../ui/format";
+import { ORDER_STATUS, cx, inr } from "../ui/format";
 
 const STATUS_OPTIONS = ["PENDING", "PROCESSING", "OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED"];
 
 export default function OrderCard({ order, districtName, customerStats, isHighlighted, transition, isUpdating, onStatusChange }) {
   const view = getOrderView(order, districtName);
-  const next = NEXT_ORDER_STEP[view.status];
   const isTransitioning = transition && String(transition.orderId) === String(order.id);
 
   return (
@@ -82,46 +81,23 @@ export default function OrderCard({ order, districtName, customerStats, isHighli
                 <PhoneIcon className="h-[18px] w-[18px]" />
               </Button>
             )}
-            {next && (
-              <Button variant={view.status === "PENDING" ? "primary" : "dark"} className="flex-1" disabled={isUpdating} onClick={() => onStatusChange(order.id, next.status)}>
-                {next.label}
-              </Button>
-            )}
-            {next ? (
-              <label className="relative h-11 w-11 shrink-0">
-                <span className="sr-only">Change status</span>
-                <select
-                  disabled={isUpdating}
-                  value={view.status}
-                  onChange={(e) => onStatusChange(order.id, e.target.value)}
-                  className="h-full w-full appearance-none rounded-xl bg-white text-transparent ring-1 ring-inset ring-slate-200 outline-none transition-colors hover:bg-slate-50 cursor-pointer disabled:opacity-50"
-                >
-                  {STATUS_OPTIONS.map((s) => (
-                    <option key={s} value={s} className="text-slate-900">
-                      {ORDER_STATUS[s].label}
-                    </option>
-                  ))}
-                </select>
-                <MoreIcon className="pointer-events-none absolute left-1/2 top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 text-slate-500" />
-              </label>
-            ) : (
-              <label className="relative flex-1">
-                <span className="sr-only">Change status</span>
-                <select
-                  disabled={isUpdating}
-                  value={view.status}
-                  onChange={(e) => onStatusChange(order.id, e.target.value)}
-                  className="h-11 w-full appearance-none rounded-xl bg-white pl-3.5 pr-9 text-sm font-medium text-slate-700 ring-1 ring-inset ring-slate-200 outline-none transition-colors hover:bg-slate-50 cursor-pointer disabled:opacity-50"
-                >
-                  {STATUS_OPTIONS.map((s) => (
-                    <option key={s} value={s}>
-                      {ORDER_STATUS[s].label}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              </label>
-            )}
+            <label className="relative flex-1">
+              <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-sm text-slate-500">Status</span>
+              <select
+                aria-label="Order status"
+                disabled={isUpdating}
+                value={view.status}
+                onChange={(e) => onStatusChange(order.id, e.target.value)}
+                className="h-11 w-full appearance-none rounded-xl bg-white pl-[4.25rem] pr-9 text-sm font-semibold text-slate-900 ring-1 ring-inset ring-slate-200 outline-none transition-colors hover:bg-slate-50 cursor-pointer disabled:opacity-50"
+              >
+                {STATUS_OPTIONS.map((s) => (
+                  <option key={s} value={s}>
+                    {ORDER_STATUS[s].label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            </label>
           </div>
         )}
       </div>

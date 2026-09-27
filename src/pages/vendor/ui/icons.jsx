@@ -183,11 +183,3 @@ export const TruckIcon = (p) => (
     <circle cx="7" cy="18" r="2" />
   </Icon>
 );
-
-export const MoreIcon = (p) => (
-  <Icon {...p}>
-    <circle cx="12" cy="12" r="1" />
-    <circle cx="19" cy="12" r="1" />
-    <circle cx="5" cy="12" r="1" />
-  </Icon>
-);

@@ -63,7 +63,7 @@ export default function OverviewTab({
             <span className="block text-sm font-semibold text-amber-900">
               {pendingOrdersCount} {pendingOrdersCount === 1 ? "order needs" : "orders need"} your response
             </span>
-            <span className="block text-xs text-amber-800/80">Accept to start processing</span>
+            <span className="block text-xs text-amber-800/80">Review and update their status</span>
           </span>
           <ChevronRightIcon className="h-5 w-5 shrink-0 text-amber-700" />
         </button>

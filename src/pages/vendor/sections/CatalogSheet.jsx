@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { ProductThumb } from "./ProductsTab";
 import { CheckIcon, SearchIcon } from "../ui/icons";
 import { Sheet, SearchField, Chip, ChipRow, Button, Field, EmptyState, Spinner } from "../ui/primitives";
@@ -5,8 +6,19 @@ import { cx, inr } from "../ui/format";
 
 function OfferForm({ form, onSubmit, onCancel, isSubmitting }) {
   const { mrp, discountPct, sellingPrice, stockQty, onMrpChange, onDiscountChange, onSellingPriceChange, onStockChange } = form;
+  const formRef = useRef(null);
+
+  // Bring the price form into view when it opens
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }));
+    return () => cancelAnimationFrame(raf);
+  }, []);
   return (
-    <form onSubmit={onSubmit} className="space-y-4 border-t border-slate-100 bg-slate-50/70 px-4 py-4 sm:px-5">
+    <form
+      onSubmit={onSubmit}
+      ref={formRef}
+      className="vd-page space-y-4 border-t border-slate-100 bg-slate-50/70 px-4 py-4 sm:px-5"
+    >
       <div className="grid grid-cols-2 gap-3">
         <Field label="MRP" prefix="₹" type="number" inputMode="numeric" required min="1" placeholder="2500" value={mrp} onChange={(e) => onMrpChange(e.target.value)} />
         <Field label="Discount" suffix="%" type="number" inputMode="numeric" min="0" max="90" placeholder="10" value={discountPct} onChange={(e) => onDiscountChange(e.target.value)} />
@@ -18,7 +30,7 @@ function OfferForm({ form, onSubmit, onCancel, isSubmitting }) {
         <span className="text-slate-500">Customers see</span>
         <span className="font-semibold tabular-nums text-slate-900">{inr(sellingPrice)}</span>
         {Number(mrp) > Number(sellingPrice) && <span className="tabular-nums text-slate-400 line-through">{inr(mrp)}</span>}
-        {Number(discountPct) > 0 && <span className="font-medium text-emerald-700">{discountPct}% off</span>}
+        {Number(discountPct) > 0 && <span className="font-medium text-brand-700">{discountPct}% off</span>}
       </div>
 
       <div className="flex gap-2">
@@ -78,14 +90,14 @@ export default function CatalogSheet({
       {products.length === 0 ? (
         <EmptyState icon={SearchIcon} title="No products found" description="Try another search or category." />
       ) : (
-        <ul className="divide-y divide-slate-100 pb-[env(safe-area-inset-bottom)]">
-          {products.map((mp) => {
+        <ul className="vd-stagger divide-y divide-slate-100 pb-[env(safe-area-inset-bottom)]">
+          {products.map((mp, idx) => {
             const inStore = isInStore(mp);
             const selected = selectedId === mp.id;
             const img = imageFor(mp);
             const meta = [mp.brand, mp.grade, mp.unit].filter(Boolean).join(" · ");
             return (
-              <li key={mp.id} id={`catalog-product-row-${mp.id}`} className={cx(selected && "bg-white")}>
+              <li key={mp.id} id={`catalog-product-row-${mp.id}`} style={{ "--i": idx }} className={cx(selected && "bg-white")}>
                 <div className="flex items-center gap-3 px-4 py-3 sm:px-5">
                   <ProductThumb src={img.src} fallback={img.fallback} alt={mp.name} />
                   <div className="min-w-0 flex-1">
@@ -96,7 +108,7 @@ export default function CatalogSheet({
                     </p>
                   </div>
                   {inStore ? (
-                    <span className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-emerald-700">
+                    <span className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-slate-500">
                       <CheckIcon className="h-4 w-4" strokeWidth={2.25} />
                       Added
                     </span>

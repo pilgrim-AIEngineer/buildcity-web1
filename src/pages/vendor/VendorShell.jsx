@@ -1,6 +1,7 @@
 import Logo from "../../components/Logo";
 import { OrdersIcon, PackageIcon, OverviewIcon, UserIcon, PlusIcon, MapPinIcon } from "./ui/icons";
 import { cx } from "./ui/format";
+import "./vendor.css";
 
 const VENDOR_TABS = [
   { key: "orders", label: "Orders", icon: OrdersIcon },
@@ -21,7 +22,9 @@ function CountBadge({ count, className = "" }) {
 }
 
 // Vendor app frame: sidebar on desktop, top bar + bottom tabs on phones
-export default function VendorShell({ shopName, ownerName, districtName, activeTab, onTabChange, activeOrdersCount, onAddProduct, children }) {
+export default function VendorShell({ shopName, ownerName, districtName, activeTab, onTabChange, activeOrdersCount, onAddProduct, overlays, children }) {
+  const activeIndex = Math.max(0, VENDOR_TABS.findIndex((t) => t.key === activeTab));
+
   return (
     <div data-vendor-app className="min-h-dvh bg-slate-50 text-slate-900">
       {/* Desktop sidebar */}
@@ -39,7 +42,12 @@ export default function VendorShell({ shopName, ownerName, districtName, activeT
           </p>
         </div>
 
-        <nav aria-label="Main" className="flex-1 space-y-0.5 px-3">
+        <nav aria-label="Main" className="relative flex-1 space-y-0.5 px-3">
+          <span
+            aria-hidden="true"
+            className="absolute left-3 right-3 top-0 h-11 rounded-xl bg-slate-100 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+            style={{ transform: `translateY(calc(${activeIndex} * (2.75rem + 0.125rem)))` }}
+          />
           {VENDOR_TABS.map(({ key, label, icon: TabIcon }) => {
             const active = activeTab === key;
             return (
@@ -49,11 +57,11 @@ export default function VendorShell({ shopName, ownerName, districtName, activeT
                 onClick={() => onTabChange(key)}
                 aria-current={active ? "page" : undefined}
                 className={cx(
-                  "flex h-11 w-full items-center gap-3 rounded-xl px-3 text-sm font-medium transition-colors duration-150 cursor-pointer",
-                  active ? "bg-slate-100 text-slate-900" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  "relative z-10 flex h-11 w-full items-center gap-3 rounded-xl px-3 text-sm font-medium transition-colors duration-200 cursor-pointer",
+                  active ? "text-slate-900" : "text-slate-600 hover:text-slate-900"
                 )}
               >
-                <TabIcon className={cx("h-5 w-5", active ? "text-brand-600" : "text-slate-400")} />
+                <TabIcon className={cx("h-5 w-5 transition-colors duration-200", active ? "text-brand-600" : "text-slate-400")} strokeWidth={active ? 2 : 1.75} />
                 <span className="flex-1 text-left">{label}</span>
                 {key === "orders" && <CountBadge count={activeOrdersCount} />}
               </button>
@@ -65,9 +73,9 @@ export default function VendorShell({ shopName, ownerName, districtName, activeT
           <button
             type="button"
             onClick={onAddProduct}
-            className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand-600 text-sm font-semibold text-white transition-colors hover:bg-brand-700 cursor-pointer"
+            className="group flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand-600 text-sm font-semibold text-white shadow-[0_1px_2px_rgba(154,52,18,0.25),inset_0_1px_0_rgba(255,255,255,0.12)] transition-[background-color,transform] hover:bg-brand-700 active:scale-[0.98] cursor-pointer"
           >
-            <PlusIcon className="h-4 w-4" strokeWidth={2.25} />
+            <PlusIcon className="h-4 w-4 transition-transform duration-300 group-hover:rotate-90" strokeWidth={2.25} />
             Add product
           </button>
         </div>
@@ -96,15 +104,20 @@ export default function VendorShell({ shopName, ownerName, districtName, activeT
       </header>
 
       <main className="md:pl-64">
-        <div className="mx-auto w-full max-w-5xl px-4 pb-28 pt-5 sm:px-6 md:pb-12 md:pt-8 lg:px-8">{children}</div>
+        <div key={activeTab} className="vd-page mx-auto w-full max-w-5xl px-4 pb-28 pt-5 sm:px-6 md:pb-12 md:pt-8 lg:px-8">{children}</div>
       </main>
+
+      {overlays}
 
       {/* Phone bottom tabs */}
       <nav
         aria-label="Main"
         className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur pb-[env(safe-area-inset-bottom)] md:hidden"
       >
-        <div className="mx-auto grid max-w-lg grid-cols-4">
+        <div className="relative mx-auto grid max-w-lg grid-cols-4">
+          <span aria-hidden="true" className="absolute top-0 left-0 flex h-0.5 w-1/4 justify-center transition-transform duration-[400ms] ease-[cubic-bezier(0.22,1,0.36,1)]" style={{ transform: `translateX(${activeIndex * 100}%)` }}>
+            <span className="h-full w-10 rounded-full bg-brand-600" />
+          </span>
           {VENDOR_TABS.map(({ key, label, icon: TabIcon }) => {
             const active = activeTab === key;
             return (
@@ -118,9 +131,8 @@ export default function VendorShell({ shopName, ownerName, districtName, activeT
                   active ? "text-slate-900" : "text-slate-400 active:text-slate-600"
                 )}
               >
-                {active && <span className="absolute inset-x-6 top-0 h-0.5 rounded-full bg-brand-600" aria-hidden="true" />}
-                <span className="relative">
-                  <TabIcon className={cx("h-6 w-6", active && "text-brand-600")} />
+                <span className={cx("relative transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]", active && "-translate-y-0.5")}>
+                  <TabIcon className={cx("h-6 w-6 transition-colors duration-200", active && "text-brand-600")} strokeWidth={active ? 2 : 1.75} />
                   {key === "orders" && <CountBadge count={activeOrdersCount} className="absolute -right-3 -top-1.5 ring-2 ring-white" />}
                 </span>
                 {label}

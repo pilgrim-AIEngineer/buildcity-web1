@@ -13,7 +13,7 @@ export function ProductThumb({ src, fallback, alt, className = "h-12 w-12" }) {
         e.currentTarget.onerror = null;
         e.currentTarget.src = fallback;
       }}
-      className={cx("shrink-0 rounded-xl border border-slate-100 bg-slate-50 object-cover", className)}
+      className={cx("shrink-0 rounded-xl border border-slate-100 bg-slate-50 object-cover transition-transform duration-300 group-hover:scale-[1.04]", className)}
     />
   );
 }
@@ -21,10 +21,10 @@ export function ProductThumb({ src, fallback, alt, className = "h-12 w-12" }) {
 export function ProductRowSkeleton() {
   return (
     <div className="flex items-center gap-3 px-4 py-3">
-      <div className="h-12 w-12 shrink-0 rounded-xl bg-slate-100" />
+      <div className="vd-skeleton h-12 w-12 shrink-0 rounded-xl" />
       <div className="flex-1 space-y-2">
-        <div className="h-3.5 w-2/3 rounded bg-slate-100" />
-        <div className="h-3 w-1/3 rounded bg-slate-100" />
+        <div className="vd-skeleton h-3.5 w-2/3 rounded" />
+        <div className="vd-skeleton h-3 w-1/3 rounded" />
       </div>
     </div>
   );
@@ -32,10 +32,10 @@ export function ProductRowSkeleton() {
 
 function stockLabel(qty) {
   const n = Number(qty) || 0;
-  return n > 0 ? { text: `${n.toLocaleString("en-IN")} in stock`, cls: "text-slate-500" } : { text: "Out of stock", cls: "text-rose-600 font-medium" };
+  return n > 0 ? { text: `${n.toLocaleString("en-IN")} in stock`, cls: "text-slate-500" } : { text: "Out of stock", cls: "text-brand-700 font-medium" };
 }
 
-function ProductRow({ product, imageFor, onEdit }) {
+function ProductRow({ product, index = 0, imageFor, onEdit }) {
   const img = imageFor(product);
   const stock = stockLabel(product.stockQty);
   const price = Number(product.price) || 0;
@@ -46,6 +46,7 @@ function ProductRow({ product, imageFor, onEdit }) {
     <button
       type="button"
       onClick={() => onEdit(product)}
+      style={{ "--i": index }}
       className="group grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50 active:bg-slate-100 cursor-pointer md:grid-cols-[auto_minmax(0,1fr)_8rem_8rem_6rem_1.25rem] md:gap-4 sm:px-5"
     >
       <ProductThumb src={img.src} fallback={img.fallback} alt={product.name} />
@@ -74,7 +75,7 @@ function ProductRow({ product, imageFor, onEdit }) {
         {mrp > price && (
           <p className="text-xs tabular-nums text-slate-400">
             <span className="line-through">{inr(mrp)}</span>
-            <span className="ml-1 text-emerald-700">{Math.round(((mrp - price) / mrp) * 100)}% off</span>
+            <span className="ml-1 text-brand-700">{Math.round(((mrp - price) / mrp) * 100)}% off</span>
           </p>
         )}
       </div>
@@ -180,9 +181,9 @@ export default function ProductsTab({
               <span>Status</span>
               <span />
             </div>
-            <div className="divide-y divide-slate-100">
-              {displayedProducts.map((p) => (
-                <ProductRow key={p.id} product={p} imageFor={imageFor} onEdit={onEdit} />
+            <div className="vd-stagger divide-y divide-slate-100">
+              {displayedProducts.map((p, idx) => (
+                <ProductRow key={p.id} index={idx} product={p} imageFor={imageFor} onEdit={onEdit} />
               ))}
             </div>
           </>

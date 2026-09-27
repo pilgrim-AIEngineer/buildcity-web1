@@ -8,8 +8,8 @@ export default function NewOrderToast({ order, onView, onDismiss }) {
   const itemCount = Array.isArray(order.items) ? order.items.length : 1;
 
   return (
-    <div className="fixed inset-x-3 top-3 z-50 sm:inset-x-auto sm:right-6 sm:top-6 sm:w-96 vendor-rise" role="status" aria-live="polite">
-      <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-lg">
+    <div key={order.id} className="fixed inset-x-3 top-3 z-50 sm:inset-x-auto sm:right-6 sm:top-6 sm:w-96 vd-toast" role="status" aria-live="polite">
+      <div className="relative flex items-start gap-3 overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_24px_48px_-16px_rgba(15,23,42,0.28)]">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-700">
           <BellIcon className="h-5 w-5" />
         </span>
@@ -30,6 +30,9 @@ export default function NewOrderToast({ order, onView, onDismiss }) {
         >
           <CloseIcon className="h-4 w-4" />
         </button>
+        <span className="absolute inset-x-0 bottom-0 h-0.5 bg-slate-100" aria-hidden="true">
+          <span className="vd-countdown block h-full bg-brand-500" />
+        </span>
       </div>
     </div>
   );

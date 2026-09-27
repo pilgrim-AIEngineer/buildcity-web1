@@ -1,11 +1,49 @@
 import { getOrderView } from "../orderView";
 import { PhoneIcon, MapPinIcon, ChevronDownIcon } from "../ui/icons";
 import { Button, StatusBadge, Spinner } from "../ui/primitives";
-import { ORDER_STATUS, cx, inr } from "../ui/format";
+import { ORDER_STATUS, ORDER_STEPS, cx, inr } from "../ui/format";
 
 const STATUS_OPTIONS = ["PENDING", "PROCESSING", "OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED"];
+const STEP_LABELS = ["Placed", "Processing", "Dispatched", "Delivered"];
 
-export default function OrderCard({ order, districtName, customerStats, isHighlighted, transition, isUpdating, onStatusChange }) {
+// Where the order is on its way to site: done steps in ink, the current one in the accent
+function ProgressTrack({ status }) {
+  const step = ORDER_STEPS.indexOf(status);
+  if (step < 0) {
+    return (
+      <div className="flex items-center gap-2 text-xs text-slate-400">
+        <span className="h-1 flex-1 rounded-full bg-slate-100" />
+        Order cancelled
+        <span className="h-1 flex-1 rounded-full bg-slate-100" />
+      </div>
+    );
+  }
+  const done = step === ORDER_STEPS.length - 1;
+  return (
+    <div role="img" aria-label={`Progress: ${STEP_LABELS[step]}`}>
+      <div className="grid grid-cols-4 gap-1">
+        {STEP_LABELS.map((l, i) => (
+          <span
+            key={l}
+            className={cx(
+              "h-1 rounded-full transition-colors duration-500",
+              i < step || (done && i === step) ? "bg-slate-900" : i === step ? "bg-brand-500" : "bg-slate-200/80"
+            )}
+          />
+        ))}
+      </div>
+      <div className="mt-1.5 grid grid-cols-4 gap-1 text-[11px]">
+        {STEP_LABELS.map((l, i) => (
+          <span key={l} className={cx("truncate", i === step ? "font-semibold text-slate-900" : i < step ? "text-slate-500" : "text-slate-400")}>
+            {l}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function OrderCard({ order, index = 0, districtName, customerStats, isHighlighted, transition, isUpdating, onStatusChange }) {
   const view = getOrderView(order, districtName);
   const isTransitioning = transition && String(transition.orderId) === String(order.id);
 
@@ -13,11 +51,19 @@ export default function OrderCard({ order, districtName, customerStats, isHighli
     <article
       id={`vendor-order-${order.id}`}
       data-order-id={order.id}
+      style={{ "--i": index }}
       className={cx(
-        "flex flex-col rounded-2xl border bg-white transition-shadow duration-300",
-        isHighlighted ? "border-brand-500 ring-2 ring-brand-500/25" : "border-slate-200"
+        "relative flex flex-col overflow-hidden rounded-2xl border bg-white transition-[border-color,box-shadow] duration-300",
+        isHighlighted
+          ? "border-brand-500 ring-2 ring-brand-500/25 vd-locate"
+          : "border-slate-200 hover:border-slate-300 hover:shadow-[0_12px_32px_-18px_rgba(15,23,42,0.22)]"
       )}
     >
+      {isTransitioning && (
+        <span className="absolute inset-x-0 top-0 h-0.5 overflow-hidden" aria-hidden="true">
+          <span className="vd-indeterminate block h-full w-2/5 bg-brand-500" />
+        </span>
+      )}
       {/* Header */}
       <div className="flex items-start justify-between gap-3 px-4 pt-4">
         <div className="min-w-0">
@@ -64,7 +110,11 @@ export default function OrderCard({ order, districtName, customerStats, isHighli
 
       <div className="flex items-baseline justify-between px-4 pt-3">
         <span className="text-sm text-slate-500">Total</span>
-        <span className="text-base font-semibold tabular-nums text-slate-900">{inr(view.grandTotal)}</span>
+        <span className="text-lg font-semibold tabular-nums tracking-tight text-slate-900">{inr(view.grandTotal)}</span>
+      </div>
+
+      <div className="px-4 pt-4">
+        <ProgressTrack status={isTransitioning ? transition.targetStatus : view.status} />
       </div>
 
       {/* Actions */}

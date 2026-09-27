@@ -53,7 +53,7 @@ export default function EditListingSheet({ product, image, onClose, onSubmit, on
             <span className="text-base font-semibold tabular-nums text-slate-900">{inr(price)}</span>
             <span className="text-slate-400">/ {product.unit || "unit"}</span>
             {mrp > price && <span className="tabular-nums text-slate-400 line-through">{inr(mrp)}</span>}
-            {discount > 0 && <span className="font-medium text-emerald-700">{discount}% off</span>}
+            {discount > 0 && <span className="font-medium text-brand-700">{discount}% off</span>}
           </p>
         </div>
       </form>

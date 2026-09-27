@@ -1,5 +1,5 @@
-import { useEffect, useId } from "react";
-import { CloseIcon, SearchIcon } from "./icons";
+import { useEffect, useId, useRef, useState } from "react";
+import { CheckIcon, ClockIcon, CloseIcon, SearchIcon } from "./icons";
 import { cx, ORDER_STATUS } from "./format";
 
 export function StatusBadge({ status }) {
@@ -7,20 +7,42 @@ export function StatusBadge({ status }) {
   const cfg = ORDER_STATUS[key] || { label: status || "Pending", tone: "bg-slate-100 text-slate-600 ring-slate-500/20", dot: "bg-slate-400" };
   return (
     <span className={cx("inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset whitespace-nowrap", cfg.tone)}>
-      <span className={cx("h-1.5 w-1.5 rounded-full", cfg.dot)} aria-hidden="true" />
+      {key === "DELIVERED" ? (
+        <CheckIcon className="h-3 w-3" strokeWidth={2.5} />
+      ) : key === "CANCELLED" ? (
+        <CloseIcon className="h-3 w-3" strokeWidth={2.5} />
+      ) : (
+        <span className={cx("h-1.5 w-1.5 rounded-full", cfg.dot)} aria-hidden="true" />
+      )}
       {cfg.label}
     </span>
   );
 }
 
 export function ApprovalBadge({ status }) {
+  const base = "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset whitespace-nowrap";
   if (status === "PENDING_REVIEW") {
-    return <span className="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20 whitespace-nowrap">In review</span>;
+    return (
+      <span className={cx(base, "bg-slate-100 text-slate-600 ring-slate-500/10")}>
+        <ClockIcon className="h-3 w-3" strokeWidth={2} />
+        In review
+      </span>
+    );
   }
   if (status === "REJECTED") {
-    return <span className="inline-flex rounded-full bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700 ring-1 ring-inset ring-rose-600/20 whitespace-nowrap">Rejected</span>;
+    return (
+      <span className={cx(base, "bg-brand-50 text-brand-700 ring-brand-600/20")}>
+        <CloseIcon className="h-3 w-3" strokeWidth={2.5} />
+        Rejected
+      </span>
+    );
   }
-  return <span className="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-800 ring-1 ring-inset ring-emerald-600/20 whitespace-nowrap">Live</span>;
+  return (
+    <span className={cx(base, "bg-white text-slate-800 ring-slate-200")}>
+      <CheckIcon className="h-3 w-3" strokeWidth={2.5} />
+      Live
+    </span>
+  );
 }
 
 const BUTTON_VARIANTS = {
@@ -43,7 +65,7 @@ export function Button({ variant = "primary", size = "md", className = "", as: A
       {...extra}
       {...props}
       className={cx(
-        "inline-flex items-center justify-center rounded-xl font-semibold transition-colors duration-150 cursor-pointer select-none disabled:cursor-not-allowed disabled:opacity-50",
+        "inline-flex items-center justify-center rounded-xl font-semibold transition-[color,background-color,box-shadow,transform] duration-150 active:scale-[0.98] cursor-pointer select-none disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100",
         BUTTON_VARIANTS[variant],
         BUTTON_SIZES[size],
         className
@@ -132,7 +154,15 @@ export function ChipRow({ children }) {
 
 export function Segmented({ options, value, onChange, label }) {
   return (
-    <div role="tablist" aria-label={label} className="grid rounded-xl bg-slate-100 p-1 sm:max-w-sm" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
+    <div role="tablist" aria-label={label} className="relative grid rounded-xl bg-slate-100 p-1 sm:max-w-sm" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
+      <span
+        aria-hidden="true"
+        className="absolute inset-y-1 left-1 rounded-lg bg-white shadow-[0_1px_3px_rgba(15,23,42,0.1)] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+        style={{
+          width: `calc((100% - 0.5rem) / ${options.length})`,
+          transform: `translateX(${Math.max(0, options.findIndex((o) => o.value === value)) * 100}%)`,
+        }}
+      />
       {options.map((opt) => {
         const active = opt.value === value;
         return (
@@ -143,8 +173,8 @@ export function Segmented({ options, value, onChange, label }) {
             aria-selected={active}
             onClick={() => onChange(opt.value)}
             className={cx(
-              "flex h-9 items-center justify-center gap-1.5 rounded-lg text-sm font-medium transition-colors duration-150 cursor-pointer",
-              active ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-800"
+              "relative z-10 flex h-9 items-center justify-center gap-1.5 rounded-lg text-sm font-medium transition-colors duration-200 cursor-pointer",
+              active ? "text-slate-900" : "text-slate-500 hover:text-slate-800"
             )}
           >
             {opt.label}
@@ -213,13 +243,13 @@ export function Sheet({ open, onClose, title, subtitle, leading, footer, childre
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end sm:items-center sm:justify-center sm:p-6">
-      <div className="absolute inset-0 bg-slate-950/50 vendor-fade" onClick={onClose} aria-hidden="true" />
+      <div className="absolute inset-0 bg-slate-950/45 backdrop-blur-[2px] vd-scrim" onClick={onClose} aria-hidden="true" />
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         className={cx(
-          "relative flex w-full flex-col overflow-hidden bg-white shadow-xl vendor-rise sm:rounded-2xl",
+          "relative flex w-full flex-col overflow-hidden bg-white shadow-[0_32px_64px_-16px_rgba(15,23,42,0.35)] vd-sheet sm:rounded-2xl",
           fullHeightMobile ? "h-[100dvh] sm:h-auto sm:max-h-[86vh]" : "max-h-[92dvh] rounded-t-2xl sm:max-h-[86vh]",
           size === "lg" ? "sm:max-w-2xl" : "sm:max-w-md"
         )}
@@ -244,4 +274,38 @@ export function Sheet({ open, onClose, title, subtitle, leading, footer, childre
       </div>
     </div>
   );
+}
+
+// Eased count-up for headline figures (jumps straight to the value under reduced motion)
+function useCountUp(value, duration = 900) {
+  const target = Number(value) || 0;
+  const [display, setDisplay] = useState(0);
+  const currentRef = useRef(0);
+
+  useEffect(() => {
+    const reduce = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const from = currentRef.current;
+    if (reduce || from === target) {
+      currentRef.current = target;
+      const raf = requestAnimationFrame(() => setDisplay(target));
+      return () => cancelAnimationFrame(raf);
+    }
+    const start = performance.now();
+    let raf;
+    const tick = (now) => {
+      const t = Math.min(1, (now - start) / duration);
+      const next = Math.round(from + (target - from) * (1 - Math.pow(1 - t, 3)));
+      currentRef.current = next;
+      setDisplay(next);
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, duration]);
+
+  return display;
+}
+
+export function CountUp({ value, format = (n) => n.toLocaleString("en-IN") }) {
+  return <>{format(useCountUp(value))}</>;
 }

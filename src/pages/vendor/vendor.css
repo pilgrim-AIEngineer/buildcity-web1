@@ -1,0 +1,118 @@
+/* Vendor app motion — calm, purposeful, and off under prefers-reduced-motion */
+
+[data-vendor-app] {
+  --vd-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+
+@keyframes vd-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Tab content entrance */
+.vd-page {
+  animation: vd-rise 0.42s var(--vd-ease) both;
+}
+
+/* Lists: children rise in sequence; set --i on each child */
+.vd-stagger > * {
+  animation: vd-rise 0.48s var(--vd-ease) both;
+  animation-delay: calc(min(var(--i, 0), 12) * 35ms);
+}
+
+/* Sheets: slide up on phones, lift in on larger screens */
+@keyframes vd-sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: none; }
+}
+@keyframes vd-pop {
+  from { opacity: 0; transform: translateY(12px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes vd-scrim {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.vd-scrim {
+  animation: vd-scrim 0.25s ease-out both;
+}
+.vd-sheet {
+  animation: vd-sheet-up 0.42s var(--vd-ease) both;
+}
+@media (min-width: 640px) {
+  .vd-sheet {
+    animation: vd-pop 0.3s var(--vd-ease) both;
+  }
+}
+
+/* New-order toast: slides in, a thin line counts down its 5 s life */
+@keyframes vd-toast-in {
+  from { opacity: 0; transform: translateY(-14px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes vd-countdown {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+.vd-toast {
+  animation: vd-toast-in 0.4s var(--vd-ease) both;
+}
+.vd-countdown {
+  transform-origin: left center;
+  animation: vd-countdown 5s linear both;
+}
+
+/* One soft ripple to point at a freshly opened order, then it rests */
+@keyframes vd-locate {
+  0% { box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.28); }
+  100% { box-shadow: 0 0 0 14px rgba(234, 88, 12, 0); }
+}
+.vd-locate {
+  animation: vd-locate 1.4s var(--vd-ease) 2;
+}
+
+/* Status update in flight */
+@keyframes vd-indeterminate {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(250%); }
+}
+.vd-indeterminate {
+  animation: vd-indeterminate 1.2s var(--vd-ease) infinite;
+}
+
+/* Loading placeholders */
+@keyframes vd-shimmer {
+  from { background-position: 150% 0; }
+  to { background-position: -50% 0; }
+}
+.vd-skeleton {
+  background: linear-gradient(90deg, #f1f5f9 0%, #f8fafc 50%, #f1f5f9 100%);
+  background-size: 200% 100%;
+  animation: vd-shimmer 1.6s linear infinite;
+}
+
+/* Activity bars grow from the baseline */
+@keyframes vd-grow {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+.vd-bar {
+  transform-origin: bottom center;
+  animation: vd-grow 0.7s var(--vd-ease) both;
+  animation-delay: calc(var(--i, 0) * 45ms + 120ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-vendor-app] *,
+  [data-vendor-app] *::before,
+  [data-vendor-app] *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  [data-vendor-app] .vd-countdown {
+    animation: none !important;
+  }
+}

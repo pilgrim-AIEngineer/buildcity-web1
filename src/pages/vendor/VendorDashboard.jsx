@@ -1059,6 +1059,14 @@ export default function VendorDashboard() {
     setActiveTab("orders");
   };
 
+  // Jump from an overview row to that order's card
+  const openOrder = (ord) => {
+    const st = (ord.status || "PENDING").toUpperCase();
+    setOrderSectionTab(st === "DELIVERED" || st === "CANCELLED" ? "COMPLETED" : "ACTIVE");
+    setActiveTab("orders");
+    triggerOrderHighlight(ord.id || ord.orderNumber);
+  };
+
   const closeCatalog = () => {
     setShowCatalogModal(false);
     setSelectedMasterProd(null);
@@ -1073,16 +1081,61 @@ export default function VendorDashboard() {
       onTabChange={setActiveTab}
       activeOrdersCount={activeOrdersCount}
       onAddProduct={() => setShowCatalogModal(true)}
-    >
-      <NewOrderToast
-        order={newOrderAlert}
-        onDismiss={() => setNewOrderAlert(null)}
-        onView={() => {
-          triggerOrderHighlight(newOrderAlert.id || newOrderAlert.orderNumber);
-          setNewOrderAlert(null);
-        }}
-      />
+      overlays={
+        <>
+          <NewOrderToast
+            order={newOrderAlert}
+            onDismiss={() => setNewOrderAlert(null)}
+            onView={() => {
+              triggerOrderHighlight(newOrderAlert.id || newOrderAlert.orderNumber);
+              setNewOrderAlert(null);
+            }}
+          />
 
+          <CatalogSheet
+            open={showCatalogModal}
+            onClose={closeCatalog}
+            totalCount={masterProducts.length}
+            products={filteredMasterProducts}
+            categories={categories}
+            categoryFilter={selectedCategoryFilter}
+            onCategoryFilterChange={setSelectedCategoryFilter}
+            search={catalogSearch}
+            onSearchChange={setCatalogSearch}
+            isInStore={(mp) => vendorProducts.some((vp) => vp.masterProductId === mp.id || vp.name === mp.name)}
+            selectedId={selectedMasterProd?.id}
+            onToggleSelect={handleOpenMasterProductSelect}
+            imageFor={imageFor}
+            form={{
+              mrp: vendorMrp,
+              discountPct: vendorDiscountPct,
+              sellingPrice: vendorSellingPrice,
+              stockQty: vendorStockQty,
+              onMrpChange: handleMrpChange,
+              onDiscountChange: handleDiscountChange,
+              onSellingPriceChange: handleSellingPriceChange,
+              onStockChange: setVendorStockQty,
+            }}
+            onSubmit={handleAddMasterProductToStore}
+            isSubmitting={isAddingToStore}
+          />
+
+          {editingProduct && (
+            <EditListingSheet
+              product={editingProduct}
+              image={imageFor(editingProduct)}
+              onClose={() => setEditingProduct(null)}
+              onSubmit={handleUpdateListing}
+              onMrpChange={handleEditMrpChange}
+              onDiscountChange={handleEditDiscountChange}
+              onPriceChange={handleEditPriceChange}
+              onStockChange={(val) => setEditingProduct((prev) => ({ ...prev, stockQty: val }))}
+              isSaving={isUpdatingListing}
+            />
+          )}
+        </>
+      }
+    >
       {activeTab === "orders" && (
         <OrdersTab
           districtName={districtName}
@@ -1128,6 +1181,8 @@ export default function VendorDashboard() {
 
       {activeTab === "overview" && (
         <OverviewTab
+          shopName={shopName}
+          ownerName={ownerName}
           districtName={districtName}
           totalRevenue={totalRevenue}
           activeOrdersCount={activeOrdersCount}
@@ -1139,6 +1194,7 @@ export default function VendorDashboard() {
           imageFor={imageFor}
           onOpenOrders={() => openOrders()}
           onOpenPending={() => openOrders("PENDING")}
+          onOpenOrder={openOrder}
           onOpenProducts={() => setActiveTab("products")}
           onEditProduct={handleOpenEditProduct}
           onAddProduct={() => setShowCatalogModal(true)}
@@ -1156,47 +1212,6 @@ export default function VendorDashboard() {
         />
       )}
 
-      <CatalogSheet
-        open={showCatalogModal}
-        onClose={closeCatalog}
-        totalCount={masterProducts.length}
-        products={filteredMasterProducts}
-        categories={categories}
-        categoryFilter={selectedCategoryFilter}
-        onCategoryFilterChange={setSelectedCategoryFilter}
-        search={catalogSearch}
-        onSearchChange={setCatalogSearch}
-        isInStore={(mp) => vendorProducts.some((vp) => vp.masterProductId === mp.id || vp.name === mp.name)}
-        selectedId={selectedMasterProd?.id}
-        onToggleSelect={handleOpenMasterProductSelect}
-        imageFor={imageFor}
-        form={{
-          mrp: vendorMrp,
-          discountPct: vendorDiscountPct,
-          sellingPrice: vendorSellingPrice,
-          stockQty: vendorStockQty,
-          onMrpChange: handleMrpChange,
-          onDiscountChange: handleDiscountChange,
-          onSellingPriceChange: handleSellingPriceChange,
-          onStockChange: setVendorStockQty,
-        }}
-        onSubmit={handleAddMasterProductToStore}
-        isSubmitting={isAddingToStore}
-      />
-
-      {editingProduct && (
-        <EditListingSheet
-          product={editingProduct}
-          image={imageFor(editingProduct)}
-          onClose={() => setEditingProduct(null)}
-          onSubmit={handleUpdateListing}
-          onMrpChange={handleEditMrpChange}
-          onDiscountChange={handleEditDiscountChange}
-          onPriceChange={handleEditPriceChange}
-          onStockChange={(val) => setEditingProduct((prev) => ({ ...prev, stockQty: val }))}
-          isSaving={isUpdatingListing}
-        />
-      )}
     </VendorShell>
   );
 }

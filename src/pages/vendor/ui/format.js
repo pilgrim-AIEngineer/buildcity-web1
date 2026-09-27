@@ -4,9 +4,21 @@ export const inr = (value) => `₹${(Number(value) || 0).toLocaleString("en-IN")
 
 // Order lifecycle: display label and badge tone
 export const ORDER_STATUS = {
-  PENDING: { label: "Pending", tone: "bg-amber-50 text-amber-800 ring-amber-600/20", dot: "bg-amber-500" },
-  PROCESSING: { label: "Processing", tone: "bg-sky-50 text-sky-800 ring-sky-600/20", dot: "bg-sky-500" },
-  OUT_FOR_DELIVERY: { label: "Out for delivery", tone: "bg-indigo-50 text-indigo-800 ring-indigo-600/20", dot: "bg-indigo-500" },
-  DELIVERED: { label: "Delivered", tone: "bg-emerald-50 text-emerald-800 ring-emerald-600/20", dot: "bg-emerald-500" },
-  CANCELLED: { label: "Cancelled", tone: "bg-slate-100 text-slate-600 ring-slate-500/20", dot: "bg-slate-400" },
+// One accent: orange marks what needs the vendor; everything else stays in ink
+  PENDING: { label: "Pending", tone: "bg-brand-50 text-brand-700 ring-brand-600/20", dot: "bg-brand-500" },
+  PROCESSING: { label: "Processing", tone: "bg-slate-100 text-slate-700 ring-slate-500/10", dot: "bg-slate-600" },
+  OUT_FOR_DELIVERY: { label: "Out for delivery", tone: "bg-slate-100 text-slate-800 ring-slate-500/10", dot: "bg-slate-900" },
+  DELIVERED: { label: "Delivered", tone: "bg-white text-slate-600 ring-slate-200", dot: "bg-slate-400" },
+  CANCELLED: { label: "Cancelled", tone: "bg-slate-50 text-slate-400 ring-slate-200", dot: "bg-slate-300" },
 };
+
+// Compact Indian notation for tight spaces: 1,67,500 -> 1.68 L
+export const inrCompact = (value) => {
+  const v = Number(value) || 0;
+  if (v >= 10000000) return `₹${(v / 10000000).toFixed(2).replace(/\.?0+$/, "")} Cr`;
+  if (v >= 100000) return `₹${(v / 100000).toFixed(2).replace(/\.?0+$/, "")} L`;
+  return inr(v);
+};
+
+// Order delivery steps shown on the progress track
+export const ORDER_STEPS = ["PENDING", "PROCESSING", "OUT_FOR_DELIVERY", "DELIVERED"];

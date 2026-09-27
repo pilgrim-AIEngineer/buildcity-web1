@@ -35,8 +35,8 @@ export default function ProfileTab({ ownerName, shopName, vendorPhone, email, di
         <div className="min-w-0">
           <p className="truncate text-base font-semibold text-slate-900">{ownerName}</p>
           <p className="truncate text-sm text-slate-500">{shopName}</p>
-          <p className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-emerald-700">
-            <BadgeCheckIcon className="h-4 w-4" />
+          <p className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-slate-700">
+            <BadgeCheckIcon className="h-4 w-4 text-brand-600" />
             Verified partner
           </p>
         </div>

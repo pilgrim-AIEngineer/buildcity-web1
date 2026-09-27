@@ -22,6 +22,22 @@ export default function SplashScreen({ minDuration = 1400, onFinished }) {
 
   if (!visible) return null;
 
+  if (isVendorApp) {
+    return (
+      <div
+        className={`fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-[#0A192F] text-white select-none transition-opacity duration-500 ease-out ${
+          fading ? "opacity-0 pointer-events-none" : "opacity-100"
+        }`}
+      >
+        <img src="/buildcity-roof-logo.png" alt="BuildCity" className="h-20 w-20 object-contain" />
+        <h1 className="mt-5 text-2xl font-semibold tracking-tight">
+          Build<span className="text-brand-500">City</span>
+        </h1>
+        <p className="mt-1 text-xs font-medium uppercase tracking-[0.2em] text-slate-400">Partner</p>
+      </div>
+    );
+  }
+
   return (
     <div
       className={`fixed inset-0 z-[99999] flex flex-col items-center justify-between p-6 bg-gradient-to-b from-slate-950 via-slate-900 to-navy-950 text-white select-none transition-opacity duration-500 ease-out ${
@@ -54,16 +70,9 @@ export default function SplashScreen({ minDuration = 1400, onFinished }) {
         </h1>
 
         {/* Subtitle / Mode Badge */}
-        {isVendorApp ? (
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-brand-500/15 border border-brand-500/30 text-brand-400 text-xs font-black uppercase tracking-widest shadow-sm">
-            <span className="w-2 h-2 rounded-full bg-brand-500 animate-ping" />
-            Partner Portal
-          </div>
-        ) : (
-          <p className="text-xs sm:text-sm font-semibold text-slate-300 tracking-wide max-w-xs">
-            India&apos;s Building Material Superstore
-          </p>
-        )}
+        <p className="text-xs sm:text-sm font-semibold text-slate-300 tracking-wide max-w-xs">
+          India&apos;s Building Material Superstore
+        </p>
 
         {/* Sleek Animated Progress Beam */}
         <div className="mt-8 flex flex-col items-center gap-2">
@@ -71,7 +80,7 @@ export default function SplashScreen({ minDuration = 1400, onFinished }) {
             <div className="absolute inset-y-0 w-24 bg-gradient-to-r from-transparent via-brand-500 to-transparent rounded-full animate-splash-beam" />
           </div>
           <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-            {isVendorApp ? "Starting Partner Gateway..." : "Loading Marketplace..."}
+            Loading Marketplace...
           </span>
         </div>
       </div>

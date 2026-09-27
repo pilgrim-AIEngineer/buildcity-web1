@@ -101,6 +101,13 @@ function CatchAll() {
   return <Navigate to={target} replace />;
 }
 
+// Keeps the first-visit delivery-location picker off the vendor web login page.
+function StorefrontLocationModal() {
+  const { pathname } = useLocation();
+  if (pathname === "/vendor/login") return null;
+  return <FirstTimeLocationModal />;
+}
+
 function ScrollToTop() {
   const { pathname } = useLocation();
 
@@ -153,11 +160,13 @@ export default function App() {
                       <BrowserRouter>
                         <ScrollToTop />
                         <NativeBackButtonHandler />
-                        {!isVendorApp && <FirstTimeLocationModal />}
+                        {!isVendorApp && <StorefrontLocationModal />}
                         <StorefrontMobileNav />
                         {!isVendorApp && <FloatingCartBar />}
                         <Routes>
                   <Route path="/login" element={<Login />} />
+                  {/* Vendor (partner) password login on the web */}
+                  <Route path="/vendor/login" element={<Login forceVendorMode />} />
                   <Route path="/register" element={<Register />} />
 
                   {/* Public Storefront or Dedicated Vendor Root */}

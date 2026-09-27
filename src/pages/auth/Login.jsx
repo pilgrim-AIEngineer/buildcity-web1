@@ -10,7 +10,8 @@ import { initVendorPushNotifications, getDeviceFcmToken, markFcmTokenSynced } fr
 const isVendorApp = import.meta.env.VITE_APP_MODE === "vendor";
 
 // Login Page component — User / Vendor / DR / Admin ka universal login screen
-export default function Login() {
+// `forceVendorMode` powers the /vendor/login web route (vendor password login on the web).
+export default function Login({ forceVendorMode = false }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/";
@@ -18,7 +19,7 @@ export default function Login() {
   const { requestOtp, verifyOtp, vendorLogin } = useAuth();
 
   // Mode: "standard" (OTP for Customer) vs "vendor" (Phone & Password for Vendor / DR / Admin Partners)
-  const [mode, setMode] = useState(isVendorApp ? "vendor" : "standard");
+  const [mode, setMode] = useState(isVendorApp || forceVendorMode ? "vendor" : "standard");
   const [step, setStep] = useState("phone"); // "phone" | "otp"
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -232,18 +233,24 @@ export default function Login() {
         </div>
       )}
 
-      <h1 className="text-2xl font-black text-navy-900 mb-1 tracking-tight">
-        {isVendorApp ? "BuildCity Partner Login 🏬" : mode === "vendor" ? "Partner Portal Login 🏬" : "Welcome back 👋"}
+      <h1 className={mode === "vendor" ? "text-2xl font-semibold text-slate-900 mb-1 tracking-tight" : "text-2xl font-black text-navy-900 mb-1 tracking-tight"}>
+        {mode === "vendor" ? "Partner sign in" : "Welcome back 👋"}
       </h1>
-      <p className="text-xs text-slate-500 mb-6">
+      <p className={mode === "vendor" ? "text-sm text-slate-500 mb-8" : "text-xs text-slate-500 mb-6"}>
         {isVendorApp || mode === "vendor"
-          ? "Login with your registered vendor mobile number and password"
+          ? "Use your registered mobile number and password."
           : step === "phone"
           ? "Login with your registered phone number via OTP"
           : `Enter the OTP sent to +91 ${phone}`}
       </p>
 
-      {error && (
+      {error && mode === "vendor" && (
+        <div role="alert" className="mb-5 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-700">
+          {error}
+        </div>
+      )}
+
+      {error && mode !== "vendor" && (
         <div className={`mb-5 p-3.5 rounded-2xl border ${
           typeof error === "string" && (error.includes("Partner") || error.includes("Vendor") || error.includes("DR") || error.includes("Admin"))
             ? "bg-amber-50 border-amber-200 text-amber-900"
@@ -255,46 +262,51 @@ export default function Login() {
 
       {mode === "vendor" ? (
         /* PARTNER / ADMIN / DR / VENDOR PASSWORD LOGIN FORM */
-        <form onSubmit={handleVendorPasswordLogin} noValidate className="space-y-4">
+        <form onSubmit={handleVendorPasswordLogin} noValidate className="space-y-5">
           <div>
-            <label className="block text-xs font-bold text-navy-900 mb-1.5">
-              Registered Mobile Number
+            <label htmlFor="partner-phone" className="block text-sm font-medium text-slate-700 mb-1.5">
+              Mobile number
             </label>
-            <div className="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 focus-within:border-emerald-500">
+            <div className="flex h-12 items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-3.5 transition-colors focus-within:border-slate-400">
               <span className="text-sm text-slate-500 shrink-0">+91</span>
-              <span className="text-slate-200">|</span>
+              <span className="h-5 w-px bg-slate-200" aria-hidden="true" />
               <input
+                id="partner-phone"
                 type="tel"
                 inputMode="numeric"
+                autoComplete="tel-national"
                 maxLength={10}
                 value={phone}
                 onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-                placeholder="Registered 10-digit mobile number"
-                className="w-full bg-transparent text-sm text-navy-900 placeholder:text-slate-400 outline-none font-bold"
+                placeholder="10-digit number"
+                className="w-full bg-transparent text-base text-slate-900 placeholder:text-slate-400 outline-none font-medium"
                 autoFocus
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-navy-900 mb-1.5">
-              Login Password
+            <label htmlFor="partner-password" className="block text-sm font-medium text-slate-700 mb-1.5">
+              Password
             </label>
             <input
+              id="partner-password"
               type="password"
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter password"
-              className="w-full text-sm font-medium rounded-xl border border-slate-200 bg-white px-3.5 py-3 outline-none focus:border-emerald-500"
+              className="h-12 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-base font-medium text-slate-900 placeholder:text-slate-400 outline-none transition-colors focus:border-slate-400"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-extrabold text-sm py-3.5 rounded-xl shadow-md active:scale-[0.98] transition-all cursor-pointer disabled:opacity-60 mt-2"
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand-600 text-sm font-semibold text-white transition-colors hover:bg-brand-700 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {loading ? "Authenticating..." : "Login to Dashboard →"}
+            {loading && <span className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" aria-hidden="true" />}
+            {loading ? "Signing in" : "Sign in"}
           </button>
         </form>
       ) : step === "phone" ? (

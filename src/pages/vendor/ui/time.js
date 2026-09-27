@@ -52,16 +52,3 @@ export const ordinal = (n) => {
   return `${n}${s[(v - 20) % 10] || s[v] || s[0]}`;
 };
 
-// "+919876543210" -> "98765 43210"
-export const formatPhone = (phone = "") => {
-  const digits = String(phone).replace(/\D/g, "").slice(-10);
-  return digits.length === 10 ? `${digits.slice(0, 5)} ${digits.slice(5)}` : phone;
-};
-
-export const initialsOf = (name = "") =>
-  String(name)
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((w) => w.charAt(0).toUpperCase())
-    .join("") || "C";

@@ -1,59 +1,66 @@
 import { useState } from "react";
-import { ChevronDownIcon } from "../../ui/icons";
-import { cx, inr } from "../../ui/format";
+import { inr } from "../../ui/format";
 
 // Up to this many rows show in full; longer orders fold to PREVIEW_ROWS + "+N more"
 const MAX_ROWS_UNFOLDED = 4;
 const PREVIEW_ROWS = 3;
 
-// Line items: quantity chip · name + unit rate · line total
-export default function OrderItems({ items, splitOf }) {
+// One line per item ("50 × Name … ₹line"); tap a row for its unit rate. Delivery closes the list.
+export default function OrderItems({ items, deliveryFee, splitOf }) {
   const [expanded, setExpanded] = useState(false);
+  const [rateFor, setRateFor] = useState(null);
   const foldable = items.length > MAX_ROWS_UNFOLDED;
   const visible = foldable && !expanded ? items.slice(0, PREVIEW_ROWS) : items;
   const hidden = items.length - visible.length;
 
   return (
-    <div>
-      <div className="flex items-baseline justify-between gap-2">
-        <h4 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+    <div className="text-sm">
+      {(items.length > 1 || splitOf > 0) && (
+        <p className="mb-1 text-xs text-slate-400">
           {items.length} {items.length === 1 ? "item" : "items"}
-        </h4>
-        {splitOf > 0 && (
-          <span className="text-[11px] text-slate-400" title="The rest of this customer's order comes from other shops">
-            Split order · {items.length} of {splitOf} yours
-          </span>
-        )}
-      </div>
-
-      <ul className="mt-1 divide-y divide-slate-100">
-        {visible.map((it) => (
-          <li key={it.key} className="flex items-center gap-2.5 py-2">
-            <span className="grid h-7 min-w-9 shrink-0 place-items-center rounded-lg bg-slate-100 px-1.5 text-xs font-semibold tabular-nums text-slate-800">
-              {it.qty}×
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="line-clamp-2 text-sm leading-snug text-slate-800" title={it.name}>
-                {it.name}
-              </p>
-              {it.unitPrice > 0 && <p className="text-xs tabular-nums text-slate-400">@ {inr(it.unitPrice)}</p>}
-            </div>
-            <span className="shrink-0 text-sm font-medium tabular-nums text-slate-800">{inr(it.lineTotal)}</span>
-          </li>
-        ))}
-      </ul>
-
-      {foldable && (
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          aria-expanded={expanded}
-          className="flex w-full items-center justify-center gap-1 rounded-lg py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900 cursor-pointer"
-        >
-          {expanded ? "Show fewer" : `+${hidden} more ${hidden === 1 ? "item" : "items"}`}
-          <ChevronDownIcon className={cx("h-3.5 w-3.5 transition-transform", expanded && "rotate-180")} />
-        </button>
+          {splitOf > 0 && <span title="The rest of this customer's order comes from other shops"> · {items.length} of {splitOf} from you</span>}
+        </p>
       )}
+
+      <ul className="space-y-1">
+        {visible.map((it) => {
+          const showRate = rateFor === it.key && it.unitPrice > 0;
+          return (
+            <li key={it.key}>
+              <button
+                type="button"
+                onClick={() => setRateFor(showRate ? null : it.key)}
+                className="flex w-full items-baseline gap-2 text-left cursor-pointer"
+                aria-expanded={showRate}
+              >
+                <span className="w-9 shrink-0 tabular-nums text-slate-400">{it.qty} ×</span>
+                <span className="min-w-0 flex-1 truncate text-slate-800" title={it.name}>
+                  {it.name}
+                </span>
+                <span className="shrink-0 tabular-nums text-slate-800">{inr(it.lineTotal)}</span>
+              </button>
+              {showRate && <p className="pl-11 text-xs tabular-nums text-slate-400">{inr(it.unitPrice)} each</p>}
+            </li>
+          );
+        })}
+        {foldable && (
+          <li>
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              aria-expanded={expanded}
+              className="pl-11 text-xs font-medium text-slate-500 hover:text-slate-900 cursor-pointer"
+            >
+              {expanded ? "Show fewer" : `+${hidden} more ${hidden === 1 ? "item" : "items"}`}
+            </button>
+          </li>
+        )}
+        <li className="flex items-baseline gap-2 text-slate-400">
+          <span className="w-9 shrink-0" />
+          <span className="flex-1">Delivery</span>
+          <span className="shrink-0 tabular-nums">{deliveryFee > 0 ? inr(deliveryFee) : "Free"}</span>
+        </li>
+      </ul>
     </div>
   );
 }

@@ -123,13 +123,16 @@ export default function OrdersTab({
           </div>
         )}
 
-        <LoadMoreButton
-          hasMore={pagination.hasMore}
-          loading={pagination.loading}
-          onClick={pagination.onLoadMore}
-          shown={vendorOrders.length}
-          total={vendorOrdersCount}
-        />
+        {/* Only the "load older orders" control — no "Showing all N" line once everything is loaded */}
+        {pagination.hasMore && (
+          <LoadMoreButton
+            hasMore
+            loading={pagination.loading}
+            onClick={pagination.onLoadMore}
+            shown={vendorOrders.length}
+            total={vendorOrdersCount}
+          />
+        )}
       </div>
     </div>
   );

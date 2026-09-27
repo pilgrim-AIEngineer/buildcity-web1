@@ -13,6 +13,7 @@ export const ORDER_STATUS = {
     text: "text-coral-700",
     select: "bg-coral-50/70 text-coral-700 ring-coral-200 hover:bg-coral-50",
     tile: "bg-gradient-to-b from-coral-50/70 to-white to-45% border-coral-300/70",
+    halo: "ring-coral-500/20",
   },
   PROCESSING: {
     label: "Processing",
@@ -22,6 +23,7 @@ export const ORDER_STATUS = {
     text: "text-sky-800",
     select: "bg-sky-50/70 text-sky-800 ring-sky-200 hover:bg-sky-50",
     tile: "bg-gradient-to-b from-sky-50/60 to-white to-45% border-sky-300/70",
+    halo: "ring-sky-500/20",
   },
   OUT_FOR_DELIVERY: {
     label: "Out for delivery",
@@ -31,6 +33,7 @@ export const ORDER_STATUS = {
     text: "text-indigo-800",
     select: "bg-indigo-50/70 text-indigo-800 ring-indigo-200 hover:bg-indigo-50",
     tile: "bg-gradient-to-b from-indigo-50/60 to-white to-45% border-indigo-300/70",
+    halo: "ring-indigo-500/20",
   },
   DELIVERED: {
     label: "Delivered",
@@ -40,6 +43,7 @@ export const ORDER_STATUS = {
     text: "text-emerald-800",
     select: "bg-emerald-50/70 text-emerald-800 ring-emerald-200 hover:bg-emerald-50",
     tile: "bg-gradient-to-b from-emerald-50/60 to-white to-45% border-emerald-300/60",
+    halo: "ring-emerald-500/20",
   },
   CANCELLED: {
     label: "Cancelled",
@@ -49,6 +53,7 @@ export const ORDER_STATUS = {
     text: "text-rose-700",
     select: "bg-rose-50/60 text-rose-700 ring-rose-200 hover:bg-rose-50",
     tile: "bg-gradient-to-b from-slate-50/60 to-white to-45% border-slate-300/80",
+    halo: "ring-rose-400/20",
   },
 };
 

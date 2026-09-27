@@ -173,7 +173,7 @@ export default function OverviewTab({
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium text-slate-900">{view.customerName}</p>
                         <p className="mt-0.5 truncate text-xs text-slate-500">
-                          {view.shortId} · {view.placedAt}
+                          <span title={view.time.full}>{view.time.short}</span> · {view.items.length} {view.items.length === 1 ? "item" : "items"}
                         </p>
                       </div>
                       <div className="flex shrink-0 flex-col items-end gap-1">

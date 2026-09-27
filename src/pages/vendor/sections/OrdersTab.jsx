@@ -3,6 +3,7 @@ import OrderCard from "./OrderCard";
 import { InboxIcon, SearchIcon } from "../ui/icons";
 import { PageHeader, Segmented, Chip, ChipRow, SearchField, Card, EmptyState, Button } from "../ui/primitives";
 import { ORDER_STATUS } from "../ui/format";
+import { useNow } from "../hooks/useOrderFilters";
 
 const countBy = (list, status) => list.filter((o) => (o.status || "PENDING").toUpperCase() === status).length;
 
@@ -27,6 +28,7 @@ export default function OrdersTab({
   onStatusChange,
   pagination,
 }) {
+  const now = useNow();
   const filters =
     sectionTab === "ACTIVE"
       ? [
@@ -75,7 +77,7 @@ export default function OrdersTab({
           </Chip>
         </ChipRow>
 
-        <SearchField value={search} onChange={onSearchChange} placeholder="Search by customer, phone or order ID" />
+        <SearchField value={search} onChange={onSearchChange} placeholder="Search customer, phone, area or material" />
       </div>
 
       <div className="mt-4">
@@ -109,6 +111,7 @@ export default function OrdersTab({
                 key={ord.id}
                 index={idx}
                 order={ord}
+                now={now}
                 districtName={districtName}
                 customerStats={getCustomerStats(ord)}
                 isHighlighted={isHighlighted(ord)}

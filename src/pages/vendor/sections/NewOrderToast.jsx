@@ -1,4 +1,4 @@
-import { formatShortId } from "../../../utils/formatId";
+import { getOrderParty } from "../orderView";
 import { BellIcon, CloseIcon } from "../ui/icons";
 import { inr } from "../ui/format";
 
@@ -17,7 +17,7 @@ export default function NewOrderToast({ order, onView, onDismiss }) {
         <div className="relative min-w-0 flex-1">
           <p className="text-sm font-semibold text-amber-200">New order</p>
           <p className="mt-0.5 truncate text-sm text-slate-300">
-            {formatShortId(order.id || order.orderNumber, "ORD")} · {inr(amount)} · {itemCount} {itemCount === 1 ? "item" : "items"}
+            {getOrderParty(order).name} · {inr(amount)} · {itemCount} {itemCount === 1 ? "item" : "items"}
           </p>
           <button type="button" onClick={onView} className="mt-2.5 inline-flex h-8 items-center rounded-lg bg-amber-400 px-3 text-sm font-semibold text-navy-950 transition-colors hover:bg-amber-300 cursor-pointer">
             View order

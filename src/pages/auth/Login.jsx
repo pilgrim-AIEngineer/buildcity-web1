@@ -6,8 +6,7 @@ import { useAuth } from "../../context/AuthContext";
 
 import { Capacitor } from "@capacitor/core";
 import { initVendorPushNotifications, getDeviceFcmToken, markFcmTokenSynced } from "../../utils/pushNotifications";
-
-const isVendorApp = import.meta.env.VITE_APP_MODE === "vendor";
+import { isVendorApp } from "../../config/appMode";
 
 // Login Page component — User / Vendor / DR / Admin ka universal login screen
 // `forceVendorMode` powers the /vendor/login web route (vendor password login on the web).

@@ -3,16 +3,16 @@ export const cx = (...classes) => classes.filter(Boolean).join(" ");
 export const inr = (value) => `₹${(Number(value) || 0).toLocaleString("en-IN")}`;
 
 // Order lifecycle: one colour per status, used by badges, filter dots, card accents and a light top wash,
-// the status select and the progress track. Pending keeps the brand orange ("needs you").
+// the status select and the progress track. Pending is coral #FF5533 ("needs you").
 export const ORDER_STATUS = {
   PENDING: {
     label: "Pending",
-    tone: "bg-brand-50 text-brand-700 ring-brand-600/20",
-    dot: "bg-brand-500",
-    accent: "bg-brand-500",
-    text: "text-brand-800",
-    select: "bg-brand-50/70 text-brand-800 ring-brand-200 hover:bg-brand-50",
-    tile: "bg-gradient-to-b from-brand-50/60 to-white to-45% border-brand-300/70",
+    tone: "bg-coral-50 text-coral-700 ring-coral-500/25",
+    dot: "bg-coral-500",
+    accent: "bg-coral-500",
+    text: "text-coral-700",
+    select: "bg-coral-50/70 text-coral-700 ring-coral-200 hover:bg-coral-50",
+    tile: "bg-gradient-to-b from-coral-50/70 to-white to-45% border-coral-300/70",
   },
   PROCESSING: {
     label: "Processing",

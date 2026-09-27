@@ -64,7 +64,7 @@ export default function OrderCard({ order, index = 0, now, districtName, custome
               </span>
               <span aria-hidden="true">·</span>
               <span title={view.time.full}>{view.time.short}</span>
-              {view.status === "PENDING" && view.ageMinutes >= 60 && <span className="text-brand-700">(waiting {view.age})</span>}
+              {view.status === "PENDING" && view.ageMinutes >= 60 && <span className="text-coral-700">(waiting {view.age})</span>}
               {orderCount > 1 && (
                 <>
                   <span aria-hidden="true">·</span>
@@ -75,7 +75,7 @@ export default function OrderCard({ order, index = 0, now, districtName, custome
           </div>
           <div className="shrink-0 text-right">
             <p className="text-lg font-semibold leading-tight tracking-tight tabular-nums text-slate-900">{inr(view.grandTotal)}</p>
-            <p className={cx("text-xs", collect ? "font-medium text-brand-700" : "text-slate-400")}>
+            <p className={cx("text-xs", collect ? cx("font-medium", view.status === "PENDING" ? "text-coral-700" : "text-slate-700") : "text-slate-400")}>
               {collect ? "Collect" : view.payment.collect ? "Cash" : "Paid online"}
             </p>
           </div>

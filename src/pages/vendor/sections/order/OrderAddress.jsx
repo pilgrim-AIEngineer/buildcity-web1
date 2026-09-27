@@ -40,7 +40,7 @@ export default function OrderAddress({ party }) {
           href={mapsUrl(party)}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex shrink-0 items-center gap-0.5 pt-px text-xs font-semibold text-brand-600 hover:text-brand-700"
+          className="inline-flex shrink-0 items-center gap-0.5 pt-px text-xs font-semibold text-slate-600 hover:text-slate-900"
         >
           Map
           <ArrowUpRightIcon className="h-3.5 w-3.5" />

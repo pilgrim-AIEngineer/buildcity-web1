@@ -17,6 +17,15 @@
   --color-brand-100: #FFEDD5;
   --color-brand-50: #FFF7ED;
 
+  /* Coral (#FF5533): pending orders. 500 for lines/dots; 700 for small text (4.8:1 on white) */
+  --color-coral-50: #FFF4F1;
+  --color-coral-100: #FFE4DD;
+  --color-coral-200: #FFC9BC;
+  --color-coral-300: #FF9C87;
+  --color-coral-500: #FF5533;
+  --color-coral-600: #E8461F;
+  --color-coral-700: #D23A1B;
+
   --color-success: #16A34A;
   --color-warning: #F59E0B;
 

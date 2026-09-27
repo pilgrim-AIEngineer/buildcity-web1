@@ -12,7 +12,7 @@ export const ORDER_STATUS = {
     accent: "bg-brand-500",
     text: "text-brand-800",
     select: "bg-brand-50/70 text-brand-800 ring-brand-200 hover:bg-brand-50",
-    tile: "bg-gradient-to-b from-brand-50 via-white to-white border-brand-200/80",
+    tile: "bg-gradient-to-b from-brand-50 via-white to-white border-brand-300/70",
     band: "bg-brand-50/70 border-brand-100",
   },
   PROCESSING: {
@@ -22,7 +22,7 @@ export const ORDER_STATUS = {
     accent: "bg-sky-500",
     text: "text-sky-800",
     select: "bg-sky-50/70 text-sky-800 ring-sky-200 hover:bg-sky-50",
-    tile: "bg-gradient-to-b from-sky-50 via-white to-white border-sky-200/80",
+    tile: "bg-gradient-to-b from-sky-50 via-white to-white border-sky-300/70",
     band: "bg-sky-50/70 border-sky-100",
   },
   OUT_FOR_DELIVERY: {
@@ -32,7 +32,7 @@ export const ORDER_STATUS = {
     accent: "bg-indigo-500",
     text: "text-indigo-800",
     select: "bg-indigo-50/70 text-indigo-800 ring-indigo-200 hover:bg-indigo-50",
-    tile: "bg-gradient-to-b from-indigo-50 via-white to-white border-indigo-200/80",
+    tile: "bg-gradient-to-b from-indigo-50 via-white to-white border-indigo-300/70",
     band: "bg-indigo-50/70 border-indigo-100",
   },
   DELIVERED: {
@@ -42,7 +42,7 @@ export const ORDER_STATUS = {
     accent: "bg-emerald-500",
     text: "text-emerald-800",
     select: "bg-emerald-50/70 text-emerald-800 ring-emerald-200 hover:bg-emerald-50",
-    tile: "bg-gradient-to-b from-emerald-50/70 via-white to-white border-emerald-200/70",
+    tile: "bg-gradient-to-b from-emerald-50/70 via-white to-white border-emerald-300/60",
     band: "bg-emerald-50/60 border-emerald-100",
   },
   CANCELLED: {
@@ -52,7 +52,7 @@ export const ORDER_STATUS = {
     accent: "bg-rose-300",
     text: "text-rose-700",
     select: "bg-rose-50/60 text-rose-700 ring-rose-200 hover:bg-rose-50",
-    tile: "bg-gradient-to-b from-slate-100/80 via-white to-white border-slate-200",
+    tile: "bg-gradient-to-b from-slate-100/80 via-white to-white border-slate-300/80",
     band: "bg-slate-50 border-slate-200/70",
   },
 };

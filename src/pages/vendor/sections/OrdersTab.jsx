@@ -105,7 +105,7 @@ export default function OrdersTab({
             />
           </Card>
         ) : (
-          <div className="vd-stagger grid grid-cols-1 items-start gap-3 lg:grid-cols-2">
+          <div className="vd-stagger grid grid-cols-1 items-start gap-5 sm:gap-6 lg:grid-cols-2 lg:gap-x-6 lg:gap-y-7">
             {filteredOrders.map((ord, idx) => (
               <OrderCard
                 key={ord.id}

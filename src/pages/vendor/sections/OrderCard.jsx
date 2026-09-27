@@ -30,9 +30,12 @@ export default function OrderCard({ order, index = 0, now, districtName, custome
       data-order-id={order.id}
       style={{ "--i": index }}
       className={cx(
-        "relative flex flex-col overflow-hidden rounded-2xl border transition-[border-color,box-shadow] duration-300",
+        // Resting elevation so each tile reads as its own card; lifts a little more on hover
+        "relative flex flex-col overflow-hidden rounded-2xl border shadow-[0_1px_2px_rgba(15,23,42,0.06),0_10px_28px_-14px_rgba(15,23,42,0.24)] transition-[border-color,box-shadow] duration-300",
         statusCfg.tile,
-        isHighlighted ? "border-brand-500 ring-2 ring-brand-500/25 vd-locate" : "hover:shadow-[0_12px_32px_-18px_rgba(15,23,42,0.22)]"
+        isHighlighted
+          ? "border-brand-500 ring-2 ring-brand-500/25 vd-locate"
+          : "hover:shadow-[0_2px_4px_rgba(15,23,42,0.06),0_18px_40px_-16px_rgba(15,23,42,0.3)]"
       )}
     >
       {/* Status colour down the leading edge */}

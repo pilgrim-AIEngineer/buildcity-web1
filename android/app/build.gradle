@@ -4,16 +4,39 @@ android {
     namespace = "com.buildcity.app"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.buildcity.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    // One project, two Play Store apps. Build with `npm run android:customer` / `npm run android:partner`
+    // (see scripts/android.mjs), then `./gradlew bundleCustomerRelease` / `bundlePartnerRelease`.
+    // Bump a flavor's versionCode (and versionName) before every Play Store upload of that app.
+    flavorDimensions = ["app"]
+    productFlavors {
+        customer {
+            dimension "app"
+            applicationId "com.buildcity.app"
+            versionCode 2
+            versionName "1.1"
+            resValue "string", "app_name", "BuildCity"
+            resValue "string", "title_activity_main", "BuildCity"
+            resValue "string", "package_name", "com.buildcity.app"
+            resValue "string", "custom_url_scheme", "com.buildcity.app"
+        }
+        partner {
+            dimension "app"
+            applicationId "com.buildcity.vendor"
+            versionCode 2
+            versionName "1.1"
+            resValue "string", "app_name", "BuildCity Partner"
+            resValue "string", "title_activity_main", "BuildCity Partner"
+            resValue "string", "package_name", "com.buildcity.vendor"
+            resValue "string", "custom_url_scheme", "com.buildcity.vendor"
         }
     }
     signingConfigs {

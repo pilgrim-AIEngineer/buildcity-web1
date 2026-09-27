@@ -1,4 +1,5 @@
 {
+  "buildCommand": "npm run build",
   "regions": ["bom1"],
   "rewrites": [
     { "source": "/api/sms", "destination": "/api/sms.js" },

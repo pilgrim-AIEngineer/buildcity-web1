@@ -30,8 +30,7 @@ import DrDashboard from "./pages/dr/DrDashboard";
 import LegalPolicyPage from "./pages/public/LegalPolicyPage";
 
 import BottomNav from "./components/BottomNav";
-
-const isVendorApp = import.meta.env.VITE_APP_MODE === "vendor";
+import { isVendorApp } from "./config/appMode";
 
 function NativeBackButtonHandler() {
   const navigate = useNavigate();

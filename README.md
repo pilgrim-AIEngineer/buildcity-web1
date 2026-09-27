@@ -1,3 +1,7 @@
+# BuildCity
+
+Android apps (customer + partner), release steps and over-the-air updates: see [docs/android-release.md](docs/android-release.md).
+
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.

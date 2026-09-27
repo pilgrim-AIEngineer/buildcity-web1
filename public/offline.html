@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>BuildCity Partner</title>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    body {
+      display: flex; align-items: center; justify-content: center; padding: 24px; box-sizing: border-box;
+      background: #f8fafc; color: #0f172a; text-align: center;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    .card { max-width: 320px; }
+    .icon { width: 56px; height: 56px; margin: 0 auto 16px; border-radius: 16px; display: grid; place-items: center; background: #fff4f1; color: #d23a1b; }
+    h1 { font-size: 18px; margin: 0 0 6px; }
+    p { font-size: 14px; line-height: 1.5; margin: 0 0 20px; color: #475569; }
+    button { height: 44px; padding: 0 20px; border: 0; border-radius: 12px; background: #0f172a; color: #fff; font-size: 14px; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <!-- Shown by the BuildCity Partner app (server.errorPath) when https://www.buildcity.in can't be reached -->
+  <div class="card">
+    <div class="icon" aria-hidden="true">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h.01"/><path d="M8.5 16.43a5 5 0 0 1 7 0"/><path d="M5 12.86a10 10 0 0 1 5.17-2.69"/><path d="M19 12.86a10 10 0 0 0-2-1.43"/><path d="M2 8.82a15 15 0 0 1 4.18-2.65"/><path d="M22 8.82a15 15 0 0 0-11.29-3.76"/><path d="m2 2 20 20"/></svg>
+    </div>
+    <h1>You're offline</h1>
+    <p>BuildCity Partner needs an internet connection to load your orders. Check your connection and try again.</p>
+    <button type="button" onclick="location.replace('https://www.buildcity.in/')">Try again</button>
+  </div>
+  <script>
+    // Reload as soon as the connection comes back
+    window.addEventListener("online", function () { location.replace("https://www.buildcity.in/"); });
+  </script>
+</body>
+</html>

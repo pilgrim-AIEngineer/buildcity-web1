@@ -47,10 +47,12 @@ export default function Profile() {
 
   const activeSource = dbCoupons.length > 0 ? dbCoupons : coupons;
   const todayStr = new Date().toISOString().split("T")[0];
-  const activeCouponsCount = (activeSource || []).filter((c) => {
+  const activeCoupons = (activeSource || []).filter((c) => {
     const isExpired = c.expiryDate && c.expiryDate < todayStr;
     return c.isActive !== false && !isExpired;
-  }).length;
+  });
+  const activeCouponsCount = activeCoupons.length;
+
 
   const customerPhone = (user?.phone || "").trim();
   const customerId = user?.id;
@@ -63,6 +65,15 @@ export default function Profile() {
     if (customerPhone && oPhone && oPhone === customerPhone) return true;
     return false;
   });
+
+  const [showCouponsModal, setShowCouponsModal] = useState(false);
+  const [copiedCode, setCopiedCode] = useState("");
+
+  const handleCopyCode = (code) => {
+    navigator.clipboard?.writeText(code);
+    setCopiedCode(code);
+    setTimeout(() => setCopiedCode(""), 2500);
+  };
 
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ name: user?.name || "", email: user?.email || "" });
@@ -82,7 +93,7 @@ export default function Profile() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-navy-900 pb-24 sm:pb-12 font-sans">
+    <div className="min-h-screen bg-slate-50 text-navy-900 pb-24 sm:pb-12 font-sans w-full max-w-full overflow-x-clip">
       {/* Desktop Navbar */}
       <div className="hidden lg:block">
         <Navbar />
@@ -124,7 +135,7 @@ export default function Profile() {
         </div>
       </div>
 
-      <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+      <main className="max-w-2xl mx-auto px-4 py-6 space-y-5">
         {successMsg && (
           <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold px-4 py-3 rounded-xl shadow-2xs flex items-center justify-between">
             <span>{successMsg}</span>
@@ -132,42 +143,34 @@ export default function Profile() {
           </div>
         )}
 
-        {/* Profile ha header Card */}
-        <div className="relative overflow-hidden rounded-2xl bg-navy-950 p-6 text-white shadow-md border border-slate-800">
-          <div className="relative z-10 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="h-16 w-16 rounded-2xl bg-brand-500 text-white font-black text-2xl flex items-center justify-center shadow-md shrink-0 border border-brand-400">
-                {user?.name?.[0]?.toUpperCase() || "U"}
-              </div>
-              <div>
-                <span className="bg-green-500/20 text-green-300 border border-green-500/30 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full inline-block mb-1">
-                  ✓ VERIFIED CUSTOMER
-                </span>
-                <h1 className="text-white text-lg font-black tracking-tight leading-none capitalize">
-                  {user?.name || "Customer Account"}
-                </h1>
-                <p className="text-slate-300 text-xs mt-1">📱 {user?.phone || "Phone verified"}</p>
-                <p className="text-slate-300 text-[11px] mt-0.5">🆔 Account ID: <strong className="font-mono text-amber-300 font-extrabold">{formatShortId(user?.id, "USR")}</strong></p>
-                {user?.email && <p className="text-slate-400 text-[11px]">✉️ {user.email}</p>}
-              </div>
+        {/* Clean Minimalist Profile Header Card */}
+        <div className="bg-gradient-to-r from-sky-50/80 via-white to-blue-50/60 rounded-2xl sm:rounded-3xl border border-slate-200/90 p-4 sm:p-5 shadow-2xs flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
+            <div className="h-14 w-14 sm:h-15 sm:w-15 rounded-full bg-gradient-to-br from-[#0284C7] to-[#0369A1] text-white font-black text-xl sm:text-2xl flex items-center justify-center shadow-xs border-2 border-white ring-2 ring-sky-200/80 shrink-0 select-none">
+              {user?.name?.[0]?.toUpperCase() || "U"}
             </div>
-
-            <button
-              onClick={() => setEditing((v) => !v)}
-              className="text-xs font-bold text-white bg-white/10 hover:bg-white/20 border border-white/15 px-3.5 py-2 rounded-xl shrink-0 transition-colors cursor-pointer"
-            >
-              {editing ? "Cancel" : "✏️ Edit"}
-            </button>
+            <h1 className="text-navy-950 text-base sm:text-lg font-black tracking-tight leading-snug capitalize truncate min-w-0">
+              {user?.name || "Customer Account"}
+            </h1>
           </div>
+
+          <button
+            onClick={() => setEditing((v) => !v)}
+            className="text-xs font-bold text-navy-950 bg-white hover:bg-slate-50 border border-slate-200/90 px-3.5 py-2 rounded-xl shrink-0 transition-all cursor-pointer active:scale-95 shadow-2xs flex items-center gap-1.5"
+          >
+            <span>{editing ? "Cancel" : "✏️ Edit"}</span>
+          </button>
         </div>
 
-        {/* Edit kar sako */}
+        {/* Edit Profile Form */}
         {editing && (
           <form
             onSubmit={handleSave}
-            className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 space-y-4"
+            className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-5 space-y-4"
           >
-            <h3 className="font-extrabold text-navy-900 text-sm border-b border-slate-100 pb-2">Edit Account Information</h3>
+            <h3 className="font-extrabold text-navy-900 text-sm border-b border-slate-100 pb-2">
+              Edit Account Information
+            </h3>
             <div>
               <label className="block text-xs font-bold text-navy-900 mb-1">
                 Full Name *
@@ -176,6 +179,7 @@ export default function Profile() {
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                 className="w-full text-xs font-medium border border-slate-200 rounded-xl px-3.5 py-2.5 outline-none focus:border-brand-500 bg-slate-50"
+                placeholder="Enter your name"
               />
             </div>
             <div>
@@ -187,57 +191,83 @@ export default function Profile() {
                 value={form.email}
                 onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                 className="w-full text-xs font-medium border border-slate-200 rounded-xl px-3.5 py-2.5 outline-none focus:border-brand-500 bg-slate-50"
+                placeholder="Enter your email"
               />
             </div>
             <button
               type="submit"
-              className="w-full bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold rounded-xl py-3 shadow-xs transition-colors cursor-pointer"
+              className="w-full bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold rounded-xl py-3 shadow-xs transition-colors cursor-pointer active:scale-[0.98]"
             >
               Save Profile Changes
             </button>
           </form>
         )}
 
-        {/* Stats dekhata hai  */}
+        {/* 2 Simple Stat Cards: Active Coupons & Total Orders (Wallet Removed) */}
         {!editing && (
-          <div className="grid grid-cols-3 gap-3">
-            <div className="bg-white rounded-2xl border border-slate-200 p-4 text-center shadow-xs">
-              <p className="text-lg font-black text-navy-900">₹0</p>
-              <p className="text-[11px] font-medium text-slate-500 mt-0.5">Wallet Balance</p>
-            </div>
-            <div className="bg-white rounded-2xl border border-slate-200 p-4 text-center shadow-xs">
-              <p className="text-lg font-black text-brand-600">{activeCouponsCount} Active</p>
-              <p className="text-[11px] font-medium text-slate-500 mt-0.5">
-                {activeCouponsCount === 1 ? "Coupon Available" : "Coupons Available"}
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+            {/* 1. Active Coupons (Click to view active coupons) */}
+            <button
+              type="button"
+              onClick={() => setShowCouponsModal(true)}
+              className="bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-5 text-center shadow-xs hover:shadow-md hover:border-brand-400 active:scale-[0.98] transition-all cursor-pointer group block"
+            >
+              <div className="flex items-center justify-center mb-1.5">
+                <span className="text-[10.5px] font-black text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200/80">Active</span>
+              </div>
+              <p className="text-xl sm:text-2xl font-black text-brand-600 group-hover:text-brand-700 transition-colors tabular-nums">
+                {activeCouponsCount} Active
               </p>
-            </div>
-            <div className="bg-white rounded-2xl border border-slate-200 p-4 text-center shadow-xs">
-              <p className="text-lg font-black text-navy-900">{Math.max(ordersSummary?.totalOrders || 0, myOrders.length)}</p>
-              <p className="text-[11px] font-medium text-slate-500 mt-0.5">Total Orders</p>
-            </div>
+              <p className="text-[11px] font-bold text-slate-500 mt-0.5 flex items-center justify-center gap-1">
+                <span>{activeCouponsCount === 1 ? "Coupon Available" : "Coupons Available"}</span>
+                <span className="text-brand-600 font-bold group-hover:translate-x-0.5 transition-transform">→</span>
+              </p>
+            </button>
+
+            {/* 2. Total Orders (Click to go to /orders) */}
+            <button
+              type="button"
+              onClick={() => navigate("/orders")}
+              className="bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-5 text-center shadow-xs hover:shadow-md hover:border-navy-400 active:scale-[0.98] transition-all cursor-pointer group block"
+            >
+              <div className="flex items-center justify-center mb-1.5">
+                <span className="text-[10.5px] font-black text-navy-800 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">History</span>
+              </div>
+              <p className="text-xl sm:text-2xl font-black text-navy-950 group-hover:text-brand-600 transition-colors tabular-nums">
+                {Math.max(ordersSummary?.totalOrders || 0, myOrders.length)}
+              </p>
+              <p className="text-[11px] font-bold text-slate-500 mt-0.5 flex items-center justify-center gap-1">
+                <span>Total Orders</span>
+                <span className="text-navy-950 font-bold group-hover:translate-x-0.5 transition-transform">→</span>
+              </p>
+            </button>
           </div>
         )}
 
-        {/* My Account Links hai ye jo account deatils dekhata hia  */}
+        {/* My Account Links */}
         <section className="space-y-2">
           <h2 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider px-1">
             My Account & Activity
           </h2>
-          <div className="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100 shadow-xs overflow-hidden">
+          <div className="bg-white rounded-2xl border border-slate-200/90 divide-y divide-slate-100 shadow-xs overflow-hidden">
             {accountLinks.map((l) => (
               <Link
                 key={l.label}
                 to={l.to}
-                className="flex items-center gap-3.5 px-4 py-3.5 hover:bg-slate-50 transition-colors group"
+                className="flex items-center gap-3.5 px-4 py-3.5 hover:bg-slate-50/80 active:bg-slate-100 transition-colors group"
               >
-                <span className="text-xl bg-slate-100 p-2 rounded-xl group-hover:bg-brand-50 transition-colors">{l.icon}</span>
-                <div className="flex-1">
-                  <p className="text-xs font-bold text-navy-900 group-hover:text-brand-600 transition-colors">
+                <span className="text-xl bg-slate-100 p-2 rounded-xl group-hover:bg-brand-50 transition-colors">
+                  {l.icon}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-navy-950 group-hover:text-brand-600 transition-colors">
                     {l.label}
                   </p>
-                  <p className="text-[11px] text-slate-400">{l.sub}</p>
+                  <p className="text-[11px] text-slate-400 truncate">{l.sub}</p>
                 </div>
-                <span className="text-slate-400 group-hover:text-brand-600 font-bold transition-colors">→</span>
+                <svg className="w-4 h-4 text-slate-400 group-hover:text-brand-600 group-hover:translate-x-0.5 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M9 5l7 7-7 7" />
+                </svg>
               </Link>
             ))}
           </div>
@@ -248,38 +278,140 @@ export default function Profile() {
           <h2 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider px-1">
             Support & Account
           </h2>
-          <div className="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100 shadow-xs overflow-hidden">
+          <div className="bg-white rounded-2xl border border-slate-200/90 divide-y divide-slate-100 shadow-xs overflow-hidden">
             {supportLinks.map((l) => (
               <div
                 key={l.label}
-                className="flex items-center gap-3.5 px-4 py-3.5 hover:bg-slate-50 transition-colors cursor-pointer group"
+                className="flex items-center gap-3.5 px-4 py-3.5 hover:bg-slate-50/80 active:bg-slate-100 transition-colors cursor-pointer group"
               >
-                <span className="text-xl bg-slate-100 p-2 rounded-xl">{l.icon}</span>
-                <div className="flex-1">
-                  <p className="text-xs font-bold text-navy-900 group-hover:text-brand-600 transition-colors">
+                <span className="text-xl bg-slate-100 p-2 rounded-xl group-hover:bg-brand-50 transition-colors">
+                  {l.icon}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-navy-950 group-hover:text-brand-600 transition-colors">
                     {l.label}
                   </p>
-                  <p className="text-[11px] text-slate-400">{l.sub}</p>
+                  <p className="text-[11px] text-slate-400 truncate">{l.sub}</p>
                 </div>
-                <span className="text-slate-400 font-bold">→</span>
+                <svg className="w-4 h-4 text-slate-400 group-hover:text-brand-600 group-hover:translate-x-0.5 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M9 5l7 7-7 7" />
+                </svg>
               </div>
             ))}
             <button
               onClick={handleLogout}
-              className="w-full flex items-center gap-3.5 px-4 py-3.5 hover:bg-red-50 transition-colors text-left cursor-pointer group"
+              className="w-full flex items-center gap-3.5 px-4 py-3.5 hover:bg-rose-50/80 active:bg-rose-100 transition-colors text-left cursor-pointer group"
             >
-              <span className="text-xl bg-red-50 p-2 rounded-xl text-red-600">🚪</span>
-              <div className="flex-1">
-                <p className="text-xs font-extrabold text-red-600">
+              <span className="text-xl bg-rose-50 p-2 rounded-xl text-rose-600">🚪</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-extrabold text-rose-600">
                   Logout Account
                 </p>
-                <p className="text-[11px] text-red-400">Sign out from this device</p>
+                <p className="text-[11px] text-rose-400">Sign out from this device</p>
               </div>
-              <span className="text-red-400 font-bold">→</span>
+              <svg className="w-4 h-4 text-rose-400 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M9 5l7 7-7 7" />
+              </svg>
             </button>
           </div>
         </section>
       </main>
+
+      {/* ACTIVE COUPONS & OFFERS MODAL (Centered Pop-up) */}
+      {showCouponsModal && (
+        <div
+          onClick={() => setShowCouponsModal(false)}
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl max-w-sm sm:max-w-md w-full p-4.5 sm:p-5 shadow-2xl border border-slate-100 flex flex-col max-h-[80vh] space-y-3 animate-modal-pop"
+          >
+            {/* Clean top-right close button (Header text removed) */}
+            <div className="flex justify-end shrink-0 -mt-1 -mr-1">
+              <button
+                onClick={() => setShowCouponsModal(false)}
+                className="text-slate-400 hover:text-navy-950 p-1.5 rounded-full hover:bg-slate-100 transition-colors text-sm cursor-pointer"
+                title="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-2.5 overflow-y-auto flex-1 pr-0.5">
+              {activeCoupons.length === 0 ? (
+                <div className="text-center py-6 text-slate-400">
+                  <p className="text-2xl mb-1">🏷️</p>
+                  <p className="text-xs font-bold text-slate-600">No active coupons available</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">Check back later for seasonal festival discounts!</p>
+                </div>
+              ) : (
+                activeCoupons.map((c) => (
+                  <div
+                    key={c.code}
+                    className="border border-slate-200/80 rounded-2xl p-3 sm:p-3.5 flex flex-col justify-between gap-2.5 bg-white shadow-2xs hover:border-brand-400 hover:shadow-xs transition-all"
+                  >
+                    {/* Top: Title & Active badge */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-xs sm:text-[13px] font-black text-navy-950 leading-tight">
+                          {c.title || `Save ₹${c.discountAmount || 50} on your order`}
+                        </h4>
+                        <p className="text-[10px] text-slate-500 font-medium mt-0.5 line-clamp-1">
+                          {c.desc || `Valid on orders above ₹${Number(c.minOrder || 0).toLocaleString("en-IN")}`}
+                        </p>
+                      </div>
+                      <span className="text-[9.5px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/80 shrink-0">
+                        Active
+                      </span>
+                    </div>
+
+                    {/* Middle: Clean & Simple Code Row (No Dashes) */}
+                    <div className="flex items-center justify-between gap-2.5 bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2">
+                      <span className="font-mono text-xs sm:text-[13px] font-black tracking-wider text-brand-600 select-all">
+                        {c.code}
+                      </span>
+
+                      <button
+                        onClick={() => handleCopyCode(c.code)}
+                        className={`text-[11px] font-black px-3.5 py-1.5 rounded-lg active:scale-95 transition-all cursor-pointer shrink-0 ${
+                          copiedCode === c.code
+                            ? "bg-emerald-600 text-white"
+                            : "bg-brand-500 hover:bg-brand-600 text-white shadow-2xs"
+                        }`}
+                      >
+                        {copiedCode === c.code ? "✓ Copied!" : "Copy Code"}
+                      </button>
+                    </div>
+
+                    {/* Bottom: Validity & Min Order Details */}
+                    <div className="flex items-center justify-between text-[9px] text-slate-400 font-medium pt-1 border-t border-slate-100 flex-wrap gap-1.5">
+                      <span>
+                        {c.minOrder ? `Min order: ₹${Number(c.minOrder).toLocaleString("en-IN")}` : "No min order"}
+                      </span>
+                      {c.expiryDate && (
+                        <span>🕒 Valid: {c.expiryDate}</span>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="pt-1.5 border-t border-slate-100 shrink-0">
+              <button
+                onClick={() => {
+                  setShowCouponsModal(false);
+                  navigate("/categories");
+                }}
+                className="w-full bg-brand-500 hover:bg-brand-600 active:scale-[0.98] text-white text-xs font-black py-2.5 rounded-xl transition-all cursor-pointer shadow-xs text-center"
+              >
+                Shop Materials with Coupon →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

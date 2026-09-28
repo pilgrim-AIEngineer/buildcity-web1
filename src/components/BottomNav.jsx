@@ -14,8 +14,8 @@ export default function BottomNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200/90 lg:hidden shadow-[0_-4px_16px_rgba(0,0,0,0.04)] pb-[env(safe-area-inset-bottom)]">
-      <div className="grid grid-cols-5 h-14">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-t border-slate-200/60 lg:hidden shadow-[0_-8px_30px_rgba(15,23,42,0.08)] pb-[max(0.25rem,env(safe-area-inset-bottom))]">
+      <div className="grid grid-cols-5 h-14 max-w-lg mx-auto w-full">
         {tabs.map((tab) => {
           const active = pathname === tab.path || (tab.path !== "/" && pathname.startsWith(tab.path));
           const Icon = tab.icon;
@@ -23,22 +23,28 @@ export default function BottomNav() {
             <Link
               key={tab.label}
               to={tab.path}
-              className="flex flex-col items-center justify-center gap-0.5 relative active:scale-90 transition-transform duration-150"
+              className="flex flex-col items-center justify-center gap-0.5 relative active:scale-90 transition-transform duration-150 select-none py-1 touch-manipulation w-full overflow-hidden"
             >
-              <div className="relative">
-                <Icon
-                  className={`transition-colors duration-150 ${
-                    active ? "text-brand-600" : "text-slate-400"
+              <div className="relative shrink-0">
+                <div
+                  className={`p-1 rounded-xl transition-all duration-200 ${
+                    active ? "bg-brand-500/10 text-brand-600 scale-105" : "text-slate-400 hover:text-slate-600"
                   }`}
-                />
+                >
+                  <Icon
+                    className={`transition-colors duration-150 ${
+                      active ? "text-brand-600" : "currentColor"
+                    }`}
+                  />
+                </div>
                 {tab.badge > 0 && (
-                  <span className="absolute -top-1 -right-2 bg-brand-600 text-white text-[9px] font-black h-4 min-w-[16px] px-1 rounded-full flex items-center justify-center ring-2 ring-white shadow-xs">
+                  <span className="absolute -top-1 -right-1.5 bg-brand-600 text-white text-[9px] font-black h-4 min-w-[16px] px-1 rounded-full flex items-center justify-center ring-2 ring-white shadow-xs animate-pulse">
                     {tab.badge}
                   </span>
                 )}
               </div>
               <span
-                className={`text-[10px] tracking-tight transition-colors duration-150 ${
+                className={`text-[10px] tracking-tight transition-colors duration-150 truncate max-w-full text-center px-0.5 ${
                   active ? "font-black text-brand-600" : "font-semibold text-slate-500"
                 }`}
               >

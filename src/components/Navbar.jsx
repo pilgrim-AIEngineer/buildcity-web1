@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Logo from "./Logo";
 import RegionPicker from "./RegionPicker";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import NotificationPanel from "./NotificationPanel";
+import { Capacitor } from "@capacitor/core";
 
 const navLinks = [
   { label: "Home", to: "/" },
@@ -19,6 +20,16 @@ export default function Navbar() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -31,7 +42,13 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
+    <header
+      className={`sticky top-0 z-30 transition-all duration-300 ${
+        isScrolled
+          ? "bg-white/80 backdrop-blur-xl border-b border-slate-200/60 shadow-[0_4px_20px_-4px_rgba(15,23,42,0.06)]"
+          : "bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-2xs"
+      }`}
+    >
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center gap-4">
         <Link to="/" className="active:scale-[0.98] transition-all duration-200 shrink-0">
           <Logo size="sm" />
@@ -113,6 +130,15 @@ export default function Navbar() {
                 <span>🔑</span>
                 <span>Login / Register</span>
               </Link>
+              {!Capacitor.isNativePlatform() && (
+                <Link
+                  to="/vendor/login"
+                  className="text-xs font-bold text-slate-600 hover:text-navy-900 bg-slate-100 hover:bg-slate-200/80 px-3 py-2 rounded-xl transition-all"
+                  title="Partner / Vendor Portal"
+                >
+                  Partner Login
+                </Link>
+              )}
             </div>
           )}
         </div>

@@ -90,6 +90,10 @@ function VendorLoginRoute() {
   if (loading) {
     return Capacitor.isNativePlatform() ? <SplashScreen minDuration={800} /> : null;
   }
+  // Native Customer app should never expose or open vendor/partner login
+  if (Capacitor.isNativePlatform() && !isVendorApp) {
+    return <Navigate to="/login" replace />;
+  }
   const role = (user?.role || "").toLowerCase();
   if (role === "admin") return <Navigate to="/admin/dashboard" replace />;
   if (role === "dr") return <Navigate to="/dr/dashboard" replace />;
@@ -138,7 +142,8 @@ function StorefrontMobileNav() {
     pathname.startsWith("/vendor") ||
     pathname.startsWith("/dr") ||
     pathname === "/login" ||
-    pathname === "/register";
+    pathname === "/register" ||
+    pathname === "/checkout";
 
   if (isDashboardOrAuth || isVendorApp) return null;
 

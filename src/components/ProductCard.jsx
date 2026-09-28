@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAdmin } from "../context/AdminContext";
@@ -6,22 +6,6 @@ import { useAdmin } from "../context/AdminContext";
 export default function ProductCard({ product, className = "" }) {
   const { items, addItem, updateQty, removeItem } = useCart();
   const { vendors = [] } = useAdmin() || {};
-  const [cartStatus, setCartStatus] = useState("idle"); // "idle" | "stepper" | "added"
-  const timerRef = React.useRef(null);
-
-  // Clean up timer on unmount
-  React.useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
-
-  const resetTimer = () => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      setCartStatus("idle");
-    }, 4000); // 4 seconds of inactivity reverts back to "+ Add"
-  };
 
   if (!product) return null;
 
@@ -73,9 +57,6 @@ export default function ProductCard({ product, className = "" }) {
       },
       1
     );
-
-    setCartStatus("stepper");
-    resetTimer();
   };
 
   const handleIncrement = (e) => {
@@ -83,8 +64,6 @@ export default function ProductCard({ product, className = "" }) {
     e.stopPropagation();
     if (isUnavailable) return;
     updateQty(product.id, qty + 1);
-    setCartStatus("stepper");
-    resetTimer();
   };
 
   const handleDecrement = (e) => {
@@ -92,29 +71,25 @@ export default function ProductCard({ product, className = "" }) {
     e.stopPropagation();
     if (qty <= 1) {
       removeItem(product.id);
-      if (timerRef.current) clearTimeout(timerRef.current);
-      setCartStatus("idle");
     } else {
       updateQty(product.id, qty - 1);
-      setCartStatus("stepper");
-      resetTimer();
     }
   };
 
   return (
     <div
-      className={`bg-white rounded-xl sm:rounded-2xl border border-slate-200/90 p-2 flex flex-col justify-between shadow-2xs hover:shadow-md hover:border-slate-300 active:scale-[0.99] transition-all duration-200 group relative ${className}`}
+      className={`bg-white rounded-2xl border border-slate-200/80 hover:border-brand-400 p-2.5 flex flex-col justify-between shadow-[0_2px_8px_-2px_rgba(15,23,42,0.05)] hover:shadow-[0_8px_24px_-4px_rgba(234,88,12,0.12)] active:scale-[0.98] transition-all duration-300 group relative ${className}`}
     >
       {/* 🖼️ Product Link & Image (Big, clear, unblocked image) */}
       <Link to={`/product/${product.id}`} className="block">
-        <div className="relative aspect-square w-full rounded-lg sm:rounded-xl overflow-hidden bg-gradient-to-b from-slate-50 to-slate-100/50 mb-1 border border-slate-100/90 flex items-center justify-center p-1 group-hover:bg-slate-50/90 transition-colors">
+        <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-slate-50 mb-2 border border-slate-100 flex items-center justify-center p-2 group-hover:bg-slate-50/80 transition-colors">
           {/* Discount Badge / Unavailable Badge */}
           {isUnavailable ? (
-            <span className="absolute top-1 left-1 z-10 bg-rose-50 text-rose-700 border border-rose-200 font-extrabold text-[8px] sm:text-[8.5px] px-1.5 py-0.5 rounded shadow-2xs tracking-tight">
+            <span className="absolute top-1.5 left-1.5 z-10 bg-rose-50 text-rose-700 border border-rose-200 font-black text-[9px] px-2 py-0.5 rounded-full shadow-2xs tracking-tight">
               Unavailable
             </span>
           ) : discountPct > 0 ? (
-            <span className="absolute top-1 left-1 z-10 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-[8px] sm:text-[8.5px] px-1.5 py-0.5 rounded shadow-2xs tracking-tight">
+            <span className="absolute top-1.5 left-1.5 z-10 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-[9px] px-2 py-0.5 rounded-full shadow-2xs tracking-tight">
               {discountPct}% OFF
             </span>
           ) : null}
@@ -131,72 +106,70 @@ export default function ProductCard({ product, className = "" }) {
         </div>
 
         {/* Brand & Full Product Title */}
-        <p className="text-[8.5px] sm:text-[9px] font-bold text-slate-400 uppercase tracking-wider truncate">
+        <p className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider truncate mb-0.5">
           {product.brand || "Standard"}
         </p>
-        <h4 className="text-[11px] sm:text-xs font-black text-navy-950 leading-snug line-clamp-2 min-h-[2.4rem] group-hover:text-brand-600 transition-colors">
+        <h4 className="text-xs sm:text-[13px] font-black text-navy-950 leading-snug line-clamp-2 min-h-[2.3rem] group-hover:text-brand-600 transition-colors tracking-tight">
           {product.name}
         </h4>
       </Link>
 
-      {/* 💰 Price, Savings & Compact Stepper */}
-      <div className="mt-1 pt-1 border-t border-slate-100 flex flex-col justify-between gap-1">
+      {/* 💰 Price, Unit & Savings */}
+      <div className="mt-2 pt-2 border-t border-slate-100 flex flex-col justify-between gap-1.5">
         <div>
-          <div className="flex items-center justify-between gap-1 flex-wrap">
-            <div className="flex items-baseline gap-1">
-              <span className="text-xs sm:text-sm font-black text-navy-950 tracking-tight">
-                ₹{Number(price || 0).toLocaleString("en-IN")}
-              </span>
-              {mrp > price && (
-                <span className="text-[8.5px] sm:text-[9px] text-slate-400 line-through font-normal">
-                  ₹{Number(mrp || 0).toLocaleString("en-IN")}
-                </span>
-              )}
-            </div>
-
-            {savings > 0 && (
-              <span className="bg-emerald-50 text-emerald-700 font-black text-[8px] px-1 py-0.5 rounded border border-emerald-200/60 leading-none">
-                Save ₹{savings}
+          {/* Row 1: Price + Strike-through MRP */}
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-sm sm:text-base font-black text-navy-950 tracking-tight tabular-nums">
+              ₹{Number(price || 0).toLocaleString("en-IN")}
+            </span>
+            {mrp > price && (
+              <span className="text-[10px] sm:text-[11px] text-slate-400 line-through font-normal tabular-nums">
+                ₹{Number(mrp || 0).toLocaleString("en-IN")}
               </span>
             )}
           </div>
 
-          <span className="text-[8px] sm:text-[8.5px] text-slate-400 font-medium leading-none block truncate mt-0.5">
-            per {product.unit || "unit"}
-          </span>
+          {/* Row 2: Unit tag + Savings pill */}
+          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+            {product.unit && (
+              <span className="text-[9.5px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-md leading-none truncate max-w-[95px]">
+                {product.unit}
+              </span>
+            )}
+            {savings > 0 && (
+              <span className="bg-emerald-50 text-emerald-700 font-extrabold text-[9px] px-1.5 py-0.5 rounded-md border border-emerald-200/60 leading-none shadow-2xs">
+                Save ₹{savings}
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* 🛒 Action Button with + / - stepper that reverts to '+ Add' after 4s inactivity */}
-        <div className="w-full mt-0.5">
+        {/* 🛒 Action Button / Stepper (Matching Cart.jsx clean tactile style) */}
+        <div className="w-full mt-1">
           {isUnavailable ? (
             <div
-              className="w-full bg-slate-100 text-rose-600 font-extrabold text-[10.5px] h-7 rounded-lg border border-rose-200/80 flex items-center justify-center select-none shadow-2xs cursor-not-allowed"
+              className="w-full bg-slate-100 text-rose-600 font-extrabold text-[11px] h-8 rounded-xl border border-rose-200/80 flex items-center justify-center select-none shadow-2xs cursor-not-allowed"
               title="This product is currently unavailable"
             >
               Unavailable
             </div>
-          ) : cartStatus === "stepper" && qty > 0 ? (
-            <div className="flex items-center justify-between bg-brand-50 border border-brand-300 rounded-lg h-7 px-1 shadow-2xs select-none animate-fade-in">
+          ) : qty > 0 ? (
+            <div className="flex items-center justify-between border border-slate-200/90 rounded-xl bg-slate-100/70 p-0.5 shadow-2xs select-none h-8">
               <button
                 type="button"
                 onClick={handleDecrement}
-                className="w-6 h-5 flex items-center justify-center text-xs font-black text-brand-700 bg-white rounded shadow-2xs hover:bg-brand-600 hover:text-white active:scale-90 transition-all cursor-pointer"
+                className="w-7 h-7 font-black text-navy-900 bg-white rounded-lg flex items-center justify-center shadow-2xs border border-slate-200/60 hover:bg-slate-50 active:scale-90 transition-all cursor-pointer text-sm select-none"
                 title="Decrease quantity"
               >
                 −
               </button>
-              <div className="flex items-center gap-1">
-                <span className="text-[11px] font-black text-navy-950 px-1">
-                  {qty}
-                </span>
-                <span className="text-[9px] font-extrabold text-emerald-600 bg-emerald-100/70 px-1 rounded">
-                  ✓
-                </span>
-              </div>
+              <span className="w-8 text-center text-xs font-black text-navy-950 tabular-nums select-none">
+                {qty}
+              </span>
               <button
                 type="button"
                 onClick={handleIncrement}
-                className="w-6 h-5 flex items-center justify-center text-xs font-black text-brand-700 bg-white rounded shadow-2xs hover:bg-brand-600 hover:text-white active:scale-90 transition-all cursor-pointer"
+                className="w-7 h-7 font-black text-navy-900 bg-white rounded-lg flex items-center justify-center shadow-2xs border border-slate-200/60 hover:bg-slate-50 active:scale-90 transition-all cursor-pointer text-sm select-none"
                 title="Increase quantity"
               >
                 +
@@ -206,14 +179,10 @@ export default function ProductCard({ product, className = "" }) {
             <button
               type="button"
               onClick={handleAdd}
-              className="w-full bg-[#0A192F] hover:bg-brand-600 active:scale-95 text-white text-[11px] font-bold h-7 rounded-lg transition-all shadow-2xs hover:shadow-xs cursor-pointer flex items-center justify-center gap-1"
+              className="w-full bg-white hover:bg-slate-50 text-navy-950 font-black text-xs h-8 rounded-xl border border-slate-200/90 shadow-2xs hover:border-slate-300 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1 select-none"
             >
-              <span>+ Add</span>
-              {qty > 0 && (
-                <span className="ml-1 bg-white/20 text-white text-[9.5px] font-bold px-1.5 py-0.2 rounded-full">
-                  ({qty})
-                </span>
-              )}
+              <span className="text-sm leading-none font-black text-slate-700">+</span>
+              <span className="tracking-tight text-navy-950">ADD</span>
             </button>
           )}
         </div>

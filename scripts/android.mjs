@@ -20,7 +20,10 @@ const APPS = {
     viteArgs: "",
     gradleTask: "bundleCustomerRelease",
     output: "android/app/build/outputs/bundle/customerRelease/app-customer-release.aab",
-    config: () => ({ appId: "com.buildcity.app", appName: "BuildCity" }),
+    config: () => ({
+      appId: "com.buildcity.app",
+      appName: "BuildCity",
+    }),
   },
   partner: {
     viteArgs: "--mode vendor",
@@ -42,8 +45,18 @@ const APPS = {
               errorPath: "offline.html",
             },
           }),
-      // The live site is always current, so over-the-air bundles are off for the partner app
-      plugins: { CapacitorUpdater: { autoUpdate: false } },
+      plugins: {
+        CapacitorUpdater: {
+          autoUpdate: true,
+          updateUrl: "https://www.buildcity.in/api/ota-vendor",
+          statsUrl: "",
+          channelUrl: "",
+          appReadyTimeout: 10000,
+          autoDeleteFailed: true,
+          autoDeletePrevious: true,
+          resetWhenUpdate: true,
+        },
+      },
     }),
   },
 };
@@ -80,6 +93,9 @@ run("npx cap sync android");
 const assetConfigPath = "android/app/src/main/assets/capacitor.config.json";
 const baseConfig = JSON.parse(readFileSync(assetConfigPath, "utf8"));
 const appConfig = merge(baseConfig, target.config({ bundled }));
+if (app === "customer" && appConfig.plugins?.CapacitorUpdater) {
+  delete appConfig.plugins.CapacitorUpdater;
+}
 writeFileSync(assetConfigPath, JSON.stringify(appConfig, null, 2) + "\n");
 
 console.log(`

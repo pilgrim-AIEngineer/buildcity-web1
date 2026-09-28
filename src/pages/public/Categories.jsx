@@ -9,20 +9,6 @@ import RegionPicker from "../../components/RegionPicker";
 import NotificationPanel from "../../components/NotificationPanel";
 import ProductCard from "../../components/ProductCard";
 
-const topPills = [
-  { name: "All", isGrid: true },
-  { name: "Cement", img: "/categories/cement.png" },
-  { name: "Paints", img: "/categories/paints.png" },
-  { name: "Steel", img: "/categories/steel.png" },
-  { name: "Crushed Stone", img: "/categories/crushed_stone.png" },
-  { name: "Plumbing", img: "/categories/plumbing.png" },
-  { name: "Electrical", img: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=300&q=80" },
-  { name: "Sanitary", img: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=300&q=80" },
-  { name: "Hardware", img: "/categories/rebars.png" },
-  { name: "Tiles", img: "/categories/tiles.png" },
-  { name: "More", isDots: true },
-];
-
 const bannerSlides = [
   {
     tag: "BUILD YOUR DREAM SPACE",
@@ -216,9 +202,17 @@ export default function Categories() {
     });
   }, [districtProducts, activePill]);
 
-  // Dynamic counts for each of the 8 category cards from live database
+  // Dynamic counts for each of the category cards from live database + All option
   const dynamic8Cards = useMemo(() => {
-    return category8Grid.map((c) => {
+    const allCard = {
+      name: "All",
+      isAll: true,
+      count: (districtProducts || []).length,
+      countLabel: `${(districtProducts || []).length} Products`,
+      isComingSoon: false,
+    };
+
+    const list = category8Grid.map((c) => {
       const target = c.name.toLowerCase().trim();
       const count = (districtProducts || []).filter((p) => {
         const cat = (p.categoryName || p.category || p.masterProduct?.category?.name || "").toLowerCase();
@@ -237,13 +231,17 @@ export default function Categories() {
 
       return {
         ...c,
-        countLabel: count > 0 ? `${count} Products` : "Available",
+        count,
+        countLabel: count > 0 ? `${count} Products` : "Coming soon",
+        isComingSoon: count === 0,
       };
     });
+
+    return [allCard, ...list];
   }, [districtProducts]);
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-28 font-sans">
+    <div className="min-h-screen bg-[#F8FAFC] pb-28 font-sans w-full max-w-full overflow-x-clip">
       {/* 🖥️ Desktop Navbar */}
       <div className="hidden lg:block">
         <Navbar />
@@ -299,56 +297,6 @@ export default function Categories() {
       </div>
 
       <main className="max-w-6xl mx-auto px-4 pt-4 sm:pt-6 space-y-6">
-        {/* 🔘 1. TOP CIRCLE CATEGORY PILLS (CENTERED & POLISHED ON DESKTOP & MOBILE) */}
-        <section className="bg-white rounded-2xl p-3.5 sm:p-4.5 border border-slate-200/80 shadow-2xs">
-          <div className="flex items-center justify-between sm:justify-center sm:gap-8 overflow-x-auto py-1.5 px-1 no-scrollbar select-none">
-            {topPills.map((pill) => {
-              const isSelected = activePill.toLowerCase() === pill.name.toLowerCase();
-              return (
-                <button
-                  key={pill.name}
-                  type="button"
-                  onClick={() => handleSelectCategory(pill.name === "More" ? "All" : pill.name)}
-                  className="flex flex-col items-center gap-1.5 shrink-0 group active:scale-95 transition-all cursor-pointer px-1"
-                >
-                  <div
-                    className={`w-12 h-12 sm:w-15 sm:h-15 rounded-full flex items-center justify-center p-2.5 transition-all duration-200 ${
-                      pill.isGrid
-                        ? isSelected
-                        ? "bg-[#0284C7] text-white shadow-md shadow-sky-500/25 ring-2 ring-[#0284C7] ring-offset-2"
-                        : "bg-[#0284C7] text-white shadow-xs hover:opacity-95"
-                      : isSelected
-                      ? "bg-sky-50 border-2 border-[#0284C7] ring-2 ring-[#0284C7]/25 shadow-xs"
-                      : "bg-white border border-slate-200/90 shadow-2xs hover:border-slate-300"
-                    }`}
-                  >
-                    {pill.isGrid ? (
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                        <rect x="3" y="3" width="7" height="7" rx="1.5" />
-                        <rect x="14" y="3" width="7" height="7" rx="1.5" />
-                        <rect x="14" y="14" width="7" height="7" rx="1.5" />
-                        <rect x="3" y="14" width="7" height="7" rx="1.5" />
-                      </svg>
-                    ) : pill.isDots ? (
-                      <span className="font-black text-2xl text-slate-500 leading-none">•••</span>
-                    ) : pill.img ? (
-                      <img src={pill.img} alt={pill.name} className="w-7.5 h-7.5 sm:w-9 sm:h-9 object-contain drop-shadow-xs" />
-                    ) : (
-                      <span className="text-xl sm:text-2xl">{pill.iconSvg || "🚰"}</span>
-                    )}
-                  </div>
-                  <span
-                    className={`text-[11px] sm:text-xs font-bold transition-colors ${
-                      isSelected ? "text-[#0284C7] font-black" : "text-slate-600 group-hover:text-navy-950"
-                    }`}
-                  >
-                    {pill.name}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </section>
 
         {/* 🛍️ 2. SHOP BY CATEGORY (8-CARD 4-COLUMN COMPACT GRID) */}
         <section className="space-y-2.5">
@@ -363,34 +311,76 @@ export default function Categories() {
             </button>
           </div>
 
-          <div className="grid grid-cols-4 gap-2 sm:gap-3">
+          <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 sm:gap-3">
             {dynamic8Cards.map((c) => {
               const isSelected = activePill.toLowerCase() === c.name.toLowerCase();
+              const isComingSoon = c.isComingSoon;
+
               return (
                 <button
                   key={c.name}
                   type="button"
                   onClick={() => handleSelectCategory(c.name)}
-                  className={`rounded-xl sm:rounded-2xl p-2 sm:p-2.5 flex flex-col items-center justify-between text-center transition-all duration-200 group active:scale-95 shadow-2xs hover:shadow-xs cursor-pointer min-h-[100px] sm:min-h-[125px] ${
+                  className={`rounded-xl sm:rounded-2xl p-2 sm:p-2.5 flex flex-col items-center justify-between text-center transition-all duration-200 group active:scale-95 shadow-2xs hover:shadow-xs cursor-pointer min-h-[105px] sm:min-h-[125px] ${
                     isSelected
                       ? "bg-blue-50/90 border-2 border-[#0284C7] ring-2 ring-blue-200 shadow-xs"
+                      : isComingSoon
+                      ? "bg-slate-50/80 border border-slate-200/60 opacity-60 hover:opacity-85"
                       : "bg-white border border-slate-200/70 hover:border-slate-300"
                   }`}
                 >
                   <div className="w-full flex-1 flex items-center justify-center p-0.5 mb-1.5">
-                    <div className="w-12 h-12 sm:w-15 sm:h-15 rounded-full bg-slate-50 shadow-2xs border border-slate-100 flex items-center justify-center p-1 overflow-hidden group-hover:scale-110 group-hover:shadow-xs transition-all duration-300">
-                      <img
-                        src={c.img}
-                        alt={c.name}
-                        className="w-full h-full object-cover rounded-full group-hover:scale-105 transition-transform duration-300"
-                      />
+                    <div
+                      className={`w-12 h-12 sm:w-15 sm:h-15 rounded-full flex items-center justify-center p-1 overflow-hidden transition-all duration-300 ${
+                        c.isAll
+                          ? isSelected
+                            ? "bg-[#0284C7] text-white shadow-xs"
+                            : "bg-sky-50 text-[#0284C7] border border-sky-200/80 group-hover:scale-110"
+                          : isComingSoon
+                          ? "bg-slate-100 grayscale-[40%] border border-slate-200/60"
+                          : "bg-slate-50 shadow-2xs border border-slate-100 group-hover:scale-110 group-hover:shadow-xs"
+                      }`}
+                    >
+                      {c.isAll ? (
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                          <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                          <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                          <rect x="14" y="14" width="7" height="7" rx="1.5" />
+                          <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                        </svg>
+                      ) : (
+                        <img
+                          src={c.img}
+                          alt={c.name}
+                          className="w-full h-full object-cover rounded-full group-hover:scale-105 transition-transform duration-300"
+                          onError={(e) => {
+                            e.target.src = "/categories/cement.png";
+                          }}
+                        />
+                      )}
                     </div>
                   </div>
-                  <div>
-                    <h4 className="text-[11px] sm:text-xs font-extrabold text-navy-950 leading-tight group-hover:text-[#0284C7] transition-colors truncate max-w-full">
+                  <div className="w-full">
+                    <h4
+                      className={`text-[11px] sm:text-xs font-black leading-tight truncate max-w-full ${
+                        isSelected
+                          ? "text-[#0284C7]"
+                          : isComingSoon
+                          ? "text-slate-400 group-hover:text-slate-600"
+                          : "text-navy-950 group-hover:text-[#0284C7]"
+                      }`}
+                    >
                       {c.name}
                     </h4>
-                    <p className="text-[8.5px] sm:text-[9.5px] text-slate-400 font-medium mt-0.5">{c.countLabel}</p>
+                    {isComingSoon ? (
+                      <span className="inline-block mt-0.5 text-[7.5px] sm:text-[8.5px] font-bold text-slate-500 bg-slate-200/70 px-1.5 py-0.5 rounded-full leading-tight">
+                        Coming soon
+                      </span>
+                    ) : (
+                      <p className="text-[8.5px] sm:text-[9.5px] text-slate-400 font-medium mt-0.5 truncate">
+                        {c.countLabel}
+                      </p>
+                    )}
                   </div>
                 </button>
               );
@@ -427,13 +417,19 @@ export default function Categories() {
               ))}
             </div>
           ) : filteredCategoryProducts.length === 0 ? (
-            <div className="bg-white rounded-2xl p-8 text-center text-xs font-bold text-slate-500 border border-slate-200">
-              📦 No {activePill === "All" ? "" : activePill} products currently listed in {region?.name || "your area"}.
+            <div className="bg-white rounded-2xl p-8 text-center text-xs font-bold text-slate-500 border border-slate-200 space-y-2">
+              <span className="text-3xl block">⏳</span>
+              <p className="text-sm font-black text-navy-950">
+                {activePill} Products Coming Soon!
+              </p>
+              <p className="text-slate-400 max-w-sm mx-auto">
+                Hum jald hi {activePill} ke certified products {region?.name || "aapke region"} me launch kar rahe hain.
+              </p>
               <button
                 onClick={() => handleSelectCategory("All", false)}
-                className="block mx-auto mt-2 text-[#0284C7] underline font-bold"
+                className="inline-block mt-2 px-4 py-2 bg-sky-50 text-[#0284C7] hover:bg-sky-100 font-black rounded-xl text-xs transition-colors cursor-pointer"
               >
-                View all available products
+                Explore All Available Products →
               </button>
             </div>
           ) : (

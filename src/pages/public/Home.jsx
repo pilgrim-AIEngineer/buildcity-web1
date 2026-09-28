@@ -10,6 +10,7 @@ import RegionPicker from "../../components/RegionPicker";
 import NotificationPanel from "../../components/NotificationPanel";
 import ProductCard from "../../components/ProductCard";
 import Footer from "../../components/Footer";
+import { Capacitor } from "@capacitor/core";
 
 const categoryTiles = [
   {
@@ -198,7 +199,7 @@ const DEFAULT_BANNER_SLIDES = [
 
 export default function Home() {
   const { user } = useAuth();
-  const { addItem, count } = useCart();
+  const { addItem } = useCart();
   const { region } = useRegion();
   const { products = [], productsLoading, banners = [] } = useAdmin();
   const navigate = useNavigate();
@@ -309,6 +310,32 @@ export default function Home() {
     return [...liveVendorApproved];
   }, [liveVendorApproved]);
 
+  // 🎯 Deal of the Week (4 products that rotate daily using deterministic date PRNG)
+  const dealOfTheWeekProducts = useMemo(() => {
+    if (!liveDisplayProducts || liveDisplayProducts.length === 0) return [];
+
+    const today = new Date();
+    // Unique seed per day (YYYYMMDD)
+    const daySeed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+
+    let s = daySeed;
+    const rng = () => {
+      let t = (s += 0x6d2b79f5);
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+
+    // Shuffle copy of live products using today's RNG seed
+    const copy = [...liveDisplayProducts];
+    for (let i = copy.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+
+    return copy.slice(0, 4);
+  }, [liveDisplayProducts]);
+
   const nextSlide = () => {
     setSlide((s) => (s + 1) % activeSlides.length);
   };
@@ -392,14 +419,20 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] font-sans w-full max-w-full [overflow-x:clip]">
+    <div className="min-h-screen bg-[#F8FAFC] font-sans w-full max-w-full overflow-x-clip">
       {/* 🖥️ Desktop Navbar */}
       <div className="hidden lg:block">
         <Navbar />
       </div>
 
-      {/* 📱 Mobile Top Header (Single Clean Solid Sticky Header) */}
-      <div className="lg:hidden bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs w-full max-w-full overflow-hidden">
+      {/* 📱 Mobile Top Header (Dynamic Frosted Glassmorphism on Scroll) */}
+      <div
+        className={`lg:hidden sticky top-0 z-30 w-full max-w-full overflow-hidden transition-all duration-300 ${
+          isScrolledDown
+            ? "bg-white/80 backdrop-blur-xl border-b border-slate-200/60 shadow-[0_4px_20px_-4px_rgba(15,23,42,0.08)]"
+            : "bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-2xs"
+        }`}
+      >
         {/* Top Action Row (Logo & Location on Left, Notification & Cart on Right) */}
         <div className="px-3 pt-2.5 pb-2 flex items-center justify-between gap-1.5 w-full max-w-full">
           {/* Left: Brand Logo & Live Location */}
@@ -425,17 +458,9 @@ export default function Home() {
             />
           </div>
 
-          {/* Right: Login/Profile + Notification + Cart */}
+          {/* Right: Login (When guest) + Notification */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {user ? (
-              <Link
-                to="/profile"
-                className="w-6.5 h-6.5 rounded-full bg-gradient-to-tr from-brand-600 to-brand-400 text-white font-black text-[10.5px] flex items-center justify-center shadow-xs border border-brand-500/30 active:scale-95 transition-all shrink-0"
-                title={`${user.name || "User"} (Profile)`}
-              >
-                {(user.name || user.phone || "U")[0].toUpperCase()}
-              </Link>
-            ) : (
+            {!user && (
               <Link
                 to="/login"
                 className="bg-[#0A192F] hover:bg-brand-600 text-white font-extrabold text-[10.5px] px-2 py-1 rounded-xl shadow-2xs active:scale-95 transition-all flex items-center gap-1 shrink-0"
@@ -447,22 +472,6 @@ export default function Home() {
             )}
 
             <NotificationPanel className="relative text-navy-900 hover:text-brand-600 transition-colors cursor-pointer shrink-0" />
-            <Link
-              to="/cart"
-              className="relative text-navy-900 hover:text-brand-600 transition-colors p-1 shrink-0"
-              title="Cart"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="8" cy="21" r="1" />
-                <circle cx="19" cy="21" r="1" />
-                <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
-              </svg>
-              {count > 0 && (
-                <span className="absolute -top-1 -right-1.5 h-4.5 w-4.5 rounded-full bg-brand-500 text-white text-[10px] font-black flex items-center justify-center shadow-xs">
-                  {count}
-                </span>
-              )}
-            </Link>
           </div>
         </div>
 
@@ -475,7 +484,7 @@ export default function Home() {
           }`}
         >
           <form onSubmit={handleSearch} className="px-3">
-            <div className="w-full flex items-center gap-2.5 bg-slate-100 rounded-xl px-3.5 py-2 border border-slate-200 focus-within:border-brand-500 focus-within:bg-white transition-all shadow-2xs h-10.5">
+            <div className="w-full flex items-center gap-2.5 bg-slate-100/85 backdrop-blur-sm rounded-xl px-3.5 py-2 border border-slate-200/80 focus-within:border-brand-500 focus-within:bg-white focus-within:shadow-xs transition-all shadow-2xs h-10.5">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2.2">
                 <circle cx="11" cy="11" r="8" />
                 <path d="m21 21-4.3-4.3" />
@@ -497,10 +506,10 @@ export default function Home() {
         </div>
       </div>
 
-      <main className="max-w-6xl mx-auto px-4 pt-4 sm:pt-6 space-y-6">
+      <main className="max-w-6xl mx-auto px-4 pt-4 sm:pt-6 pb-28 sm:pb-32 lg:pb-12 space-y-6">
         {/* 🌟 1. HERO CAROUSEL BANNER (SWIPEABLE) */}
         <div
-          className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#07132B] via-[#0A1A3A] to-[#0D224D] shadow-lg select-none group touch-pan-y flex flex-col"
+          className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-slate-900 border border-slate-200/80 shadow-[0_6px_24px_-4px_rgba(15,23,42,0.10)] select-none group touch-pan-y flex flex-col ring-1 ring-black/5"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
@@ -510,14 +519,14 @@ export default function Home() {
           onMouseLeave={handleMouseUp}
         >
           {/* Banner Main Carousel Area */}
-          <div className="relative aspect-[16/8.2] sm:aspect-[24/8] w-full flex items-stretch cursor-grab active:cursor-grabbing">
+          <div className="relative aspect-[5/2] sm:aspect-[5/2] w-full flex items-stretch cursor-grab active:cursor-grabbing touch-manipulation">
             {activeSlides.map((b, i) => (
               <div
                 key={b.id || i}
                 className="absolute inset-0 transition-all duration-700 ease-out overflow-hidden"
                 style={{
                   opacity: slide === i ? 1 : 0,
-                  transform: slide === i ? "translateX(0%) scale(1)" : i < slide ? "translateX(-6%) scale(0.97)" : "translateX(6%) scale(0.97)",
+                  transform: slide === i ? "translateX(0%) scale(1)" : i < slide ? "translateX(-5%) scale(0.98)" : "translateX(5%) scale(0.98)",
                   pointerEvents: slide === i ? "auto" : "none",
                 }}
               >
@@ -526,7 +535,7 @@ export default function Home() {
                   <img
                     src={b.imageUrl || b.img}
                     alt={b.tag || b.title || "Hero Banner"}
-                    className="w-full h-full object-fill sm:object-cover object-center"
+                    className="w-full h-full object-cover object-center group-hover:scale-[1.015] transition-transform duration-700 ease-out"
                     onError={(e) => {
                       e.target.src = "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=1200&q=80";
                     }}
@@ -536,10 +545,10 @@ export default function Home() {
 
                   {/* 🏷️ Dynamic Badge, Title & Button overlay inside exact banner screen frame */}
                   {(Boolean(b.tag?.trim()) || Boolean(b.title?.trim())) && (
-                    <div className="absolute inset-x-0 bottom-0 px-3 py-2.5 sm:px-6 sm:py-3.5 bg-gradient-to-t from-black/85 via-black/45 to-transparent flex items-center justify-between gap-2 z-10 pointer-events-none">
+                    <div className="absolute inset-x-0 bottom-0 px-3 py-2.5 sm:px-6 sm:py-3.5 bg-gradient-to-t from-black/80 via-black/35 to-transparent flex items-center justify-between gap-2 z-10 pointer-events-none">
                       <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
                         {b.tag?.trim() && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 sm:px-3 sm:py-1 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 text-slate-950 font-black text-[9px] sm:text-xs uppercase tracking-wider shadow-md shrink-0 border border-amber-200/60">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 text-slate-950 font-black text-[9px] sm:text-xs uppercase tracking-wider shadow-md shrink-0 border border-amber-200/60">
                             <span className="text-[10px] sm:text-xs leading-none">✨</span>
                             <span className="leading-none">{b.tag.trim()}</span>
                           </span>
@@ -551,7 +560,7 @@ export default function Home() {
                         )}
                       </div>
 
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-lg sm:rounded-xl bg-white/95 hover:bg-white text-slate-950 font-black text-[10px] sm:text-xs shadow-md shrink-0 pointer-events-auto group-hover:bg-amber-400 group-hover:text-slate-950 transition-all active:scale-95">
+                      <span className="inline-flex items-center gap-1 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-white/95 hover:bg-white text-slate-950 font-black text-[10px] sm:text-xs shadow-md shrink-0 pointer-events-auto group-hover:bg-amber-400 group-hover:text-slate-950 transition-all active:scale-95">
                         <span>{(b.tag || b.title || "").toLowerCase().includes("book") ? "Book Now" : "Explore"}</span>
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="shrink-0 transition-transform group-hover:translate-x-0.5">
                           <path d="m9 18 6-6-6-6" />
@@ -571,7 +580,7 @@ export default function Home() {
                 prevSlide();
               }}
               aria-label="Previous slide"
-              className="hidden sm:flex absolute left-2.5 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-black/40 hover:bg-black/70 text-white items-center justify-center backdrop-blur-xs transition-all opacity-0 group-hover:opacity-100 active:scale-90 shadow-md"
+              className="hidden sm:flex absolute left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/90 hover:bg-white text-navy-950 items-center justify-center backdrop-blur-md transition-all opacity-0 group-hover:opacity-100 active:scale-90 shadow-md border border-white/60 cursor-pointer"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                 <path d="m15 18-6-6 6-6" />
@@ -584,7 +593,7 @@ export default function Home() {
                 nextSlide();
               }}
               aria-label="Next slide"
-              className="hidden sm:flex absolute right-2.5 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-black/40 hover:bg-black/70 text-white items-center justify-center backdrop-blur-xs transition-all opacity-0 group-hover:opacity-100 active:scale-90 shadow-md"
+              className="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/90 hover:bg-white text-navy-950 items-center justify-center backdrop-blur-md transition-all opacity-0 group-hover:opacity-100 active:scale-90 shadow-md border border-white/60 cursor-pointer"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                 <path d="m9 18 6-6-6-6" />
@@ -592,14 +601,14 @@ export default function Home() {
             </button>
 
             {/* Interactive Dots Indicator */}
-            <div className="absolute top-2.5 right-2.5 sm:top-3.5 sm:right-3.5 flex items-center gap-1.5 z-20 bg-black/40 backdrop-blur-xs px-2 sm:px-2.5 py-1 rounded-full border border-white/10 shadow-sm">
+            <div className="absolute top-2.5 right-2.5 sm:top-3.5 sm:right-3.5 flex items-center gap-1.5 z-20 bg-black/35 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/20 shadow-sm">
               {activeSlides.map((_, i) => (
                 <button
                   key={i}
                   type="button"
                   onClick={() => setSlide(i)}
                   className={`h-1.5 rounded-full transition-all duration-300 ${
-                    slide === i ? "w-4 sm:w-5 bg-white shadow-xs" : "w-1.5 bg-white/50 hover:bg-white/80"
+                    slide === i ? "w-5 bg-white shadow-xs" : "w-1.5 bg-white/45 hover:bg-white/75"
                   }`}
                   aria-label={`Go to slide ${i + 1}`}
                 />
@@ -611,28 +620,31 @@ export default function Home() {
         {/* 🏷️ 3. TOP BRANDS CIRCULAR SHOWCASE */}
         <section className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-extrabold text-navy-900 tracking-tight">Top Brands</h3>
-            <Link to="/categories" className="text-xs font-bold text-[#0284C7] hover:underline">
-              See all
+            <h3 className="text-base sm:text-lg font-black text-navy-950 tracking-tight">Top Brands</h3>
+            <Link to="/categories" className="text-xs font-bold text-brand-600 hover:text-brand-700 hover:underline flex items-center gap-1 active:scale-95 transition-transform">
+              <span>See all</span>
+              <span className="text-sm">→</span>
             </Link>
           </div>
 
-          <div className="flex lg:grid lg:grid-cols-7 gap-3 sm:gap-4 overflow-x-auto lg:overflow-visible pb-2 no-scrollbar scroll-smooth">
+          <div className="flex lg:grid lg:grid-cols-7 gap-3.5 sm:gap-5 lg:gap-6 overflow-x-auto lg:overflow-visible pb-2.5 pt-1 no-scrollbar scroll-smooth px-1">
             {brandItems.map((b) => (
               <Link
                 key={b.name}
                 to={`/categories?cat=${encodeURIComponent(b.category)}`}
-                className="flex flex-col items-center text-center shrink-0 lg:shrink group active:scale-95 transition-all"
+                className="w-[74px] sm:w-[84px] lg:w-auto shrink-0 lg:shrink flex flex-col items-center text-center group active:scale-95 transition-all"
               >
                 <div
-                  className="w-14 h-14 sm:w-16 sm:h-16 lg:w-20 lg:h-20 rounded-full flex items-center justify-center p-2 shadow-xs border border-slate-200/90 group-hover:shadow-md group-hover:scale-105 transition-all overflow-hidden relative select-none"
+                  className="w-16 h-16 sm:w-18 sm:h-18 lg:w-20 lg:h-20 rounded-full flex items-center justify-center p-2.5 shadow-[0_2px_8px_-2px_rgba(15,23,42,0.08)] border border-slate-200/90 group-hover:border-brand-500 group-hover:shadow-[0_6px_20px_-4px_rgba(234,88,12,0.2)] group-hover:scale-105 transition-all duration-300 select-none overflow-hidden"
                   style={{ backgroundColor: b.bgColor }}
                 >
                   {b.renderLogo()}
                 </div>
-                <span className="text-[10px] sm:text-[11px] lg:text-xs font-bold text-navy-900 mt-1.5 group-hover:text-[#0284C7] transition-colors truncate max-w-full">
-                  {b.name}
-                </span>
+                <div className="w-full min-h-[28px] flex items-center justify-center text-center mt-2 px-0.5">
+                  <span className="text-[11px] sm:text-xs font-black text-navy-950 group-hover:text-brand-600 transition-colors leading-tight tracking-tight line-clamp-2">
+                    {b.name}
+                  </span>
+                </div>
               </Link>
             ))}
           </div>
@@ -652,11 +664,11 @@ export default function Home() {
               <Link
                 key={c.name}
                 to={`/categories?cat=${encodeURIComponent(c.name)}`}
-                className="w-[88px] sm:w-28 lg:w-auto shrink-0 lg:shrink rounded-2xl p-2 sm:p-2.5 flex flex-col items-center justify-between shadow-2xs hover:shadow-md border border-slate-200/70 hover:border-slate-300 active:scale-95 transition-all duration-200 group min-h-[110px] sm:min-h-[130px]"
+                className="w-[92px] sm:w-28 lg:w-auto shrink-0 lg:shrink rounded-2xl p-2.5 flex flex-col items-center justify-between shadow-[0_2px_8px_-2px_rgba(15,23,42,0.06)] hover:shadow-[0_8px_20px_-6px_rgba(15,23,42,0.12)] border border-slate-200/80 hover:border-slate-300 active:scale-[0.94] transition-all duration-300 group min-h-[115px] sm:min-h-[135px]"
                 style={{ backgroundColor: c.bg }}
               >
                 <div className="w-full flex-1 flex items-center justify-center py-1">
-                  <div className="w-13 h-13 sm:w-16 sm:h-16 rounded-full bg-white shadow-xs border border-white/80 flex items-center justify-center p-1.5 overflow-hidden group-hover:scale-110 group-hover:shadow-sm transition-all duration-300">
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white/95 shadow-xs border border-white/90 flex items-center justify-center p-1.5 overflow-hidden group-hover:scale-110 group-hover:shadow-md transition-all duration-300">
                     <img
                       src={c.img}
                       alt={c.name}
@@ -667,9 +679,16 @@ export default function Home() {
                     />
                   </div>
                 </div>
-                <span className="text-[11px] sm:text-xs font-black text-navy-950 group-hover:text-brand-600 transition-colors text-center truncate max-w-full leading-tight pt-1 pb-0.5">
-                  {c.name}
-                </span>
+                <div className="text-center w-full pt-1">
+                  <span className="text-xs sm:text-[13px] font-black text-navy-950 group-hover:text-brand-600 transition-colors block truncate max-w-full leading-tight">
+                    {c.name}
+                  </span>
+                  {c.tag && (
+                    <span className="text-[9px] font-bold text-slate-500 block truncate leading-none mt-0.5 opacity-80">
+                      {c.tag}
+                    </span>
+                  )}
+                </div>
               </Link>
             ))}
           </div>
@@ -707,6 +726,32 @@ export default function Home() {
             </div>
           )}
         </section>
+
+        {/* 🔥 5.5 DEAL OF THE WEEK (4 DAILY ROTATING PRODUCTS, 1:1 HORIZONTAL SCROLL) */}
+        {dealOfTheWeekProducts.length > 0 && (
+          <section className="space-y-3 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent p-3.5 sm:p-4.5 rounded-2xl sm:rounded-3xl border border-amber-200/60 shadow-2xs">
+            <div className="flex items-center gap-2">
+              <span className="text-xl sm:text-2xl leading-none select-none">🔥</span>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base sm:text-lg font-black text-navy-950 tracking-tight">
+                  Deal of the Week
+                </h3>
+                <span className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-2xs uppercase tracking-wider">
+                  Daily Special
+                </span>
+              </div>
+            </div>
+
+            {/* Left-to-right horizontal scroll with 1:1 square cards */}
+            <div className="flex gap-3 sm:gap-4 overflow-x-auto no-scrollbar scroll-smooth snap-x pb-1 pt-0.5 px-0.5">
+              {dealOfTheWeekProducts.map((p) => (
+                <div key={p.id} className="w-[160px] sm:w-[195px] shrink-0 snap-start">
+                  <ProductCard product={p} className="h-full border-amber-100/90 shadow-2xs hover:border-amber-300" />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* 🔨 6. POPULAR SERVICES SECTION */}
         <section className="space-y-3">
@@ -809,8 +854,8 @@ export default function Home() {
         </section>
       </main>
 
-      {/* 🏛️ 4-SECTION COMPREHENSIVE FOOTER */}
-      <Footer />
+      {/* 🏛️ 4-SECTION COMPREHENSIVE FOOTER - VISIBLE ON WEBSITE, HIDDEN IN NATIVE APP */}
+      {!Capacitor.isNativePlatform() && <Footer />}
 
       {/* 🟢 8. FLOATING WHATSAPP & PHONE CALL ACTION BUTTONS */}
       <div className="fixed bottom-32 sm:bottom-24 right-3.5 sm:right-5 z-40 flex flex-col gap-2">

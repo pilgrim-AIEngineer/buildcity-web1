@@ -13,14 +13,72 @@ import LoadMoreButton from "../../components/LoadMoreButton";
 const TABS = ["All", "Pending", "Processing", "Out for Delivery", "Delivered", "Cancelled"];
 
 const STATUS_MAP = {
-  PENDING: { label: "Pending", color: "bg-amber-50 text-amber-700 border-amber-200/80", pulse: true },
-  PROCESSING: { label: "Processing", color: "bg-blue-50 text-blue-700 border-blue-200/80", pulse: true },
-  CONFIRMED: { label: "Confirmed", color: "bg-blue-50 text-blue-700 border-blue-200/80", pulse: false },
-  SHIPPED: { label: "Shipped", color: "bg-indigo-50 text-indigo-700 border-indigo-200/80", pulse: true },
-  OUT_FOR_DELIVERY: { label: "Out for Delivery", color: "bg-purple-50 text-purple-700 border-purple-200/80", pulse: true },
-  DELIVERED: { label: "Delivered", color: "bg-emerald-50 text-emerald-700 border-emerald-200/80", pulse: false },
-  CANCELLED: { label: "Cancelled", color: "bg-rose-50 text-rose-600 border-rose-200/80", pulse: false },
+  PENDING: {
+    label: "Pending",
+    color: "bg-amber-50 text-amber-800 border-amber-300/80",
+    tile: "bg-gradient-to-b from-amber-50/70 via-white to-white border-amber-300/70 shadow-[0_2px_10px_-4px_rgba(245,158,11,0.15)]",
+    accent: "bg-amber-500",
+    halo: "ring-amber-500/25",
+    dot: "bg-amber-500",
+    pulse: true,
+  },
+  PROCESSING: {
+    label: "Processing",
+    color: "bg-sky-50 text-sky-800 border-sky-300/80",
+    tile: "bg-gradient-to-b from-sky-50/70 via-white to-white border-sky-300/70 shadow-[0_2px_10px_-4px_rgba(14,165,233,0.15)]",
+    accent: "bg-sky-500",
+    halo: "ring-sky-500/25",
+    dot: "bg-sky-500",
+    pulse: true,
+  },
+  CONFIRMED: {
+    label: "Confirmed",
+    color: "bg-sky-50 text-sky-800 border-sky-300/80",
+    tile: "bg-gradient-to-b from-sky-50/70 via-white to-white border-sky-300/70 shadow-[0_2px_10px_-4px_rgba(14,165,233,0.15)]",
+    accent: "bg-sky-500",
+    halo: "ring-sky-500/25",
+    dot: "bg-sky-500",
+    pulse: false,
+  },
+  SHIPPED: {
+    label: "Shipped",
+    color: "bg-indigo-50 text-indigo-800 border-indigo-300/80",
+    tile: "bg-gradient-to-b from-indigo-50/70 via-white to-white border-indigo-300/70 shadow-[0_2px_10px_-4px_rgba(99,102,241,0.15)]",
+    accent: "bg-indigo-500",
+    halo: "ring-indigo-500/25",
+    dot: "bg-indigo-500",
+    pulse: true,
+  },
+  OUT_FOR_DELIVERY: {
+    label: "Out for Delivery",
+    color: "bg-indigo-50 text-indigo-800 border-indigo-300/80",
+    tile: "bg-gradient-to-b from-indigo-50/70 via-white to-white border-indigo-300/70 shadow-[0_2px_10px_-4px_rgba(99,102,241,0.15)]",
+    accent: "bg-indigo-500",
+    halo: "ring-indigo-500/25",
+    dot: "bg-indigo-500",
+    pulse: true,
+  },
+  DELIVERED: {
+    label: "Delivered",
+    color: "bg-emerald-50 text-emerald-800 border-emerald-300/80",
+    tile: "bg-gradient-to-b from-emerald-50/70 via-white to-white border-emerald-300/70 shadow-[0_2px_10px_-4px_rgba(16,185,129,0.15)]",
+    accent: "bg-emerald-500",
+    halo: "ring-emerald-500/25",
+    dot: "bg-emerald-500",
+    pulse: false,
+  },
+  CANCELLED: {
+    label: "Cancelled",
+    color: "bg-rose-50 text-rose-700 border-rose-300/70",
+    tile: "bg-gradient-to-b from-slate-50 via-white to-white border-slate-300/80",
+    accent: "bg-rose-400",
+    halo: "ring-rose-400/25",
+    dot: "bg-rose-400",
+    pulse: false,
+  },
 };
+
+const ORDER_STEPS = ["PENDING", "PROCESSING", "OUT_FOR_DELIVERY", "DELIVERED"];
 
 function PinIcon() {
   return (
@@ -78,7 +136,7 @@ export default function Orders() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 text-navy-900 pb-24 sm:pb-12 font-sans">
+    <div className="min-h-screen bg-slate-50 text-navy-900 pb-24 sm:pb-12 font-sans w-full max-w-full overflow-x-clip">
       {/* Desktop header */}
       <div className="hidden lg:block">
         <Navbar />
@@ -116,21 +174,10 @@ export default function Orders() {
 
       <main className="max-w-4xl mx-auto px-4 pt-6 space-y-6">
         {/* Header Title */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-black text-navy-900 tracking-tight">
-              My Orders & Fulfillment
-            </h1>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Live delivery status updates directly for your site delivery.
-            </p>
-          </div>
-          <button
-            onClick={() => navigate("/categories")}
-            className="text-xs font-black bg-brand-500 hover:bg-brand-600 active:scale-[0.98] text-white px-4 py-2.5 rounded-xl transition-all cursor-pointer shadow-xs"
-          >
-            + New Order
-          </button>
+        <div>
+          <h1 className="text-xl sm:text-2xl font-black text-navy-900 tracking-tight">
+            My Orders
+          </h1>
         </div>
 
         {/* Status Filter Tabs */}
@@ -196,51 +243,74 @@ export default function Orders() {
               const statusInfo = STATUS_MAP[rawSt] || STATUS_MAP.PENDING;
               const displayTotal = Number(order.total || order.totalAmount || 0);
 
-              return (
-                <Link
-                  key={order.id}
-                  to={`/orders/${order.id}`}
-                  className="bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-5 hover:border-brand-400 hover:shadow-md active:scale-[0.99] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 group shadow-2xs block"
-                >
-                  <div className="flex gap-4 items-center">
-                    <div className="h-12 w-12 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-xl shrink-0 group-hover:bg-brand-50 transition-colors">
-                      📦
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${statusInfo.color}`}>
-                          {statusInfo.pulse && <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />}
-                          {statusInfo.label}
-                        </span>
-                        <span className="text-[11px] text-slate-400 font-medium">
-                          {formatDateTimeIST(order.date || order.createdAt)}
-                        </span>
+                const firstItem = order.items?.[0];
+                let stepIndex = ORDER_STEPS.indexOf(rawSt);
+                if (stepIndex === -1) {
+                  if (rawSt === "CONFIRMED") stepIndex = 1;
+                  else if (rawSt === "SHIPPED") stepIndex = 2;
+                  else stepIndex = 0;
+                }
+
+                return (
+                  <Link
+                    key={order.id}
+                    to={`/orders/${order.id}`}
+                    className={`relative overflow-hidden rounded-2xl border p-4 sm:p-5 hover:shadow-lg active:scale-[0.99] transition-all flex flex-col justify-between gap-3.5 group block ${statusInfo.tile}`}
+                  >
+                    {/* Status accent vertical line on the left */}
+                    <span className={`absolute inset-y-0 left-0 w-1.5 transition-colors duration-500 ${statusInfo.accent}`} aria-hidden="true" />
+
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
+                      <div className="flex gap-3.5 sm:gap-4 items-center min-w-0 pl-1">
+                        {/* 📦 Box Emoji Container */}
+                        <div className="h-13 w-13 sm:h-14 sm:w-14 rounded-xl bg-white border border-slate-200/90 flex items-center justify-center text-2xl shrink-0 shadow-2xs group-hover:scale-105 group-hover:bg-brand-50 transition-all select-none">
+                          📦
+                        </div>
+
+                        <div className="space-y-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10.5px] font-black border shadow-2xs ${statusInfo.color}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${statusInfo.dot} ${statusInfo.pulse ? "animate-pulse" : ""}`} />
+                              {statusInfo.label}
+                            </span>
+                            <span className="text-[11px] text-slate-400 font-medium">
+                              {formatDateTimeIST(order.date || order.createdAt)}
+                            </span>
+                          </div>
+
+                          <h3 className="text-xs sm:text-sm font-black text-navy-950 leading-snug group-hover:text-brand-600 transition-colors tracking-tight line-clamp-1">
+                            {firstItem?.name || firstItem?.productName || "Building Materials"}
+                          </h3>
+
+                          <div className="flex items-center gap-2 flex-wrap pt-0.5">
+                            <p className="text-[11px] text-slate-500 font-medium">
+                              Order: <strong className="font-mono text-brand-700 font-black">{formatShortId(order.id || order.orderNumber, "ORD")}</strong>
+                            </p>
+                            {order.items && order.items.length > 1 && (
+                              <span className="text-[10px] font-black text-slate-700 bg-slate-100/90 px-2 py-0.5 rounded-md border border-slate-200/80">
+                                +{order.items.length - 1} more items
+                              </span>
+                            )}
+                            <span className="text-[10px] font-bold text-slate-500 bg-white/90 px-2 py-0.5 rounded-md border border-slate-200/80">
+                              Delivery: ₹{Number(order.deliveryFee !== undefined ? order.deliveryFee : 49)}
+                            </span>
+                          </div>
+                        </div>
                       </div>
 
-                      <h3 className="text-xs font-black text-navy-900 leading-snug group-hover:text-brand-600 transition-colors tracking-tight">
-                        {order.items?.[0]?.name || order.items?.[0]?.productName || "Order Item"}
-                        {order.items && order.items.length > 1 && ` + ${order.items.length - 1} more items`}
-                      </h3>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <p className="text-[11px] text-slate-400">Order ID: <strong className="font-mono text-brand-700 font-extrabold">{formatShortId(order.id || order.orderNumber, "ORD")}</strong></p>
-                        <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
-                          Delivery: ₹{Number(order.deliveryFee !== undefined ? order.deliveryFee : 49)}
+                      <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                        <div className="text-left sm:text-right">
+                          <p className="text-[9.5px] text-slate-400 font-black uppercase tracking-wider">Total Amount</p>
+                          <p className="text-base sm:text-lg font-black text-navy-950 tabular-nums">₹{displayTotal.toLocaleString("en-IN")}</p>
+                        </div>
+                        <span className="text-xs font-black text-white bg-navy-950 group-hover:bg-brand-600 px-4 py-2 rounded-xl group-hover:shadow-md transition-all shrink-0 active:scale-95 flex items-center gap-1 shadow-2xs">
+                          <span>Track Order</span>
+                          <span className="transition-transform group-hover:translate-x-0.5">→</span>
                         </span>
                       </div>
                     </div>
-                  </div>
-
-                  <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100">
-                    <div className="text-left sm:text-right">
-                      <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">Total Amount</p>
-                      <p className="text-base font-black text-navy-900 tabular-nums">₹{displayTotal.toLocaleString("en-IN")}</p>
-                    </div>
-                    <span className="text-xs font-bold text-brand-600 bg-brand-50 border border-brand-200 px-3.5 py-2 rounded-xl group-hover:bg-brand-500 group-hover:text-white transition-colors shrink-0 shadow-2xs">
-                      View Details →
-                    </span>
-                  </div>
-                </Link>
-              );
+                  </Link>
+                );
             })}
           </div>
         )}

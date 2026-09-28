@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-// Package the freshly built web app (dist/) as an over-the-air update for the customer Android app.
+// Package the freshly built web app (dist/) as an over-the-air update for the vendor Android app.
 // Runs after `vite build` on every Vercel deploy; the result is served as static files:
-//   dist/ota/customer/<version>.zip   the bundle the app downloads
-//   dist/ota/customer/latest.json     { version, url, checksum, minNativeVersion }
-// api/ota-customer.js reads latest.json and tells the app whether to update.
+//   dist/ota/vendor/<version>.zip   the bundle the vendor app downloads
+//   dist/ota/vendor/latest.json     { version, url, checksum, minNativeVersion }
+// api/ota-vendor.js reads latest.json and tells the vendor app whether to update.
 import { execSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
@@ -11,11 +11,10 @@ import { join, relative } from "node:path";
 import { zipSync } from "fflate";
 
 const DIST = "dist";
-const OUT_DIR = join(DIST, "ota", "customer");
-const PUBLIC_BASE = "https://www.buildcity.in/ota/customer";
+const OUT_DIR = join(DIST, "ota", "vendor");
+const PUBLIC_BASE = "https://www.buildcity.in/ota/vendor";
 
-// Oldest customer app (android versionName) that can run this web bundle. Raise it when a release
-// adds or upgrades a native Capacitor plugin, so older installs wait for the Play Store update.
+// Oldest vendor app (android versionName) that can run this web bundle.
 const MIN_NATIVE_VERSION = "1.1";
 
 const pkg = JSON.parse(readFileSync("package.json", "utf8"));
@@ -56,4 +55,4 @@ writeFileSync(
   JSON.stringify({ version, url: `${PUBLIC_BASE}/${version}.zip`, checksum, minNativeVersion: MIN_NATIVE_VERSION }, null, 2) + "\n"
 );
 
-console.log(`ota-bundle: customer ${version} (${(zip.length / 1024 / 1024).toFixed(2)} MB, ${Object.keys(files).length} files)`);
+console.log(`ota-bundle: vendor ${version} (${(zip.length / 1024 / 1024).toFixed(2)} MB, ${Object.keys(files).length} files)`);

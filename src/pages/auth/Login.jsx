@@ -18,7 +18,8 @@ export default function Login({ forceVendorMode = false }) {
   const { requestOtp, verifyOtp, vendorLogin } = useAuth();
 
   // Mode: "standard" (OTP for Customer) vs "vendor" (Phone & Password for Vendor / DR / Admin Partners)
-  const [mode, setMode] = useState(isVendorApp || forceVendorMode ? "vendor" : "standard");
+  const isNativeCustomer = Capacitor.isNativePlatform() && !isVendorApp;
+  const [mode, setMode] = useState(!isNativeCustomer && (isVendorApp || forceVendorMode) ? "vendor" : "standard");
   const [step, setStep] = useState("phone"); // "phone" | "otp"
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -343,6 +344,16 @@ export default function Login({ forceVendorMode = false }) {
                 Create Account (Register) →
               </Link>
             </p>
+            {!Capacitor.isNativePlatform() && !isVendorApp && (
+              <div className="mt-4 pt-3 border-t border-slate-100">
+                <Link
+                  to="/vendor/login"
+                  className="text-xs font-bold text-slate-500 hover:text-brand-600 transition-colors inline-flex items-center gap-1"
+                >
+                  🏢 Looking for Partner / Vendor Login? Click here →
+                </Link>
+              </div>
+            )}
           </div>
         </form>
       ) : (

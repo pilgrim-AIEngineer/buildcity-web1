@@ -18,16 +18,6 @@
       "backgroundColor": "#0A192F",
       "style": "DARK",
       "overlaysWebView": false
-    },
-    "CapacitorUpdater": {
-      "autoUpdate": true,
-      "updateUrl": "https://www.buildcity.in/api/ota-customer",
-      "statsUrl": "",
-      "channelUrl": "",
-      "appReadyTimeout": 10000,
-      "autoDeleteFailed": true,
-      "autoDeletePrevious": true,
-      "resetWhenUpdate": true
     }
   }
 }

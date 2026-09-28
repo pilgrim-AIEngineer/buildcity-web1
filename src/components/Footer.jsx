@@ -104,6 +104,15 @@ export default function Footer() {
                   </Link>
                 </li>
               ))}
+              <li className="pt-1.5">
+                <Link
+                  to="/vendor/login"
+                  className="text-amber-400 hover:text-amber-300 font-bold transition-colors flex items-center gap-2 py-0.5"
+                >
+                  <span>🏢</span>
+                  <span>Partner / Vendor Login →</span>
+                </Link>
+              </li>
             </ul>
           </div>
 

@@ -223,9 +223,7 @@ export default function Home() {
   const [justAddedId, setJustAddedId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isScrolledDown, setIsScrolledDown] = useState(false);
-
   const isScrolledRef = useRef(false);
-  const isTransitioningRef = useRef(false);
 
   useEffect(() => {
     let ticking = false;
@@ -237,8 +235,6 @@ export default function Home() {
       window.requestAnimationFrame(() => {
         ticking = false;
 
-        if (isTransitioningRef.current) return;
-
         const scrollY =
           window.pageYOffset ||
           window.scrollY ||
@@ -246,32 +242,24 @@ export default function Home() {
           document.body.scrollTop ||
           0;
 
-        // Scroll down past 35px -> smoothly minimize search
-        if (scrollY > 35 && !isScrolledRef.current) {
-          isScrolledRef.current = true;
-          setIsScrolledDown(true);
-          isTransitioningRef.current = true;
-          setTimeout(() => {
-            isTransitioningRef.current = false;
-          }, 300);
-        }
-        // Scroll back to top (< 15px) -> expand search
-        else if (scrollY < 15 && isScrolledRef.current) {
-          isScrolledRef.current = false;
-          setIsScrolledDown(false);
-          isTransitioningRef.current = true;
-          setTimeout(() => {
-            isTransitioningRef.current = false;
-          }, 300);
+        // Smooth collapse past 55px, smooth restore near top (< 20px)
+        if (scrollY > 55) {
+          if (!isScrolledRef.current) {
+            isScrolledRef.current = true;
+            setIsScrolledDown(true);
+          }
+        } else if (scrollY < 20) {
+          if (isScrolledRef.current) {
+            isScrolledRef.current = false;
+            setIsScrolledDown(false);
+          }
         }
       });
     };
 
-    window.addEventListener("scroll", handleScroll, { passive: true, capture: true });
-    document.addEventListener("scroll", handleScroll, { passive: true, capture: true });
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => {
-      window.removeEventListener("scroll", handleScroll, { capture: true });
-      document.removeEventListener("scroll", handleScroll, { capture: true });
+      window.removeEventListener("scroll", handleScroll);
     };
   }, []);
 
@@ -429,7 +417,7 @@ export default function Home() {
       <div
         className={`lg:hidden sticky top-0 z-30 w-full max-w-full overflow-hidden transition-all duration-300 ${
           isScrolledDown
-            ? "bg-white/80 backdrop-blur-xl border-b border-slate-200/60 shadow-[0_4px_20px_-4px_rgba(15,23,42,0.08)]"
+            ? "bg-white/85 backdrop-blur-xl border-b border-slate-200/60 shadow-[0_4px_20px_-4px_rgba(15,23,42,0.08)]"
             : "bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-2xs"
         }`}
       >
@@ -475,38 +463,42 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Search Bar (Smoothly collapses when scrolled down, restores at top) */}
+        {/* Search Bar Container (Zero-stretch CSS grid accordion) */}
         <div
-          className={`transition-all duration-300 ease-in-out overflow-hidden ${
+          className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${
             isScrolledDown
-              ? "max-h-0 opacity-0 pb-0 pointer-events-none"
-              : "max-h-16 opacity-100 pb-3 pt-1"
+              ? "grid-rows-[0fr] opacity-0 pointer-events-none"
+              : "grid-rows-[1fr] opacity-100"
           }`}
         >
-          <form onSubmit={handleSearch} className="px-3">
-            <div className="w-full flex items-center gap-2.5 bg-slate-100/85 backdrop-blur-sm rounded-xl px-3.5 py-2 border border-slate-200/80 focus-within:border-brand-500 focus-within:bg-white focus-within:shadow-xs transition-all shadow-2xs h-10.5">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2.2">
-                <circle cx="11" cy="11" r="8" />
-                <path d="m21 21-4.3-4.3" />
-              </svg>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search cement, steel, paints, pipes..."
-                className="w-full bg-transparent text-xs text-navy-900 font-medium outline-none placeholder:text-slate-400"
-              />
-              {searchQuery && (
-                <button type="button" onClick={() => setSearchQuery("")} className="text-slate-400 hover:text-slate-600 text-xs p-0.5">
-                  ✕
-                </button>
-              )}
-            </div>
-          </form>
+          <div className="overflow-hidden min-h-0">
+            <form onSubmit={handleSearch} className="px-3 pb-2.5 pt-0.5">
+              <div className="w-full flex items-center gap-2.5 bg-slate-100/85 backdrop-blur-sm rounded-xl px-3.5 py-2 border border-slate-200/80 focus-within:border-brand-500 focus-within:bg-white focus-within:shadow-xs transition-colors shadow-2xs h-10">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2.2" className="shrink-0">
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.3-4.3" />
+                </svg>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search cement, steel, paints, pipes..."
+                  className="w-full bg-transparent text-xs text-navy-900 font-medium outline-none placeholder:text-slate-400 min-w-0"
+                />
+                {searchQuery && (
+                  <button type="button" onClick={() => setSearchQuery("")} className="text-slate-400 hover:text-slate-600 text-xs p-0.5 shrink-0">
+                    ✕
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
         </div>
       </div>
 
-      <main className="max-w-6xl mx-auto px-4 pt-4 sm:pt-6 pb-28 sm:pb-32 lg:pb-12 space-y-6">
+      <main className={`max-w-6xl mx-auto px-4 pt-4 sm:pt-6 space-y-6 ${
+        Capacitor.isNativePlatform() ? "pb-20 sm:pb-24" : "pb-4 sm:pb-6"
+      }`}>
         {/* 🌟 1. HERO CAROUSEL BANNER (SWIPEABLE) */}
         <div
           className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-slate-900 border border-slate-200/80 shadow-[0_6px_24px_-4px_rgba(15,23,42,0.10)] select-none group touch-pan-y flex flex-col ring-1 ring-black/5"

@@ -694,7 +694,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 🏗️ 5. BEST OFFERS (3 PER ROW, EXACTLY 9 PRODUCTS) */}
+        {/* 🏗️ 5. BEST OFFERS (2 COLUMNS ON MOBILE, 3-4 ON DESKTOP) */}
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -709,7 +709,7 @@ export default function Home() {
           </div>
 
           {productsLoading ? (
-            <div className="grid grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-3.5 animate-pulse">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-3.5 animate-pulse">
               {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
                 <div key={n} className="bg-white rounded-2xl p-3 border border-slate-200 h-48" />
               ))}
@@ -719,7 +719,7 @@ export default function Home() {
               📦 No products listed in {region?.name || "Varanasi"} right now.
             </div>
           ) : (
-            <div className="grid grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3.5 lg:gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-3.5 lg:gap-4">
               {liveDisplayProducts.slice(0, 12).map((p) => (
                 <ProductCard key={p.id} product={p} />
               ))}

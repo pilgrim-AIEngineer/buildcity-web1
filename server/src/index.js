@@ -1912,7 +1912,7 @@ app.get("/api/v1/master-products", async (req, res) => {
 
 app.post("/api/v1/master-products", requireAuth, requireRole("ADMIN", "DR"), async (req, res) => {
   try {
-    const { name, categoryId, brand, type, grade, unit, suggestedPrice, imageUrl, addedBy } = req.body;
+    const { name, categoryId, brand, type, grade, unit, suggestedPrice, imageUrl, addedBy, description } = req.body;
     
     let targetCatId = categoryId;
     if (!targetCatId) {
@@ -1930,6 +1930,7 @@ app.post("/api/v1/master-products", requireAuth, requireRole("ADMIN", "DR"), asy
         unit: unit || "Unit",
         suggestedPrice: Number(suggestedPrice) || 100,
         imageUrl: imageUrl || "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&w=400&q=80",
+        description: description || null,
         addedBy: addedBy || "Admin",
       },
     });
@@ -1939,11 +1940,11 @@ app.post("/api/v1/master-products", requireAuth, requireRole("ADMIN", "DR"), asy
   }
 });
 
-// Master Product Update Endpoint — Admin dwara Product Title, Brand, Grade, Unit, Price, Image update karne ke liye
+// Master Product Update Endpoint — Admin dwara Product Title, Brand, Grade, Unit, Price, Image, Description update karne ke liye
 app.patch("/api/v1/master-products/:id", requireAuth, requireRole("ADMIN", "DR"), async (req, res) => {
   try {
     const rawId = req.params.id;
-    const { name, categoryId, brand, type, grade, unit, suggestedPrice, price, imageUrl } = req.body;
+    const { name, categoryId, brand, type, grade, unit, suggestedPrice, price, imageUrl, description } = req.body;
 
     let mp = await prisma.productMaster.findUnique({ where: { id: rawId } }).catch(() => null);
 
@@ -1955,6 +1956,7 @@ app.patch("/api/v1/master-products/:id", requireAuth, requireRole("ADMIN", "DR")
       if (type) updateData.type = type;
       if (grade) updateData.grade = grade;
       if (unit) updateData.unit = unit;
+      if (description !== undefined) updateData.description = description;
 
       const targetPrice = suggestedPrice !== undefined ? Number(suggestedPrice) : (price !== undefined ? Number(price) : undefined);
       if (targetPrice !== undefined && !isNaN(targetPrice)) {
@@ -1968,15 +1970,19 @@ app.patch("/api/v1/master-products/:id", requireAuth, requireRole("ADMIN", "DR")
         include: { category: true },
       });
 
-      // Synchronize price to existing vendor listings for this master product in DB
-      if (targetPrice !== undefined && !isNaN(targetPrice)) {
+      // Synchronize price and description to existing vendor listings for this master product in DB
+      const vendorUpdateData = {};
+      if (targetPrice !== undefined && !isNaN(targetPrice)) vendorUpdateData.price = targetPrice;
+      if (description !== undefined) vendorUpdateData.description = description;
+
+      if (Object.keys(vendorUpdateData).length > 0) {
         await prisma.vendorProduct.updateMany({
           where: { masterProductId: mp.id },
-          data: { price: targetPrice },
+          data: vendorUpdateData,
         }).catch(() => null);
       }
 
-      console.log(`✅ Master Product ${mp.id} updated in DB successfully! Price: ₹${updatedMp.suggestedPrice}`);
+      console.log(`✅ Master Product ${mp.id} updated in DB successfully!`);
       return res.json(updatedMp);
     }
 
@@ -2154,6 +2160,7 @@ app.post("/api/v1/vendor/listings", requireAuth, requireRole("VENDOR", "DR", "AD
         price: listingPrice,
         stockQty: listingStock,
         imageUrl: masterProd.imageUrl,
+        description: masterProd.description || null,
         approvalStatus: isAutoApproved ? "APPROVED" : "PENDING_REVIEW",
         isActive: isAutoApproved ? true : false,
         addedBy: isAutoApproved ? (req.auth.role === "ADMIN" ? "Admin" : "DR") : "Vendor",

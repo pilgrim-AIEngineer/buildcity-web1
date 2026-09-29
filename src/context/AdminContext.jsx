@@ -1678,6 +1678,7 @@ export function AdminProvider({ children }) {
           unit: created.unit || mpData.unit || "Unit",
           suggestedPrice: Number(created.suggestedPrice) || Number(mpData.suggestedPrice) || 100,
           imageUrl: created.imageUrl || mpData.imageUrl || "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&w=400&q=80",
+          description: created.description !== undefined ? created.description : (mpData.description || null),
           addedBy: created.addedBy || mpData.addedBy || "Admin",
         };
         setMasterProducts((prev) => {
@@ -1703,6 +1704,7 @@ export function AdminProvider({ children }) {
       unit: mpData.unit || "Unit",
       suggestedPrice: Number(mpData.suggestedPrice) || 100,
       imageUrl: mpData.imageUrl || "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&w=400&q=80",
+      description: mpData.description || null,
       addedBy: mpData.addedBy || "Admin",
     };
     setMasterProducts((prev) => {
@@ -1738,6 +1740,7 @@ export function AdminProvider({ children }) {
             ...(updates.brand ? { brand: updates.brand } : {}),
             ...(updates.grade ? { grade: updates.grade } : {}),
             ...(updates.unit ? { unit: updates.unit } : {}),
+            ...(updates.description !== undefined ? { description: updates.description } : {}),
             ...(!isNaN(targetPrice) && targetPrice > 0 ? { price: targetPrice, suggestedPrice: targetPrice } : {}),
           };
         }

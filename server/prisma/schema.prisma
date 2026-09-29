@@ -162,6 +162,7 @@ model ProductMaster {
   unit           String   @default("Unit")
   suggestedPrice Decimal  @default(100.00)
   imageUrl       String   @default("https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&w=400&q=80")
+  description    String?
   addedBy        String   @default("Admin")
   createdAt      DateTime @default(now())
 
@@ -201,6 +202,7 @@ model VendorProduct {
   price           Decimal
   stockQty        Int            @default(100)
   imageUrl        String
+  description     String?
   approvalStatus  ApprovalStatus @default(PENDING_REVIEW)
   isActive        Boolean        @default(false)
   addedBy         String         @default("Vendor Catalog Selection")

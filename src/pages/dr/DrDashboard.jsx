@@ -490,6 +490,7 @@ export default function DrDashboard() {
     stockQty: "",
     vendorId: "",
     imageUrl: PRESET_IMAGES[0].url,
+    description: "",
   });
 
   // Find current logged-in DR info dynamically from live DB drs list or user.drInfo
@@ -843,6 +844,7 @@ export default function DrDashboard() {
         suggestedPrice: Number(productForm.price) || 100,
         price: Number(productForm.price) || 100,
         imageUrl: productForm.imageUrl || PRESET_IMAGES[0].url,
+        description: productForm.description?.trim() || null,
         addedBy: `DR: ${user?.name || "DR"} (${districtName})`,
       });
 
@@ -856,6 +858,7 @@ export default function DrDashboard() {
           districtName: districtName,
           price: Number(productForm.price) || 100,
           stockQty: Number(productForm.stockQty) || 100,
+          description: productForm.description?.trim() || null,
           addedBy: `DR: ${user?.name || "DR"}`,
         }).catch(() => null);
       }
@@ -871,6 +874,7 @@ export default function DrDashboard() {
         stockQty: "",
         vendorId: "",
         imageUrl: PRESET_IMAGES[0].url,
+        description: "",
       });
       await fetchLiveProductsDirect();
       window.dispatchEvent(new CustomEvent("buildcity_products_updated"));
@@ -1345,7 +1349,13 @@ export default function DrDashboard() {
                         </td>
                         <td className="py-3.5 px-4 text-right">
                           <button
-                            onClick={() => setEditingProduct({ ...p })}
+                            onClick={() => {
+                              const defaultDesc = `High-quality certified ${p.name || "Product"} by ${p.brand || "Authorized Brand"}. Supplied directly via BuildCity Certified Delivery Network.`;
+                              setEditingProduct({
+                                ...p,
+                                description: (p.description && p.description.trim()) ? p.description : defaultDesc,
+                              });
+                            }}
                             className="text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg px-2.5 py-1.5 cursor-pointer active:scale-[0.98] transition-all"
                           >
                             ✏️ Edit Catalog
@@ -2144,6 +2154,17 @@ export default function DrDashboard() {
                 </div>
               </div>
 
+              <div>
+                <label className="block text-xs font-bold text-navy-900 mb-1">Product Description (Optional)</label>
+                <textarea
+                  rows={3}
+                  placeholder="Enter detailed product specifications, material grade, usage guidelines, etc."
+                  value={productForm.description || ""}
+                  onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
+                  className="w-full bg-slate-50 text-xs border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-500 font-medium resize-y focus:bg-white transition-colors"
+                />
+              </div>
+
               <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
@@ -2265,6 +2286,7 @@ export default function DrDashboard() {
                 ...editingProduct,
                 imageUrl: finalImageUrl,
                 images: finalImgs,
+                description: editingProduct.description !== undefined ? (editingProduct.description?.trim() || null) : undefined,
               };
               delete prodToSave.img1;
               delete prodToSave.img2;
@@ -2399,6 +2421,19 @@ export default function DrDashboard() {
                     );
                   })}
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-navy-900 mb-1">
+                  Product Description
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Enter detailed product description, specifications, usage guidelines..."
+                  value={editingProduct.description || ""}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
+                  className="w-full bg-slate-50 text-xs border border-slate-200 rounded-xl px-3 py-2 outline-none font-medium resize-y focus:border-brand-500 focus:bg-white transition-colors"
+                />
               </div>
 
               <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">

@@ -396,6 +396,7 @@ export default function AdminDashboard() {
     unit: "",
     price: "",
     stockQty: "",
+    description: "",
   });
 
   const [isSubmittingVendor, setIsSubmittingVendor] = useState(false);
@@ -561,10 +562,11 @@ export default function AdminDashboard() {
         unit: (productForm.unit || "").trim() || "50kg Bag",
         suggestedPrice: Number(productForm.price || productForm.suggestedPrice) || 100,
         imageUrl: productForm.imageUrl || "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&w=400&q=80",
+        description: productForm.description?.trim() || null,
         addedBy: "Admin",
       });
 
-      setProductForm({ name: "", categoryId: "", brand: "", type: "", grade: "", unit: "", price: "", stockQty: "" });
+      setProductForm({ name: "", categoryId: "", brand: "", type: "", grade: "", unit: "", price: "", stockQty: "", description: "" });
       setShowProductForm(false);
       showAlert({ title: "Master Product Created", message: `Master product "${productForm.name.trim()}" saved to Database successfully!`, type: "success" });
     } catch (err) {
@@ -619,6 +621,7 @@ export default function AdminDashboard() {
       ...editingProduct,
       imageUrl: finalImageUrl,
       images: finalImgs,
+      description: editingProduct.description !== undefined ? (editingProduct.description?.trim() || null) : undefined,
     };
     delete prodToSave.img1;
     delete prodToSave.img2;
@@ -637,6 +640,7 @@ export default function AdminDashboard() {
         images: finalImgs,
         suggestedPrice: targetPrice,
         price: targetPrice,
+        description: prodToSave.description,
       });
 
       if (prodToSave.vendorId || prodToSave.masterProductId) {
@@ -648,6 +652,7 @@ export default function AdminDashboard() {
           price: targetPrice,
           imageUrl: finalImageUrl,
           images: finalImgs,
+          description: prodToSave.description,
         }).catch(() => null);
       }
     } catch (err) {
@@ -1701,6 +1706,17 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
+                <div>
+                  <label className="block text-xs font-bold text-navy-900 mb-1">Product Description (Optional)</label>
+                  <textarea
+                    rows={3}
+                    placeholder="Enter detailed product specifications, material grade, usage guidelines, etc."
+                    value={productForm.description || ""}
+                    onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
+                    className="w-full bg-white text-xs border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-500 font-medium resize-y"
+                  />
+                </div>
+
                 <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                   <button type="button" onClick={() => setShowProductForm(false)} className="px-4 py-2 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50">Cancel</button>
                   <button
@@ -1772,7 +1788,13 @@ export default function AdminDashboard() {
                         <td className="py-3.5 px-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             <button
-                              onClick={() => setEditingProduct({ ...p })}
+                              onClick={() => {
+                                const defaultDesc = `High-quality certified ${p.name || "Product"} by ${p.brand || "Authorized Brand"}. Supplied directly via BuildCity Certified Delivery Network.`;
+                                setEditingProduct({
+                                  ...p,
+                                  description: (p.description && p.description.trim()) ? p.description : defaultDesc,
+                                });
+                              }}
                               className="text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg px-2.5 py-1.5 active:scale-[0.98] transition-all duration-200 cursor-pointer"
                             >
                               ✏️ Edit
@@ -3400,6 +3422,20 @@ export default function AdminDashboard() {
                   })}
                 </div>
               </div>
+
+              <div>
+                <label className="block text-xs font-bold text-navy-900 mb-1">
+                  Product Description
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Enter detailed product description, specifications, usage guidelines..."
+                  value={editingProduct.description || ""}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
+                  className="w-full bg-slate-50 text-xs border border-slate-200 rounded-xl px-3 py-2 outline-none font-medium resize-y focus:border-brand-500 focus:bg-white transition-colors"
+                />
+              </div>
+
               <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                 <button type="button" onClick={() => setEditingProduct(null)} className="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 rounded-xl">Cancel</button>
                 <button

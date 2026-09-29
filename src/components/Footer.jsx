@@ -22,7 +22,7 @@ export default function Footer() {
   return (
     <footer className="bg-[#07132B] text-slate-300 pt-10 pb-20 sm:pb-6 border-t border-slate-800 relative z-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* 🏆 Top Trust Highlights Strip */}
+        {/* Top trust highlights ki strip */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-8 mb-8 border-b border-slate-800/80">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center text-lg shrink-0">
@@ -65,9 +65,9 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* 🏛️ 4-Section Main Grid */}
+        {/* Footer ka main 4 columns ka grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-10 pb-8">
-          {/* Section 1: Universal Brand Logo & Tagline (4 Cols) */}
+          {/* Column 1: Brand logo aur tagline */}
           <div className="lg:col-span-4 space-y-4">
             <Link to="/" className="inline-block active:scale-95 transition-transform">
               <Logo variant="light" size="md" />
@@ -87,7 +87,7 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Section 2: Policies & Legal (3 Cols) */}
+          {/* Column 2: Legal aur policy links */}
           <div className="lg:col-span-3 space-y-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-white">
               Policies & Legal
@@ -107,7 +107,7 @@ export default function Footer() {
               <li className="pt-1.5">
                 <Link
                   to="/vendor/login"
-                  className="text-amber-400 hover:text-amber-300 font-bold transition-colors flex items-center gap-2 py-0.5"
+                  className="text-sky-400 hover:text-sky-300 font-bold transition-colors flex items-center gap-2 py-0.5"
                 >
                   <span>🏢</span>
                   <span>Partner / Vendor Login →</span>
@@ -116,7 +116,7 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Section 3: Popular Building Materials (2 Cols) */}
+          {/* Column 3: Building material categories ke links */}
           <div className="lg:col-span-2 space-y-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-white">
               Materials
@@ -135,7 +135,7 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Section 4: Grievance Officer & Contact (3 Cols) */}
+          {/* Column 4: Contact details aur grievance officer */}
           <div className="lg:col-span-3 space-y-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-white">
               Grievance & Contact
@@ -180,7 +180,7 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* 🔒 Bottom Copyright & Legal Strip */}
+        {/* Bottom copyright aur legal notice strip */}
         <div className="pt-6 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400 text-center sm:text-left">
           <p>© {new Date().getFullYear()} BuildCity. All rights reserved. Governed by the applicable laws of India.</p>
           <div className="flex items-center gap-4 text-[11px]">

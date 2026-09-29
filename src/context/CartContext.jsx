@@ -5,7 +5,7 @@ import { useAuth } from "./AuthContext";
 import { useAlert } from "./AlertContext";
 import { API_BASE_URL } from "../config/api";
 
-// Cart context - User isolated cart storage, Cloud DB Sync, and regional pricing
+// Customer cart ka state, database sync aur district pricing ka context
 const CartContext = createContext(null);
 
 export function CartProvider({ children }) {
@@ -16,8 +16,8 @@ export function CartProvider({ children }) {
   const [lastAddedAt, setLastAddedAt] = useState(0);
   const isInitialCloudSyncDone = useRef(false);
 
-  // Compute unique storage key for logged-in user or guest
-  // Partner accounts (admin / DR / vendor) have no shopping cart, so skip the cloud cart sync for them
+  // Logged in user ya guest ke liye alag localStorage key nikal rahe hain
+  // Partner accounts (admin, dr, vendor) ka shopping cart nahi hota toh unhe skip kiya
   const isPartner = ["admin", "dr", "vendor"].includes(String(user?.role || "").toLowerCase());
 
   const cartStorageKey = user?.phone
@@ -26,7 +26,7 @@ export function CartProvider({ children }) {
     ? `buildcity_cart_${user.id}`
     : "buildcity_cart_guest";
 
-  // Load cart items & automatically merge Cloud DB cart + Guest cart upon login
+  // Cart items load karna aur login hote hi guest cart aur database cart ko merge karna
   useEffect(() => {
     let isCancelled = false;
 
@@ -37,7 +37,7 @@ export function CartProvider({ children }) {
         return;
       }
       if (user?.phone || user?.id) {
-        // 1. Check local guest items
+        // 1. Pehle local guest cart ke items check karo
         let guestItems = [];
         try {
           const guestSaved = localStorage.getItem("buildcity_cart_guest");
@@ -47,7 +47,7 @@ export function CartProvider({ children }) {
           }
         } catch {}
 
-        // 2. Check local user saved items
+        // 2. User ke pehle se saved local items check karo
         let localUserItems = [];
         try {
           const userSaved = localStorage.getItem(cartStorageKey);
@@ -57,7 +57,7 @@ export function CartProvider({ children }) {
           }
         } catch {}
 
-        // 3. Fetch Cloud DB Cart for logged-in account (e.g. from phone or another device)
+        // 3. Database se user ka live cart fetch karo jo dusre phone ya browser se add hua ho
         let dbCartItems = [];
         try {
           const res = await authFetch(`${API_BASE_URL}/api/v1/cart`).then((r) => r.json()).catch(() => null);
@@ -70,15 +70,15 @@ export function CartProvider({ children }) {
 
         if (isCancelled) return;
 
-        // 4. Merge all sources: DB items + Local User items + Guest items
+        // 4. Sabhi items ko ek sath combine karke merge karo
         const mergedMap = new Map();
 
-        // Priority 1: DB items (from phone / cross-device)
+        // Pehle database wale items add karo
         dbCartItems.forEach((it) => {
           if (it && it.id) mergedMap.set(it.id, it);
         });
 
-        // Priority 2: Local user items
+        // Fir local storage wale user items merge karo
         localUserItems.forEach((it) => {
           if (it && it.id) {
             if (mergedMap.has(it.id)) {
@@ -93,7 +93,7 @@ export function CartProvider({ children }) {
           }
         });
 
-        // Priority 3: Guest items
+        // Fir guest mode me add kiye items merge karo
         guestItems.forEach((it) => {
           if (it && it.id) {
             if (mergedMap.has(it.id)) {
@@ -119,7 +119,7 @@ export function CartProvider({ children }) {
           }
         } catch {}
 
-        // Sync merged result back to Cloud Database
+        // Pura merged cart wapas database me update karo
         try {
           authFetch(`${API_BASE_URL}/api/v1/cart`, {
             method: "PUT",
@@ -128,7 +128,7 @@ export function CartProvider({ children }) {
           }).catch(() => {});
         } catch {}
       } else {
-        // Guest mode
+        // Bina login wale guest user ke liye local cart
         isInitialCloudSyncDone.current = true;
         try {
           const guestSaved = localStorage.getItem("buildcity_cart_guest");
@@ -151,7 +151,7 @@ export function CartProvider({ children }) {
     };
   }, [cartStorageKey, user, isPartner]);
 
-  // Persist cart items to localStorage and Cloud DB in background
+  // Cart me badlav hone par localStorage aur database me background save karo
   useEffect(() => {
     if (!isInitialCloudSyncDone.current) return;
 
@@ -160,7 +160,7 @@ export function CartProvider({ children }) {
         localStorage.setItem(cartStorageKey, JSON.stringify(items));
       } catch {}
 
-      // If logged in, sync to Cloud Database with 1.2s debounce to avoid exhausting connection pool
+      // Logged in user ke cart ko debounce ke sath database me save karo
       if (user?.phone || user?.id) {
         const token = localStorage.getItem("buildcity_token");
         if (token) {
@@ -171,7 +171,7 @@ export function CartProvider({ children }) {
               body: JSON.stringify({ items }),
             }).then(r => r.json()).then(data => {
               if (data && data.invalidSession) {
-                // Stale token detected; remove it to prevent looping
+                // Purana ya invalid token mile toh safai karo
                 localStorage.removeItem("buildcity_token");
                 localStorage.removeItem("buildcity_user");
               }
@@ -183,7 +183,7 @@ export function CartProvider({ children }) {
     }
   }, [items, cartStorageKey, user]);
 
-  // Product add karte waqt base price and regional price set karein
+  // Cart me product add karne ka function - district factor ke hisab se price lagao
   const addItem = (product, qty = 1) => {
     setLastAddedAt(Date.now());
     setItems((prev) => {
@@ -242,7 +242,7 @@ export function CartProvider({ children }) {
     }
   };
 
-  // Detect if current selected region differs from cart items' added region
+  // Check karo ki customer ka active district cart ke district se alag toh nahi hai
   const firstItemWithRegion = items.find((i) => i.addedRegionId);
   const cartRegionId = firstItemWithRegion?.addedRegionId;
   const cartRegionName = firstItemWithRegion?.addedRegionName || "Varanasi";
@@ -254,7 +254,7 @@ export function CartProvider({ children }) {
     Boolean(region?.id) &&
     cartRegionId.toLowerCase() !== region.id.toLowerCase();
 
-  // Function to update cart prices directly from live database listings in current region
+  // Cart ke sare items ko naye district ke live prices ke sath update karo
   const updateCartToCurrentRegion = async (passedListings = [], targetRegion = null) => {
     const activeRegion = targetRegion || region;
     if (!activeRegion) return { updatedCount: 0, removedItems: [] };
@@ -273,7 +273,7 @@ export function CartProvider({ children }) {
     const updatedItems = [];
 
     items.forEach((i) => {
-      // Find matching approved vendor listing in active region
+      // Naye district ke approved vendor ka matching product dhundo
       const matchingListing = Array.isArray(listings)
         ? listings.find((l) => {
             const isApproved = (l.approvalStatus || "APPROVED") === "APPROVED";

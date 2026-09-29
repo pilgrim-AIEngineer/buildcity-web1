@@ -103,21 +103,21 @@ export function AlertProvider({ children }) {
       {config.isOpen &&
         createPortal(
           <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
-            {/* Backdrop Blur Overlay */}
+            {/* peeche ka blur background */}
             <div
               className="absolute inset-0 bg-slate-950/50 vendor-fade"
               onClick={hideAlert}
             />
 
-            {/* Centered High-End Modal Box */}
+            {/* bich me popup modal */}
             <div role="alertdialog" aria-modal="true" className="relative z-10 bg-white rounded-2xl p-5 sm:p-6 max-w-md w-full shadow-xl vendor-rise">
-              {/* Header */}
+              {/* modal ka header */}
               <div className="flex items-start justify-between gap-3 mb-4">
                 <div className="flex items-center gap-3 min-w-0">
                   <div
                     className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
                       config.type === "warning"
-                        ? "bg-amber-50 text-amber-700"
+                        ? "bg-orange-50 text-orange-700"
                         : config.type === "success"
                         ? "bg-emerald-50 text-emerald-700"
                         : config.type === "error"
@@ -145,12 +145,12 @@ export function AlertProvider({ children }) {
                 </button>
               </div>
 
-              {/* Message Body */}
+              {/* alert ka main message */}
               <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-line">
                 {config.message}
               </p>
 
-              {/* Action Buttons */}
+              {/* confirm ya cancel buttons */}
               <div className="mt-6">
                 {config.isConfirm ? (
                   <div className="flex items-center gap-3">

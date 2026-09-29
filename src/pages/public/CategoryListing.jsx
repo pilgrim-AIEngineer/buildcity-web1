@@ -49,7 +49,7 @@ export default function CategoryListing() {
     const slugLower = (slug || "").toLowerCase();
     const map = new Map();
 
-    // 1. First add live vendor products matching this category
+    // Pehle live vendor products add kar rahe hain jo category se match hote hain
     products.forEach((p) => {
       const isApproved = p.approvalStatus === "APPROVED" || p.approvalStatus === undefined || p.isActive === true;
       if (!isApproved) return;
@@ -137,7 +137,7 @@ export default function CategoryListing() {
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
 
-        {/* Breadcrumb(jo chota cut ka icon hai wo ) + heading */}
+        {/* Breadcrumb navigation aur category heading */}
         <div className="mb-5">
           <div className="text-xs text-slate-400 mb-1">
             <Link to="/" className="hover:text-brand-500">Home</Link>
@@ -153,7 +153,7 @@ export default function CategoryListing() {
         </div>
 
         <div className="flex gap-6">
-          {/* Filters - desktop ka sidebar  hai */}
+          {/* Filters desktop sidebar */}
           <div className="hidden sm:block">
             <FilterSidebar
               brands={brands}
@@ -169,7 +169,7 @@ export default function CategoryListing() {
           </div>
 
           <div className="flex-1 min-w-0">
-            {/* Toolbar: mobile filter button + sort */}
+            {/* Mobile filter button aur sort dropdown */}
             <div className="flex items-center justify-between mb-4 gap-3">
               <button
                 onClick={() => setShowFilters(true)}
@@ -194,7 +194,7 @@ export default function CategoryListing() {
               </select>
             </div>
 
-            {/* Active filter chips */}
+            {/* Selected active filters ke chips */}
             {(selectedBrands.length > 0 || selectedPrice) && (
               <div className="flex flex-wrap gap-2 mb-4">
                 {selectedBrands.map((b) => (
@@ -217,7 +217,7 @@ export default function CategoryListing() {
               </div>
             )}
 
-            {/* Product grid */}
+            {/* Products ka grid */}
             {pageItems.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
                 {pageItems.map((p) => (
@@ -230,7 +230,7 @@ export default function CategoryListing() {
               </div>
             )}
 
-            {/* Pagination  , Pages hai */}
+            {/* Pages navigation pagination */}
             {totalPages > 1 && (
               <div className="flex items-center justify-center gap-2 mt-8">
                 <button
@@ -266,7 +266,7 @@ export default function CategoryListing() {
         </div>
       </main>
 
-      {/* Filters -  mobile bottom sheet  Jo phone me dekhega */}
+      {/* Mobile screen ke liye bottom sheet filter */}
       {showFilters && (
         <div className="fixed inset-0 z-50 sm:hidden">
           <div

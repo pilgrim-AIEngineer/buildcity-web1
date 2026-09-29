@@ -3,7 +3,7 @@ import { API_BASE_URL } from "../config/api";
 import { authFetch, saveToken, clearToken } from "../config/authFetch";
 import { unregisterVendorPushNotifications } from "../utils/pushNotifications";
 
-// AuthContext setup — User authentication state, Mobile OTP verification, Supabase DB sync aur role-based routing handle karta hai
+// ye auth context hai, yaha user ka login status, otp verification aur supabase sync sab manage hota hai
 const AuthContext = createContext(null);
 const STORAGE_KEY = "buildcity_auth";
 
@@ -20,13 +20,13 @@ export function AuthProvider({ children }) {
   });
   const [loading, setLoading] = useState(false);
 
-  // App startup initialization — Sync latest user profile from Supabase Cloud DB in background
+  // jab app start hota hai toh background me supabase se latest user profile laake sync kar dete hai
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Background me Supabase Cloud DB se latest user profile sync karein (Zero PII in URL)
+        // background me user ki details fetch karke local storage me update karte hai
         authFetch(`/api/v1/users/me`)
           .then((r) => r.json())
           .then((dbUser) => {
@@ -41,7 +41,7 @@ export function AuthProvider({ children }) {
               setUser(refreshed);
               localStorage.setItem(STORAGE_KEY, JSON.stringify(refreshed));
 
-              // If user has a saved preferred region in DB, switch to it automatically!
+              // agar user ka koi preferred region database me set hai toh automatically switch karwa dete hai
               if (dbUser.preferredRegionId || dbUser.preferredRegionName) {
                 window.dispatchEvent(
                   new CustomEvent("buildcity_user_preferred_region", {
@@ -112,7 +112,7 @@ export function AuthProvider({ children }) {
       } catch {}
     }
 
-    // Check vendor account locally to block OTP login for vendors immediately
+    // vendor account ko check karte hai taaki vendor direct otp se customer jaisa login na kare
     let localVendor = null;
     try {
       const savedVendors = localStorage.getItem("buildcity_admin_vendors");
@@ -191,7 +191,7 @@ export function AuthProvider({ children }) {
       saveToken(apiData.token);
     }
 
-    // Check if user has preferred region in DB or if guest has selected region locally
+    // check kar rahe hai ki user ka pehle se region set hai ya guest ne koi select kiya hai
     let guestRegion = null;
     try {
       const savedReg = localStorage.getItem("buildcity_region");
@@ -199,7 +199,7 @@ export function AuthProvider({ children }) {
     } catch {}
 
     if (fetchedDbUser?.preferredRegionId || fetchedDbUser?.preferredRegionName) {
-      // User has saved region in DB -> switch to it
+      // agar db me saved region mila toh us region par switch event fire kar do
       window.dispatchEvent(
         new CustomEvent("buildcity_user_preferred_region", {
           detail: {
@@ -209,7 +209,7 @@ export function AuthProvider({ children }) {
         })
       );
     } else if (guestRegion && (guestRegion.id || guestRegion.name)) {
-      // Save current chosen guest region to DB for this user
+      // agar guest ne koi region select kiya tha toh ab login ke baad db me save kar dete hai
       if (apiData.token) {
         authFetch("/api/v1/users/preferred-region", {
           method: "PATCH",
@@ -249,10 +249,10 @@ export function AuthProvider({ children }) {
       email: cleanEmail,
     };
 
-    // Save Profile to local state and localStorage
+    // profile ko state aur local storage dono me update karte hai
     persist(updatedUser);
 
-    // Save Profile directly to Supabase Cloud PostgreSQL DB
+    // ab nayi profile ko database me update karne ke liye api call bhej rahe hai
     try {
       await authFetch(`/api/v1/users/profile`, {
         method: "PUT",
@@ -263,7 +263,7 @@ export function AuthProvider({ children }) {
           email: cleanEmail,
         }),
       });
-      console.log("✅ Profile updated in Supabase PostgreSQL Cloud Database!");
+      console.log("Profile updated in Supabase PostgreSQL Cloud Database!");
     } catch (err) {
       console.warn("DB Profile sync note:", err.message);
     }
@@ -316,7 +316,7 @@ export function AuthProvider({ children }) {
       token: data.token,
     };
 
-    // Defensive sanitization: ensure no password or hash is ever persisted to browser localStorage
+    // safety ke liye password aur hash ko local storage me save karne se pehle delete kar dete hai
     delete userObj.password;
     delete userObj.passwordHash;
     if (userObj.vendorInfo) {

@@ -11,14 +11,14 @@ export function AddressProvider({ children }) {
   const [isAddressLoading, setIsAddressLoading] = useState(false);
   const [isSavingAddress, setIsSavingAddress] = useState(false);
 
-  // Compute unique storage key for logged-in user or guest
+  // user ya guest ke liye alag storage key generate karte hai
   const addressStorageKey = user?.phone
     ? `buildcity_addresses_${user.phone.replace(/\D/g, "")}`
     : user?.id
     ? `buildcity_addresses_${user.id}`
     : "buildcity_addresses_guest";
 
-  // Clean legacy global key once if present
+  // purana global key agar bacha ho toh safely clear kar dete hai
   useEffect(() => {
     try {
       localStorage.removeItem("buildcity_addresses");
@@ -75,7 +75,7 @@ export function AddressProvider({ children }) {
     return withOneDefault;
   };
 
-  // Fetch saved addresses from Supabase DB & sync local storage cleanly
+  // database se saved addresses fetch karke local storage me sync kar rahe hai
   const fetchDbAddresses = async () => {
     const token = typeof window !== "undefined" ? localStorage.getItem("buildcity_token") : null;
     if (!user || !token) return;
@@ -122,9 +122,9 @@ export function AddressProvider({ children }) {
     }
   };
 
-  // Load addresses when user or addressStorageKey changes
+  // jab user ya storage key badle toh addresses dobara load karo
   useEffect(() => {
-    // Partner accounts (admin / DR / vendor) don't have delivery addresses
+    // admin ya vendor jaise partner accounts ke paas delivery address nahi hota
     const isPartner = ["admin", "dr", "vendor"].includes(String(user?.role || "").toLowerCase());
     if (isPartner || !addressStorageKey || addressStorageKey === "buildcity_addresses_guest") {
       setAddresses([]);
@@ -147,7 +147,7 @@ export function AddressProvider({ children }) {
     fetchDbAddresses();
   }, [user, addressStorageKey]);
 
-  // Persist addresses to user-specific storage key
+  // addresses ko user ki specific storage key me save karte hai
   useEffect(() => {
     if (addressStorageKey && addressStorageKey !== "buildcity_addresses_guest") {
       localStorage.setItem(addressStorageKey, JSON.stringify(addresses));
@@ -169,7 +169,7 @@ export function AddressProvider({ children }) {
       isDefault: addr.isDefault ?? true,
     };
 
-    // 1. Update local state
+    // pehle local state update karte hai taaki UI fast rahe
     setAddresses((prev) => {
       const updated = formattedAddr.isDefault
         ? prev.map((a) => ({ ...a, isDefault: false }))
@@ -183,7 +183,7 @@ export function AddressProvider({ children }) {
       return combined;
     });
 
-    // 2. Save into Supabase PostgreSQL DB
+    // ab database me naya address save karne ke liye api call bhejte hai
     try {
       const res = await authFetch(`${API_BASE_URL}/api/v1/addresses`, {
         method: "POST",
@@ -224,7 +224,7 @@ export function AddressProvider({ children }) {
     const targetCity = (updates.city || "").toLowerCase().trim();
     const shouldBeDefault = Boolean(updates.isDefault);
 
-    // 1. Immediately update local state & localStorage with single default guarantee
+    // local state aur storage me turant address update karte hai
     setAddresses((prev) => {
       const updated = prev.map((a) => {
         const aStreet = (a.street || a.line || "").toLowerCase().trim();
@@ -260,7 +260,7 @@ export function AddressProvider({ children }) {
       return sorted;
     });
 
-    // 2. Sync to DB via API
+    // database me address update sync karte hai
     try {
       if (id && id.length > 10 && !id.startsWith("addr-") && !id.startsWith("addr_")) {
         await authFetch(`${API_BASE_URL}/api/v1/addresses/${encodeURIComponent(id)}`, {
@@ -317,7 +317,7 @@ export function AddressProvider({ children }) {
     const targetStreet = (targetAddr?.street || targetAddr?.line || "").toLowerCase().trim();
     const targetCity = (targetAddr?.city || "").toLowerCase().trim();
 
-    // 1. Immediately update state & localStorage so the UI reflects the change INSTANTLY
+    // turant address ko state aur storage me default mark karte hai
     setAddresses((prev) => {
       const updated = prev.map((a) => {
         const aStreet = (a.street || a.line || "").toLowerCase().trim();
@@ -343,7 +343,7 @@ export function AddressProvider({ children }) {
       return sorted;
     });
 
-    // 2. Persist to DB asynchronously
+    // background me database se bhi default address update karte hai
     try {
       if (id && id.length > 10 && !id.startsWith("addr-") && !id.startsWith("addr_")) {
         await authFetch(`${API_BASE_URL}/api/v1/addresses/${encodeURIComponent(id)}`, {

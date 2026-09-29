@@ -8,8 +8,8 @@ import { Capacitor } from "@capacitor/core";
 import { initVendorPushNotifications, getDeviceFcmToken, markFcmTokenSynced } from "../../utils/pushNotifications";
 import { isVendorApp } from "../../config/appMode";
 
-// Login Page component — User / Vendor / DR / Admin ka universal login screen
-// `forceVendorMode` powers the /vendor/login web route (vendor password login on the web).
+// Login screen component - customer, vendor aur admin sabhi yahan se login karte hain
+// forceVendorMode se web route par direct password login khulta hai
 export default function Login({ forceVendorMode = false }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -17,10 +17,10 @@ export default function Login({ forceVendorMode = false }) {
 
   const { requestOtp, verifyOtp, vendorLogin } = useAuth();
 
-  // Mode: "standard" (OTP for Customer) vs "vendor" (Phone & Password for Vendor / DR / Admin Partners)
+  // Mode do tarah ka hai: customer ke liye OTP aur partner/vendor ke liye password
   const isNativeCustomer = Capacitor.isNativePlatform() && !isVendorApp;
   const [mode, setMode] = useState(!isNativeCustomer && (isVendorApp || forceVendorMode) ? "vendor" : "standard");
-  const [step, setStep] = useState("phone"); // "phone" | "otp"
+  const [step, setStep] = useState("phone"); // "phone" ya "otp" step
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
@@ -58,7 +58,7 @@ export default function Login({ forceVendorMode = false }) {
     return m > 0 ? `${m}:${s.toString().padStart(2, "0")}` : `${s}s`;
   };
 
-  // Customer OTP Request
+  // Customer ke phone pe OTP bhejne ka function
   const handleSendOtp = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
     if (cooldown > 0 && step === "otp") return;
@@ -69,7 +69,7 @@ export default function Login({ forceVendorMode = false }) {
       return;
     }
 
-    // Check if entered phone belongs to a Partner (Vendor / DR / Admin)
+    // Pehle check kar rahe hain ki yeh number partner ya staff ka toh nahi hai
     let isPartnerPhone = false;
     if (cleanedMobile === "9999999999" || cleanedMobile === "7777777777") {
       isPartnerPhone = true;
@@ -93,7 +93,7 @@ export default function Login({ forceVendorMode = false }) {
         setMode("vendor");
         setError("Please enter your password to login.");
       } else {
-        setError("⚠️ This number is registered as a Partner account. Please use the BuildCity Partner app.");
+        setError(" This number is registered as a Partner account. Please use the BuildCity Partner app.");
       }
       return;
     }
@@ -114,7 +114,7 @@ export default function Login({ forceVendorMode = false }) {
               to={`/register?phone=${cleanedMobile}&redirect=${encodeURIComponent(redirectTo)}`}
               className="underline font-bold text-brand-600 block mt-1.5"
             >
-              👉 Click here to Create Account →
+               Click here to Create Account →
             </Link>
           </span>
         );
@@ -130,7 +130,7 @@ export default function Login({ forceVendorMode = false }) {
     }
   };
 
-  // Customer OTP Verification
+  // Customer ka OTP verify karne ka function
   const handleVerify = async (e) => {
     e.preventDefault();
     setError("");
@@ -161,7 +161,7 @@ export default function Login({ forceVendorMode = false }) {
     }
   };
 
-  // Partner / Admin / DR / Vendor Password Authentication
+  // Vendor aur partner ka password check karke login karne ka logic
   const handleVendorPasswordLogin = async (e) => {
     e.preventDefault();
     setError("");
@@ -176,7 +176,7 @@ export default function Login({ forceVendorMode = false }) {
 
     setLoading(true);
     try {
-      // ⚡ Grab or await device FCM token so it is sent directly in the login API call!
+      // Device ka notification token nikaal rahe hain taaki login ke sath bhej sakein
       let fcmToken = null;
       try {
         fcmToken = localStorage.getItem("buildcity_permanent_device_token") || localStorage.getItem("vendor_fcm_token");
@@ -192,7 +192,7 @@ export default function Login({ forceVendorMode = false }) {
       });
 
       const vid = userObj?.vendorInfo?.id || userObj?.vendorId || userObj?.id;
-      // The login request already saved this device token for the vendor
+      // Vendor ke liye device token sync ho chuka hai
       if (vid && fcmToken && userObj.role === "vendor") markFcmTokenSynced(vid, fcmToken);
       if (vid) {
         initVendorPushNotifications(vid, { phone: phone.trim() }).catch(() => {});
@@ -222,19 +222,19 @@ export default function Login({ forceVendorMode = false }) {
             type="button"
             className="flex-1 py-2 text-xs font-black rounded-lg bg-white text-navy-900 shadow-2xs transition-all"
           >
-            🔑 Customer Login
+             Customer Login
           </button>
           <Link
             to={`/register?redirect=${encodeURIComponent(redirectTo)}`}
             className="flex-1 py-2 text-xs font-bold rounded-lg text-slate-500 hover:text-navy-900 text-center transition-all"
           >
-            ✨ Create Account
+             Create Account
           </Link>
         </div>
       )}
 
       <h1 className={mode === "vendor" ? "text-2xl font-semibold text-slate-900 mb-1 tracking-tight" : "text-2xl font-black text-navy-900 mb-1 tracking-tight"}>
-        {mode === "vendor" ? "Partner sign in" : "Welcome back 👋"}
+        {mode === "vendor" ? "Partner sign in" : "Welcome back "}
       </h1>
       <p className={mode === "vendor" ? "text-sm text-slate-500 mb-8" : "text-xs text-slate-500 mb-6"}>
         {isVendorApp || mode === "vendor"
@@ -261,7 +261,7 @@ export default function Login({ forceVendorMode = false }) {
       )}
 
       {mode === "vendor" ? (
-        /* PARTNER / ADMIN / DR / VENDOR PASSWORD LOGIN FORM */
+        /* Partner aur vendor ka password login form */
         <form onSubmit={handleVendorPasswordLogin} noValidate className="space-y-5">
           <div>
             <label htmlFor="partner-phone" className="block text-sm font-medium text-slate-700 mb-1.5">
@@ -310,7 +310,7 @@ export default function Login({ forceVendorMode = false }) {
           </button>
         </form>
       ) : step === "phone" ? (
-        /* CUSTOMER OTP REQUEST FORM */
+        /* Customer phone number daal kar OTP request karne ka form */
         <form onSubmit={handleSendOtp} noValidate>
           <label className="block text-sm font-medium text-navy-900 mb-1.5">
             Phone Number
@@ -350,14 +350,14 @@ export default function Login({ forceVendorMode = false }) {
                   to="/vendor/login"
                   className="text-xs font-bold text-slate-500 hover:text-brand-600 transition-colors inline-flex items-center gap-1"
                 >
-                  🏢 Looking for Partner / Vendor Login? Click here →
+                  Looking for Partner / Vendor Login? Click here →
                 </Link>
               </div>
             )}
           </div>
         </form>
       ) : (
-        /* CUSTOMER OTP VERIFY FORM */
+        /* Customer OTP daal kar login verify karne ka form */
         <form onSubmit={handleVerify} noValidate>
           <label className="block text-sm font-medium text-navy-900 mb-1.5">
             One-Time Password
@@ -403,7 +403,7 @@ export default function Login({ forceVendorMode = false }) {
                 onClick={handleSendOtp}
                 className="text-xs font-extrabold text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-200 px-3 py-1.5 rounded-xl transition-all cursor-pointer shadow-2xs active:scale-[0.98]"
               >
-                🔄 Resend OTP
+                 Resend OTP
               </button>
             )}
           </div>

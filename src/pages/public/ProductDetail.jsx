@@ -8,8 +8,9 @@ import { useAdmin } from "../../context/AdminContext";
 import { useAuth } from "../../context/AuthContext";
 import { API_BASE_URL } from "../../config/api";
 import { authFetch } from "../../config/authFetch";
+import { generateProductPacks } from "../../utils/productPacks";
 
-// Fallback single-product lookup
+// Agar context me product na mile toh local fallback data
 function generateProduct(id, priceFactor = 1, regionName = "Varanasi") {
   const decoded = decodeURIComponent(id || "");
   const hasSpaceOrWord = decoded.includes(" ") || (decoded.length > 15 && !/^[a-f0-9-]+$/i.test(decoded));
@@ -22,11 +23,28 @@ function generateProduct(id, priceFactor = 1, regionName = "Varanasi") {
   const mrp = Math.round(baseMrp * priceFactor);
   const discount = Math.round(mrp * 0.15);
 
+  let detectedCategory = "Cement";
+  let detectedUnit = "50 kg";
+  const lowerName = displayName.toLowerCase();
+  if (/paint|primer|emulsion|distemper|royale|apex|nerolac|berger/i.test(lowerName)) {
+    detectedCategory = "Paints";
+    detectedUnit = "1 Litre";
+  } else if (/steel|tmt|rebar|iron|tiscon|kamdhenu/i.test(lowerName)) {
+    detectedCategory = "Steel";
+    detectedUnit = "1 Ton";
+  } else if (/tile|marble|granite/i.test(lowerName)) {
+    detectedCategory = "Tiles";
+    detectedUnit = "1 Box";
+  } else if (/pipe|plumb/i.test(lowerName)) {
+    detectedCategory = "Plumbing";
+    detectedUnit = "1 Piece";
+  }
+
   return {
     id,
     name: displayName,
     brand,
-    category: "Building Supplies",
+    category: detectedCategory,
     images: [
       "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&w=600&q=80",
       "https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&w=600&q=80",
@@ -37,7 +55,7 @@ function generateProduct(id, priceFactor = 1, regionName = "Varanasi") {
     rating: 5.0,
     reviews: 0,
     inStock: true,
-    unit: "50kg Bag",
+    unit: detectedUnit,
     description: `High-quality certified construction material. Supplied directly via BuildCity Certified Delivery Network across ${regionName}.`,
     specs: [
       { label: "Brand", value: brand },
@@ -85,7 +103,7 @@ export default function ProductDetail() {
   const [directProduct, setDirectProduct] = useState(null);
   const [directLoading, setDirectLoading] = useState(false);
 
-  // Direct fetch fallback from Cloud API if context products is still loading or missing
+  // Cloud API se direct product fetch karne ka fallback effect
   useEffect(() => {
     const decodedId = decodeURIComponent(id || "").trim();
     const existing = products.find(
@@ -140,12 +158,18 @@ export default function ProductDetail() {
         realProd.isVendorSuspended === true ||
         realProd.vendor?.status === "SUSPENDED" ||
         realProd.isActive === false;
+      const resolvedCategory =
+        (typeof realProd.category === "string" ? realProd.category : realProd.category?.name) ||
+        realProd.categoryName ||
+        (typeof realProd.masterProduct?.category === "string" ? realProd.masterProduct?.category : realProd.masterProduct?.category?.name) ||
+        realProd.masterProduct?.categoryName ||
+        "";
 
       return {
         id: realProd.id,
         name: realProd.name,
         brand: realProd.brand || "Generic",
-        category: realProd.categoryName || "Material",
+        category: resolvedCategory || "Material",
         vendorId: realProd.vendorId,
         vendorName: realProd.vendorName || realProd.vendor?.shopName,
         isVendorSuspended: isSuspended,
@@ -173,7 +197,7 @@ export default function ProductDetail() {
     return generateProduct(id, region.priceFactor, region.name);
   }, [id, products, directProduct, region]);
 
-  // Check if vendor is suspended (strict unique ID check)
+  // Check kar rahe hain ki vendor suspend toh nahi hai
   const isVendorSuspended = useMemo(() => {
     if (!product) return false;
     if (product.isVendorSuspended) return true;
@@ -189,7 +213,20 @@ export default function ProductDetail() {
   const [qty, setQty] = useState(1);
   const [justAdded, setJustAdded] = useState(false);
 
-  // Reviews state with instant localStorage cache + Supabase Database sync
+  // Rule-based automatic packs calculate karte hai
+  const packs = useMemo(() => generateProductPacks(product), [product]);
+  const [selectedPackIndex, setSelectedPackIndex] = useState(0);
+
+  // Jab product badle toh pehla pack select karo
+  useEffect(() => {
+    setSelectedPackIndex(0);
+  }, [product?.id]);
+
+  const selectedPack = packs[selectedPackIndex] || packs[0];
+  const currentPrice = selectedPack ? selectedPack.price : (product?.price || 0);
+  const currentMrp = selectedPack ? selectedPack.mrp : (product?.mrp || 0);
+
+  // Product ke customer reviews ka state aur database sync
   const [reviewsList, setReviewsList] = useState(() => {
     try {
       const saved = localStorage.getItem(`buildcity_reviews_${id}`);
@@ -210,7 +247,7 @@ export default function ProductDetail() {
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
   const [showForm, setShowForm] = useState(false);
 
-  // Sync state when product ID changes
+  // Product ID badalane par reviews reset aur sync karo
   useEffect(() => {
     try {
       const saved = localStorage.getItem(`buildcity_reviews_${id}`);
@@ -231,7 +268,7 @@ export default function ProductDetail() {
     }
   }, [user]);
 
-  // Fetch Reviews from Database (Supabase PostgreSQL API via API_BASE_URL)
+  // Backend API se live reviews fetch karne ka function
   useEffect(() => {
     let isMounted = true;
     authFetch(`${API_BASE_URL}/api/v1/reviews?productId=${encodeURIComponent(id)}`)
@@ -269,26 +306,31 @@ export default function ProductDetail() {
     };
   }, [id]);
 
-  // Recalculate Average Rating and Count Live
+  // Average star rating aur total reviews live calculate karna
   const avgRating = useMemo(() => {
     if (!reviewsList || reviewsList.length === 0) return 5.0;
     const sum = reviewsList.reduce((acc, r) => acc + Number(r.rating || 5), 0);
     return (sum / reviewsList.length).toFixed(1);
   }, [reviewsList]);
 
-  const discountPct = Math.round(
-    ((product.mrp - product.price) / product.mrp) * 100
-  );
+  const currentDiscountPct = selectedPack
+    ? selectedPack.discountPct
+    : Math.round(((product.mrp - product.price) / product.mrp) * 100);
 
   const handleAddToCart = () => {
+    const isCustomPack = selectedPack && selectedPack.qty > 1;
     addItem(
       {
-        id: product.id,
-        name: product.name,
+        id: isCustomPack ? `${product.id}-pack-${selectedPack.qty}` : product.id,
+        name: isCustomPack ? `${product.name} (${selectedPack.label})` : product.name,
         brand: product.brand,
-        img: product.images[0],
-        price: product.price,
-        mrp: product.mrp,
+        img: product.images?.[0] || product.image,
+        price: selectedPack ? selectedPack.price : product.price,
+        basePrice: selectedPack ? selectedPack.price : product.price,
+        mrp: selectedPack ? selectedPack.mrp : product.mrp,
+        packLabel: selectedPack ? selectedPack.label : null,
+        packQty: selectedPack ? selectedPack.qty : 1,
+        unit: selectedPack ? selectedPack.unitName : product.unit,
         vendorId: product.vendorId,
         vendorName: product.vendorName,
       },
@@ -319,7 +361,7 @@ export default function ProductDetail() {
       date: "Just now",
     };
 
-    // 1. Save to state and localStorage IMMEDIATELY (Instant & Persistent)
+    // Pehle local state aur localStorage me turant save karo
     setReviewsList((prev) => {
       const updated = [newRev, ...prev.filter((r) => r.id !== newRev.id && r.comment !== newRev.comment)];
       try {
@@ -332,7 +374,7 @@ export default function ProductDetail() {
     setReviewSubmitted(true);
     setShowForm(false);
 
-    // 2. Persist to Supabase DB via REST API
+    // Fir backend database me review insert karo
     try {
       const res = await authFetch(`${API_BASE_URL}/api/v1/reviews`, {
         method: "POST",
@@ -391,12 +433,12 @@ export default function ProductDetail() {
         </div>
 
         <div className="grid md:grid-cols-2 gap-8">
-          {/* Interactive Image Slider */}
+          {/* Product images ka slider */}
           <div>
             <ProductImageSlider images={product.images} name={product.name} />
           </div>
 
-          {/* Info Section */}
+          {/* Product details aur pricing block */}
           <div>
             <span className="text-xs font-bold text-brand-600 uppercase tracking-wider">{product.brand}</span>
             <h1 className="text-xl sm:text-2xl font-extrabold text-navy-900 mt-1 mb-2 leading-snug tracking-tight">
@@ -404,7 +446,7 @@ export default function ProductDetail() {
             </h1>
 
             <div className="flex items-center gap-2 mb-4">
-              <span className="flex items-center gap-1 bg-amber-500 text-white text-xs font-bold px-2 py-0.5 rounded-lg shadow-2xs">
+              <span className="flex items-center gap-1 bg-emerald-600 text-white text-xs font-bold px-2 py-0.5 rounded-lg shadow-2xs">
                 {avgRating} <StarIcon />
               </span>
               <span className="text-xs font-semibold text-slate-500">
@@ -414,21 +456,21 @@ export default function ProductDetail() {
 
             <div className="flex items-baseline gap-2.5 mb-1">
               <span className="text-2xl font-black text-navy-900 tracking-tight">
-                ₹{Number(product.price || 0).toLocaleString("en-IN")}
+                ₹{Number(currentPrice || 0).toLocaleString("en-IN")}
               </span>
-              {discountPct > 0 && (
+              {currentMrp > currentPrice && (
                 <span className="text-xs text-slate-400 line-through font-medium">
-                  ₹{Number(product.mrp || 0).toLocaleString("en-IN")}
+                  ₹{Number(currentMrp || 0).toLocaleString("en-IN")}
                 </span>
               )}
-              {discountPct > 0 && (
+              {currentDiscountPct > 0 && (
                 <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                  {discountPct}% OFF
+                  {currentDiscountPct}% OFF
                 </span>
               )}
             </div>
 
-            <div className="mb-6">
+            <div className="mb-5">
               {isVendorSuspended ? (
                 <span className="text-xs font-extrabold text-rose-700 bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-200 inline-block shadow-2xs">
                   Unavailable
@@ -441,7 +483,66 @@ export default function ProductDetail() {
               )}
             </div>
 
-            {/* Qty selector */}
+            {/* Pack ya quantity aur unit selector - mobile first grid layout */}
+            {packs && packs.length > 0 && (
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-2.5">
+                  <span className="text-xs font-extrabold text-navy-900 uppercase tracking-wider">
+                    Size: <span className="text-brand-600 font-black normal-case">{selectedPack?.label}</span>
+                  </span>
+                  {selectedPack?.qty > 1 && selectedPack?.perUnitPrice && (
+                    <span className="text-[11px] font-semibold text-slate-500">
+                      (₹{selectedPack.perUnitPrice.toLocaleString("en-IN")} / {selectedPack.unitName})
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 sm:gap-3">
+                  {packs.map((pk, idx) => {
+                    const isSelected = idx === selectedPackIndex;
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setSelectedPackIndex(idx)}
+                        className={`flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all cursor-pointer relative ${
+                          isSelected
+                            ? "border-sky-600 bg-sky-50/80 shadow-xs ring-1 ring-sky-500"
+                            : "border-slate-300 bg-white hover:border-slate-400 hover:bg-slate-50/50 shadow-2xs"
+                        }`}
+                      >
+                        {pk.isBulk && (
+                          <span className="absolute -top-2 right-1.5 text-[9px] font-black uppercase tracking-wider bg-emerald-700 text-white px-1.5 py-0.2 rounded-full shadow-2xs">
+                            Bulk
+                          </span>
+                        )}
+                        <span className="text-xs font-bold text-slate-800 leading-tight mb-1">
+                          {pk.label}
+                        </span>
+                        <div className="w-full border-t border-slate-200/80 my-1" />
+                        <div className="flex items-baseline justify-center gap-1.5">
+                          <span className="text-xs font-black text-navy-900">
+                            ₹{pk.price.toLocaleString("en-IN")}
+                          </span>
+                          {pk.mrp > pk.price && (
+                            <span className="text-[10px] text-slate-400 line-through">
+                              ₹{pk.mrp.toLocaleString("en-IN")}
+                            </span>
+                          )}
+                        </div>
+                        {pk.discountPct > 0 && (
+                          <span className="text-[10px] font-bold text-emerald-700 mt-0.5">
+                            {pk.discountPct}% OFF
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Quantity select karne ka counter */}
             <div className="flex items-center gap-4 mb-5">
               <span className="text-xs font-bold text-navy-900">Quantity</span>
               <div className="flex items-center border border-slate-200 rounded-xl bg-white shadow-2xs">
@@ -498,7 +599,7 @@ export default function ProductDetail() {
               )}
             </div>
 
-            {/* Description */}
+            {/* Product ka description */}
             <div className="mb-6 bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs">
               <h3 className="text-xs font-extrabold text-navy-900 uppercase tracking-wider mb-1.5">Description</h3>
               <p className="text-xs text-slate-600 leading-relaxed font-medium">
@@ -506,7 +607,7 @@ export default function ProductDetail() {
               </p>
             </div>
 
-            {/* Specs */}
+            {/* Technical specifications details */}
             <div>
               <h3 className="text-xs font-extrabold text-navy-900 uppercase tracking-wider mb-2">Specifications</h3>
               <div className="rounded-2xl border border-slate-200 overflow-hidden bg-white shadow-2xs">
@@ -528,7 +629,7 @@ export default function ProductDetail() {
           </div>
         </div>
 
-        {/* Customer Reviews Section */}
+        {/* Customer reviews aur ratings section */}
         <section className="mt-12 bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4 mb-6">
             <div>
@@ -536,7 +637,7 @@ export default function ProductDetail() {
                 <h2 className="text-base sm:text-lg font-black text-navy-900 tracking-tight">
                   Customer Reviews
                 </h2>
-                <span className="bg-amber-50 text-amber-700 font-extrabold text-xs px-2.5 py-0.5 rounded-full border border-amber-200 flex items-center gap-1">
+                <span className="bg-emerald-50 text-emerald-700 font-extrabold text-xs px-2.5 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
                   ⭐ {avgRating} / 5.0
                 </span>
               </div>
@@ -552,14 +653,14 @@ export default function ProductDetail() {
             </button>
           </div>
 
-          {/* Success Banner */}
+          {/* Review submit hone par success alert */}
           {reviewSubmitted && (
             <div className="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2 animate-fade-in">
-              <span>🎉 Thank you! Your review has been published successfully.</span>
+              <span>Thank you! Your review has been published successfully.</span>
             </div>
           )}
 
-          {/* Review Submission Form */}
+          {/* Naya review likhne ka form */}
           {showForm && (
             <form onSubmit={handleAddReview} className="mb-8 p-5 bg-brand-50/40 border border-brand-200/60 rounded-2xl space-y-4">
               <h3 className="font-extrabold text-navy-900 text-sm">Write Your Product Review</h3>
@@ -576,7 +677,7 @@ export default function ProductDetail() {
                       onClick={() => setNewRating(star)}
                       className="text-2xl transition-transform hover:scale-110 cursor-pointer p-0.5"
                     >
-                      <span className={(hoverRating || newRating) >= star ? "text-amber-400" : "text-slate-300"}>
+                      <span className={(hoverRating || newRating) >= star ? "text-emerald-500" : "text-slate-300"}>
                         ★
                       </span>
                     </button>
@@ -631,7 +732,7 @@ export default function ProductDetail() {
             </form>
           )}
 
-          {/* Reviews List */}
+          {/* Sabhi submitted reviews ki list */}
           {reviewsList.length === 0 ? (
             <div className="py-8 px-4 text-center bg-slate-50/80 rounded-2xl border border-dashed border-slate-300 flex flex-col items-center justify-center">
               <span className="text-3xl mb-2">⭐</span>
@@ -659,7 +760,7 @@ export default function ProductDetail() {
                       <span className="text-xs font-extrabold text-navy-900">
                         {r.name}
                       </span>
-                      <span className="flex items-center gap-1 text-[11px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/60">
+                      <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
                         ★ {r.rating}.0
                       </span>
                     </div>

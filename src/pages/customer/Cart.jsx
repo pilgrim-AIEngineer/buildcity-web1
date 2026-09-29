@@ -34,27 +34,27 @@ export default function Cart() {
   const { showAlert } = useAlert();
   const navigate = useNavigate();
 
-  // Live DB Coupons state
+  // Database se aane wale coupons ka state
   const [dbCoupons, setDbCoupons] = useState(adminCoupons);
   const [isUpdatingPrices, setIsUpdatingPrices] = useState(false);
 
-  // Coupon State
+  // Apply kiye gaye coupon ka state
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponError, setCouponError] = useState("");
   const [showCouponsModal, setShowCouponsModal] = useState(false);
 
-  // Identify cart items belonging to suspended vendors or inactive products
+  // Check kar rahe hain ki cart me koi suspended vendor ya out-of-stock item toh nahi hai
   const unavailableItemIds = useMemo(() => {
     const set = new Set();
     items.forEach((item) => {
-      // 1. Direct suspension flag on cart item
+      // Item pe direct suspension ya stock ka flag check
       if (item.isVendorSuspended === true || item.inStock === false) {
         set.add(item.id);
         return;
       }
 
-      // 2. Matched vendor suspended check
+      // Vendor suspend toh nahi hai uska check
       const matchedVendor = vendors.find(
         (v) => v.id === item.vendorId || (v.shopName && item.vendorName && v.shopName.toLowerCase() === item.vendorName.toLowerCase())
       );
@@ -63,7 +63,7 @@ export default function Cart() {
         return;
       }
 
-      // 3. Matched product in catalog check
+      // Catalog me product active aur in-stock hai ya nahi uska check
       const matchedProd = products.find(
         (p) =>
           p.id === item.id ||
@@ -144,7 +144,7 @@ export default function Cart() {
     navigate("/checkout");
   };
 
-  // Live polling & Event Sync from GET /api/v1/coupons
+  // Coupons API se live data fetch aur window events listen karne ka hook
   useEffect(() => {
     let isMounted = true;
 
@@ -249,12 +249,12 @@ export default function Cart() {
   if (items.length === 0) {
     return (
       <div className="min-h-screen bg-slate-50 text-navy-900 pb-20 w-full max-w-full overflow-x-clip">
-        {/* Desktop Navbar */}
+        {/* Desktop navbar */}
         <div className="hidden lg:block">
           <Navbar />
         </div>
 
-        {/* Mobile Header (Clean Back Navigation) */}
+        {/* Mobile header back navigation */}
         <div className="lg:hidden bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
           <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
@@ -292,12 +292,12 @@ export default function Cart() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-navy-900 pb-40 md:pb-24 font-sans w-full max-w-full overflow-x-clip">
-      {/* Desktop Navbar */}
+      {/* Desktop navbar */}
       <div className="hidden lg:block">
         <Navbar />
       </div>
 
-      {/* Mobile Header (Clean Back Navigation without Logo/Region) */}
+      {/* Mobile header back navigation */}
       <div className="lg:hidden bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -319,16 +319,16 @@ export default function Cart() {
       </div>
 
       <main className="max-w-5xl mx-auto px-3.5 sm:px-6 py-4 sm:py-6 pb-28 md:pb-12 w-full min-w-0">
-        {/* Free District Delivery Banner if applicable (Redundant heading removed as requested) */}
+        {/* District delivery free hone par banner dikhao */}
         {deliveryCharge === 0 && (
           <div className="flex justify-end mb-4">
             <span className="text-xs font-extrabold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 shadow-2xs">
-              🚚 FREE District Delivery Applied
+              FREE District Delivery Applied
             </span>
           </div>
         )}
 
-        {/* REGION MISMATCH ALERT BANNER */}
+        {/* Agar district badal gaya hai toh alert banner */}
         {hasRegionMismatch && (
           <div className="mb-5 bg-gradient-to-r from-amber-500/10 via-amber-500/15 to-orange-500/10 border border-amber-300/80 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
             <div className="flex items-start gap-3">
@@ -367,7 +367,7 @@ export default function Cart() {
         )}
 
         <div className="grid md:grid-cols-3 gap-4 sm:gap-6 w-full min-w-0">
-          {/* Cart Items List */}
+          {/* Cart me jitne items hain unki list */}
           <div className="md:col-span-2 space-y-3 sm:space-y-3.5 w-full min-w-0">
             {items.map((item) => {
               const isItemUnavailable = unavailableItemIds.has(item.id);
@@ -431,7 +431,7 @@ export default function Cart() {
                     </div>
 
                     <div className="flex items-center justify-between mt-2.5 sm:mt-3 gap-2 w-full min-w-0">
-                      {/* Tactile Stepper */}
+                      {/* Quantity change karne ke buttons */}
                       <div className="flex items-center border border-slate-200/90 rounded-xl bg-slate-100/70 p-0.5 sm:p-1 shadow-2xs shrink-0">
                         <button
                           onClick={() => updateQty(item.id, item.qty - 1)}
@@ -453,7 +453,7 @@ export default function Cart() {
                         </button>
                       </div>
 
-                      {/* Pricing with Strike-through MRP & Savings Badge */}
+                      {/* Pricing aur MRP savings calculation */}
                       <div className="text-right shrink-0">
                         <div className="flex items-baseline justify-end gap-1 sm:gap-1.5">
                           <span className="text-xs sm:text-base font-black text-navy-950 tracking-tight tabular-nums">
@@ -478,10 +478,10 @@ export default function Cart() {
             })}
           </div>
 
-          {/* Right Sidebar: Coupon Code Section & Price Details */}
+          {/* Right sidebar: coupon box aur order summary */}
           <div className="space-y-4 w-full min-w-0">
             
-            {/* 🏷️ COUPON CODE SECTION (Clean & Smart) */}
+            {/* Coupon code apply karne ka box */}
             <div className="bg-white rounded-2xl border border-slate-200/90 p-3.5 sm:p-4.5 shadow-xs space-y-3 w-full min-w-0">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-extrabold text-navy-900 tracking-tight truncate">
@@ -523,12 +523,12 @@ export default function Cart() {
                     </button>
                   </form>
 
-                  {/* Single Clean Best Coupon Highlight */}
+                  {/* Best coupon suggest karne ka card */}
                   {bestCoupon && (
-                    <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-2.5 flex items-center justify-between gap-2 shadow-2xs w-full min-w-0">
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 flex items-center justify-between gap-2 shadow-2xs w-full min-w-0">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-xs font-mono font-black text-brand-700 bg-white px-2 py-0.5 rounded border border-amber-200 shrink-0">
+                          <span className="text-xs font-mono font-black text-brand-700 bg-white px-2 py-0.5 rounded border border-slate-200 shrink-0">
                             {bestCoupon.code}
                           </span>
                           <span className="text-[10px] font-black text-emerald-700 bg-emerald-100/70 px-1.5 py-0.5 rounded shrink-0">
@@ -554,7 +554,7 @@ export default function Cart() {
               {couponError && <p className="text-[11px] font-bold text-rose-600">{couponError}</p>}
             </div>
 
-            {/* PRICE SUMMARY DETAILS */}
+            {/* Order ka pura price details breakdown */}
             <div className="bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-5 shadow-sm sticky top-20 space-y-4 w-full min-w-0">
               <h3 className="text-xs font-black text-navy-900 uppercase tracking-wider border-b border-slate-100 pb-2.5">
                 Order Price Details
@@ -595,18 +595,17 @@ export default function Cart() {
 
               {totalSavings > 0 && (
                 <div className="bg-emerald-50/80 text-emerald-800 text-[11px] font-black p-2.5 rounded-xl text-center border border-emerald-200/80 shadow-2xs">
-                  🎉 Total Savings: ₹{Number(totalSavings).toLocaleString("en-IN")}
+                  Total Savings: ₹{Number(totalSavings).toLocaleString("en-IN")}
                 </div>
               )}
 
               {hasUnavailableItems && (
                 <div className="bg-rose-50 border border-rose-200 rounded-xl p-3 text-xs text-rose-800 font-bold space-y-1">
                   <p className="flex items-center gap-1 text-rose-900 font-black">
-                    <span>⚠️</span>
                     <span>Unavailable Items in Cart</span>
                   </p>
                   <p className="text-[11px] font-medium text-rose-700 leading-snug">
-                    Some items in your cart are currently unavailable. Please remove them using the trash icon (🗑️) to proceed to checkout.
+                    Some items in your cart are currently unavailable. Please remove them using the trash icon to proceed to checkout.
                   </p>
                 </div>
               )}
@@ -618,20 +617,20 @@ export default function Cart() {
                   hasUnavailableItems
                     ? "bg-slate-200 text-slate-500 cursor-not-allowed border border-slate-300 shadow-none"
                     : hasRegionMismatch
-                    ? "bg-amber-500 hover:bg-amber-600 text-white border border-amber-600 shadow-none active:scale-[0.98] cursor-pointer"
+                    ? "bg-sky-600 hover:bg-sky-700 text-white border border-sky-700 shadow-none active:scale-[0.98] cursor-pointer"
                     : "bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white active:scale-[0.98] cursor-pointer"
                 }`}
               >
                 {hasUnavailableItems
-                  ? "⚠️ Remove Unavailable Items to Checkout"
+                  ? "Remove Unavailable Items to Checkout"
                   : hasRegionMismatch
-                  ? `🔒 Update Prices to Checkout (${currentRegionName})`
+                  ? `Update Prices to Checkout (${currentRegionName})`
                   : "Proceed to Checkout →"}
               </button>
 
               {hasRegionMismatch && !hasUnavailableItems && (
-                <p className="text-[10px] font-bold text-amber-800 text-center mt-1.5 bg-amber-50 py-1.5 px-2 rounded-lg border border-amber-200">
-                  ⚠️ Region update required for {currentRegionName} before placing order
+                <p className="text-[10px] font-bold text-sky-900 text-center mt-1.5 bg-sky-50 py-1.5 px-2 rounded-lg border border-sky-200">
+                  Region update required for {currentRegionName} before placing order
                 </p>
               )}
             </div>
@@ -639,7 +638,7 @@ export default function Cart() {
         </div>
       </main>
 
-      {/* MOBILE STICKY BOTTOM CHECKOUT BAR (Flipkart/Blinkit Style) */}
+      {/* Mobile screen ke bottom me sticky checkout bar */}
       <div className="md:hidden fixed bottom-[calc(3.5rem+max(0.25rem,env(safe-area-inset-bottom)))] inset-x-0 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-4 py-2.5 z-40 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
         <div className="flex items-center justify-between gap-3 max-w-lg mx-auto">
           <div>
@@ -665,7 +664,7 @@ export default function Cart() {
               hasUnavailableItems
                 ? "bg-slate-200 text-slate-500 cursor-not-allowed border border-slate-300 shadow-none"
                 : hasRegionMismatch
-                ? "bg-amber-500 text-white shadow-amber-500/25"
+                ? "bg-sky-600 text-white shadow-sky-600/25"
                 : "bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white shadow-brand-500/25"
             }`}
           >
@@ -675,7 +674,7 @@ export default function Cart() {
         </div>
       </div>
 
-      {/* OFFERS MODAL */}
+      {/* Sare available coupons ka popup modal */}
       {showCouponsModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">

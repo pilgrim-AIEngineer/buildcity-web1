@@ -1,16 +1,11 @@
 import { Capacitor } from "@capacitor/core";
 
-// Primary Railway Backend & Production Custom Domain
+// backend railway url aur verified custom domain yaha define hai
 export const RAILWAY_API_URL = "https://buildcity-web-production-a5ca.up.railway.app";
 export const PRODUCTION_WEB_URL = "https://www.buildcity.in";
 
-// In web browsers (desktop, laptop, mobile web):
-// Empty string "" makes all requests relative to the current origin (e.g. https://www.buildcity.in/api/v1/...).
-// Vercel edge reverse-proxy transparently forwards /api/v1 to Railway backend.
-// This completely resolves CORS blocks and router-level DNS refusal of .up.railway.app.
-//
-// In native Android/iOS APK (Capacitor):
-// It must use an absolute URL pointing to the primary verified domain (https://www.buildcity.in).
+// browser me relative path chalega taaki vercel reverse proxy se cors ka issue na aaye
+// aur agar mobile app (apk) hai toh direct domain url use karenge
 export const API_BASE_URL =
   import.meta.env.VITE_API_URL ||
   (Capacitor.isNativePlatform()

@@ -258,12 +258,12 @@ export default function Home() {
     return [...liveVendorApproved];
   }, [liveVendorApproved]);
 
-  // 🎯 Deal of the Week (4 products that rotate daily using deterministic date PRNG)
+  // Deal of the week ke 4 products jo har din rotate hote hain
   const dealOfTheWeekProducts = useMemo(() => {
     if (!liveDisplayProducts || liveDisplayProducts.length === 0) return [];
 
     const today = new Date();
-    // Unique seed per day (YYYYMMDD)
+    // Har din ka unique date number seed (YYYYMMDD)
     const daySeed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
 
     let s = daySeed;
@@ -274,7 +274,7 @@ export default function Home() {
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
 
-    // Shuffle copy of live products using today's RNG seed
+    // Aaj ke seed se products ko random shuffle kar rahe hain
     const copy = [...liveDisplayProducts];
     for (let i = copy.length - 1; i > 0; i--) {
       const j = Math.floor(rng() * (i + 1));
@@ -368,16 +368,16 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] font-sans w-full max-w-full overflow-x-clip">
-      {/* 🖥️ Desktop Navbar */}
+      {/* Desktop screen ke liye navbar */}
       <div className="hidden lg:block">
         <Navbar />
       </div>
 
-      {/* 📱 Mobile Top Header (Clean, Rock-Solid, Zero-Flicker) */}
+      {/* Mobile screen ke liye sticky top header */}
       <div className="lg:hidden sticky top-0 z-30 w-full max-w-full bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-2xs">
-        {/* Top Action Row (Logo & Location on Left, Notification & Cart on Right) */}
+        {/* Header row jisme logo, location picker aur login button hai */}
         <div className="px-3 pt-2.5 pb-1.5 flex items-center justify-between gap-1.5 w-full max-w-full">
-          {/* Left: Brand Logo & Live Location */}
+          {/* Logo aur live district selector */}
           <div className="flex items-center gap-1.5 min-w-0 shrink">
             <Link to="/" className="active:scale-95 transition-transform shrink-0 flex items-center">
               <Logo size="sm" hideSubtitle={true} />
@@ -400,7 +400,7 @@ export default function Home() {
             />
           </div>
 
-          {/* Right: Login (When guest) + Notification */}
+          {/* Right side login aur notification button */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {!user && (
               <Link
@@ -417,7 +417,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Stable Search Bar (No height jump, No stretch, No flickering) */}
+        {/* Search bar input box */}
         <form onSubmit={handleSearch} className="px-3 pb-2.5">
           <div className="w-full flex items-center gap-2.5 bg-slate-100/90 rounded-xl px-3.5 py-2 border border-slate-200/80 focus-within:border-brand-500 focus-within:bg-white focus-within:shadow-xs transition-colors shadow-2xs h-10">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2.2" className="shrink-0">
@@ -443,7 +443,7 @@ export default function Home() {
       <main className={`max-w-6xl mx-auto px-4 pt-3.5 sm:pt-6 space-y-3.5 sm:space-y-5 ${
         Capacitor.isNativePlatform() ? "pb-20 sm:pb-24" : "pb-4 sm:pb-6"
       }`}>
-        {/* 🌟 1. HERO CAROUSEL BANNER (SWIPEABLE) */}
+        {/* 1. Hero banner slider (touch aur drag support ke saath) */}
         <div
           className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-slate-900 border border-slate-200/80 shadow-[0_6px_24px_-4px_rgba(15,23,42,0.10)] select-none group touch-pan-y flex flex-col ring-1 ring-black/5"
           onTouchStart={handleTouchStart}
@@ -454,7 +454,7 @@ export default function Home() {
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
         >
-          {/* Banner Main Carousel Area */}
+          {/* Main banner image container */}
           <div className="relative aspect-[5/2] sm:aspect-[5/2] w-full flex items-stretch cursor-grab active:cursor-grabbing touch-manipulation">
             {activeSlides.map((b, i) => (
               <div
@@ -466,7 +466,7 @@ export default function Home() {
                   pointerEvents: slide === i ? "auto" : "none",
                 }}
               >
-                {/* Full Banner Graphic Image */}
+                {/* Banner image aur category ka link */}
                 <Link to={b.targetUrl || b.link || "/categories"} className="block w-full h-full relative group">
                   <img
                     src={b.imageUrl || b.img}
@@ -476,16 +476,15 @@ export default function Home() {
                       e.target.src = "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=1200&q=80";
                     }}
                   />
-                  {/* Subtle hover brightness */}
+                  {/* Hover karne par halka sa brightness effect */}
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
 
-                  {/* 🏷️ Dynamic Badge, Title & Button overlay inside exact banner screen frame */}
+                  {/* Banner ke upar title aur explore button */}
                   {(Boolean(b.tag?.trim()) || Boolean(b.title?.trim())) && (
                     <div className="absolute inset-x-0 bottom-0 px-3 py-2.5 sm:px-6 sm:py-3.5 bg-gradient-to-t from-black/80 via-black/35 to-transparent flex items-center justify-between gap-2 z-10 pointer-events-none">
                       <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
                         {b.tag?.trim() && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 text-slate-950 font-black text-[9px] sm:text-xs uppercase tracking-wider shadow-md shrink-0 border border-amber-200/60">
-                            <span className="text-[10px] sm:text-xs leading-none">✨</span>
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-brand-600 text-white font-black text-[9px] sm:text-xs uppercase tracking-wider shadow-md shrink-0 border border-brand-500/60">
                             <span className="leading-none">{b.tag.trim()}</span>
                           </span>
                         )}
@@ -496,7 +495,7 @@ export default function Home() {
                         )}
                       </div>
 
-                      <span className="inline-flex items-center gap-1 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-white/95 hover:bg-white text-slate-950 font-black text-[10px] sm:text-xs shadow-md shrink-0 pointer-events-auto group-hover:bg-amber-400 group-hover:text-slate-950 transition-all active:scale-95">
+                      <span className="inline-flex items-center gap-1 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-white/95 hover:bg-white text-slate-950 font-black text-[10px] sm:text-xs shadow-md shrink-0 pointer-events-auto group-hover:bg-brand-600 group-hover:text-white transition-all active:scale-95">
                         <span>{(b.tag || b.title || "").toLowerCase().includes("book") ? "Book Now" : "Explore"}</span>
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="shrink-0 transition-transform group-hover:translate-x-0.5">
                           <path d="m9 18 6-6-6-6" />
@@ -508,7 +507,7 @@ export default function Home() {
               </div>
             ))}
 
-            {/* Desktop Navigation Arrow Controls */}
+            {/* Desktop ke liye left right next-prev buttons */}
             <button
               type="button"
               onClick={(e) => {
@@ -536,7 +535,7 @@ export default function Home() {
               </svg>
             </button>
 
-            {/* Interactive Dots Indicator */}
+            {/* Slider dots indicator */}
             <div className="absolute top-2.5 right-2.5 sm:top-3.5 sm:right-3.5 flex items-center gap-1.5 z-20 bg-black/35 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/20 shadow-sm">
               {activeSlides.map((_, i) => (
                 <button
@@ -553,11 +552,11 @@ export default function Home() {
           </div>
         </div>
 
-        {/* 🏷️ 3. TOP BRANDS CIRCULAR SHOWCASE */}
+        {/* 2. Top brands circular logo list */}
         <section className="space-y-1.5 sm:space-y-2.5">
           <div className="flex items-center justify-between">
             <h3 className="text-base sm:text-lg font-black text-navy-950 tracking-tight">Top Brands</h3>
-            <Link to="/categories" className="text-xs font-bold text-brand-600 hover:text-brand-700 hover:underline flex items-center gap-1 active:scale-95 transition-transform">
+            <Link to="/categories" className="text-xs font-bold text-[#c2410c] hover:text-[#9a3412] hover:underline flex items-center gap-1 active:scale-95 transition-transform">
               <span>See all</span>
               <span className="text-sm">→</span>
             </Link>
@@ -586,11 +585,11 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 🛍️ 4. SHOP BY CATEGORY (SCROLLABLE ON MOBILE, GRID ON DESKTOP) */}
+        {/* 3. Shop by category tiles list */}
         <section className="space-y-1.5 sm:space-y-2.5">
           <div className="flex items-center justify-between">
             <h3 className="text-base sm:text-lg font-extrabold text-navy-900 tracking-tight">Shop by Category</h3>
-            <Link to="/categories" className="text-xs font-bold text-[#0284C7] hover:underline">
+            <Link to="/categories" className="text-xs font-bold text-[#c2410c] hover:text-[#9a3412] hover:underline">
               See all
             </Link>
           </div>
@@ -630,7 +629,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 🏗️ 5. BEST OFFERS (2 COLUMNS ON MOBILE, 3-4 ON DESKTOP) */}
+        {/* 4. Best offers product list (mobile me 2 column grid) */}
         <section className="space-y-2 sm:space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -639,7 +638,7 @@ export default function Home() {
                 {liveDisplayProducts.length} Live
               </span>
             </div>
-            <Link to="/categories" className="text-xs font-bold text-[#0284C7] hover:underline">
+            <Link to="/categories" className="text-xs font-bold text-[#c2410c] hover:text-[#9a3412] hover:underline">
               See all
             </Link>
           </div>
@@ -652,7 +651,7 @@ export default function Home() {
             </div>
           ) : liveDisplayProducts.length === 0 ? (
             <div className="bg-white rounded-2xl p-6 text-center text-xs font-bold text-slate-500 border border-slate-200">
-              📦 No products listed in {region?.name || "Varanasi"} right now.
+              No products listed in {region?.name || "Varanasi"} right now.
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3 lg:gap-4">
@@ -663,43 +662,40 @@ export default function Home() {
           )}
         </section>
 
-        {/* 🔥 5.5 DEAL OF THE WEEK (4 DAILY ROTATING PRODUCTS, 1:1 HORIZONTAL SCROLL) */}
+        {/* 5. Deal of the week (horizontal scroll cards) */}
         {dealOfTheWeekProducts.length > 0 && (
-          <section className="space-y-3 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent p-3.5 sm:p-4.5 rounded-2xl sm:rounded-3xl border border-amber-200/60 shadow-2xs">
+          <section className="space-y-3 bg-slate-50/90 p-3.5 sm:p-4.5 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-2xs">
             <div className="flex items-center gap-2">
-              <span className="text-xl sm:text-2xl leading-none select-none">🔥</span>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base sm:text-lg font-black text-navy-950 tracking-tight">
-                  Deal of the Week
-                </h3>
-                <span className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-2xs uppercase tracking-wider">
-                  Daily Special
-                </span>
-              </div>
+              <h3 className="text-base sm:text-lg font-black text-navy-950 tracking-tight">
+                Deal of the Week
+              </h3>
+              <span className="bg-brand-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-2xs uppercase tracking-wider">
+                Daily Special
+              </span>
             </div>
 
-            {/* Left-to-right horizontal scroll with 1:1 square cards */}
+            {/* Horizontal scroll product cards */}
             <div className="flex gap-3 sm:gap-4 overflow-x-auto no-scrollbar scroll-smooth snap-x pb-1 pt-0.5 px-0.5">
               {dealOfTheWeekProducts.map((p) => (
                 <div key={p.id} className="w-[160px] sm:w-[195px] shrink-0 snap-start">
-                  <ProductCard product={p} className="h-full border-amber-100/90 shadow-2xs hover:border-amber-300" />
+                  <ProductCard product={p} className="h-full border-slate-200/90 shadow-2xs hover:border-brand-500" />
                 </div>
               ))}
             </div>
           </section>
         )}
 
-        {/* 🔨 6. POPULAR SERVICES SECTION */}
+        {/* 6. Popular services section */}
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-base sm:text-lg font-extrabold text-navy-900 tracking-tight">Popular Services</h3>
-            <Link to="/categories" className="text-xs font-bold text-[#0284C7] hover:underline">
+            <Link to="/categories" className="text-xs font-bold text-[#c2410c] hover:text-[#9a3412] hover:underline">
               See all
             </Link>
           </div>
 
           <div className="grid grid-cols-2 gap-3 sm:gap-4">
-            {/* Service 1: Site Visit */}
+            {/* Site visit service card */}
             <div className="bg-[#EFF6FF] border border-[#DBEAFE] rounded-2xl p-3.5 sm:p-4 flex items-center justify-between shadow-2xs hover:shadow-md transition-all relative overflow-hidden group">
               <div className="flex flex-col justify-between h-full z-10">
                 <div>
@@ -720,14 +716,14 @@ export default function Home() {
                 </Link>
               </div>
 
-              {/* Visual Badge */}
+              {/* Inspection icon badge */}
               <div className="w-16 h-18 sm:w-20 sm:h-22 rounded-2xl bg-gradient-to-br from-[#3B82F6] to-[#1D4ED8] text-white flex flex-col items-center justify-center shadow-md p-2 shrink-0 group-hover:scale-105 transition-transform select-none">
                 <span className="text-2xl sm:text-3xl mb-0.5">👷‍♂️</span>
                 <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-blue-100 text-center leading-none">Inspection</span>
               </div>
             </div>
 
-            {/* Service 2: Web Development / Tech Solutions */}
+            {/* Web development service card */}
             <div className="bg-[#F8FAFC] border border-slate-200 rounded-2xl p-3.5 sm:p-4 flex items-center justify-between shadow-2xs hover:shadow-md transition-all relative overflow-hidden group">
               <div className="flex flex-col justify-between h-full z-10">
                 <div>
@@ -749,7 +745,7 @@ export default function Home() {
                 </Link>
               </div>
 
-              {/* Visual Badge */}
+              {/* Tech solutions icon badge */}
               <div className="w-16 h-18 sm:w-20 sm:h-22 rounded-2xl bg-gradient-to-br from-[#0F172A] to-[#1E293B] text-white flex flex-col items-center justify-center shadow-md p-2 shrink-0 group-hover:scale-105 transition-transform select-none border border-slate-700/50">
                 <span className="text-2xl sm:text-3xl mb-0.5">💻</span>
                 <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-[#38BDF8] text-center leading-none">Solutions</span>
@@ -758,7 +754,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 🎁 7. EXCLUSIVE DEALS BANNER CARD */}
+        {/* 7. Exclusive offers banner */}
         <section className="bg-gradient-to-r from-[#07132B] via-[#0A1A3A] to-[#0D224D] rounded-2xl p-4 text-white shadow-lg relative overflow-hidden flex items-center justify-between">
           <div className="max-w-[55%] z-10">
             <h3 className="text-sm sm:text-base font-black leading-tight">Exclusive Deals</h3>
@@ -773,15 +769,15 @@ export default function Home() {
             </Link>
           </div>
 
-          {/* Right Product Collage & Discount Burst */}
+          {/* Offer image aur discount badge */}
           <div className="flex items-center gap-2 relative">
             <img
               src="https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&w=200&q=80"
               alt="Deals"
               className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-xl shadow-md border border-white/20"
             />
-            {/* Gold Stamp */}
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#F59E0B] to-[#D97706] text-navy-950 flex flex-col items-center justify-center font-black text-[8px] leading-tight shadow-lg border border-amber-300 shrink-0">
+            {/* Discount stamp badge */}
+            <div className="w-12 h-12 rounded-full bg-brand-600 text-white flex flex-col items-center justify-center font-black text-[8px] leading-tight shadow-lg border border-brand-500 shrink-0">
               <span>UP TO</span>
               <span className="text-[11px] leading-none">20%</span>
               <span>OFF</span>
@@ -790,12 +786,12 @@ export default function Home() {
         </section>
       </main>
 
-      {/* 🏛️ 4-SECTION COMPREHENSIVE FOOTER - VISIBLE ON WEBSITE, HIDDEN IN NATIVE APP */}
+      {/* Footer section (web pe dikhega, mobile app me hidden rahega) */}
       {!Capacitor.isNativePlatform() && <Footer />}
 
-      {/* 🟢 8. FLOATING WHATSAPP & PHONE CALL ACTION BUTTONS */}
+      {/* Floating whatsapp aur direct calling buttons */}
       <div className="fixed bottom-32 sm:bottom-24 right-3.5 sm:right-5 z-40 flex flex-col gap-2">
-        {/* WhatsApp Button */}
+        {/* WhatsApp chat button */}
         <a
           href="https://wa.me/919956886527?text=Hello%20BuildCity%20Team,%20I%20have%20an%20inquiry%20regarding%20construction%20materials"
           target="_blank"
@@ -808,7 +804,7 @@ export default function Home() {
           </svg>
         </a>
 
-        {/* Call Button */}
+        {/* Direct phone call button */}
         <a
           href="tel:+919956886527"
           className="w-10.5 h-10.5 sm:w-11.5 sm:h-11.5 rounded-full bg-[#0284C7] hover:bg-[#0369A1] text-white flex items-center justify-center shadow-lg hover:shadow-xl ring-2 ring-white/90 active:scale-90 transition-all"

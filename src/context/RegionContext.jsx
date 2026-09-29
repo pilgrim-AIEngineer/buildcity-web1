@@ -52,14 +52,14 @@ export function RegionProvider({ children }) {
     return DEFAULT_REGIONS[0];
   });
 
-  // Fetch live active regions directly from Database
+  // database se live active regions fetch kar rahe hai
   const loadDbRegions = async () => {
     try {
       const res = await authFetch(`${API_BASE_URL}/api/v1/regions`);
       if (res.ok) {
         const dbRegs = await res.json();
         if (Array.isArray(dbRegs) && dbRegs.length > 0) {
-          // All active regions from DB
+          // sirf active regions ko filter karke list bana rahe hai
           const activeRegs = dbRegs
             .filter((r) => r.isActive !== false && r.name)
             .map((r) => ({
@@ -76,7 +76,7 @@ export function RegionProvider({ children }) {
               localStorage.setItem("buildcity_all_regions", JSON.stringify(activeRegs));
             } catch {}
 
-            // Update current selected region if saved in localStorage
+            // agar local storage me pehle se koi region saved hai toh use update karte hai
             const savedRaw = localStorage.getItem(STORAGE_KEY);
             let savedSearch = "";
             if (savedRaw) {
@@ -113,15 +113,14 @@ export function RegionProvider({ children }) {
     loadDbRegions();
 
     const handleUpdate = () => loadDbRegions();
-    // Cross-tab: only region data/selection changes matter (reacting to every key refetched
-    // regions on each localStorage write made by any other open tab)
+    // dusre tab me region change ho tabhi sync karenge taaki faltu calls na ho
     const handleStorage = (e) => {
       if (e.key === STORAGE_KEY || e.key === "buildcity_admin_regions") loadDbRegions();
     };
     window.addEventListener("buildcity_regions_updated", handleUpdate);
     window.addEventListener("storage", handleStorage);
 
-    // Listen for logged-in user's preferred region from DB
+    // user ka preferred region database se sun rahe hai
     const handleUserPreferredRegion = (e) => {
       const detail = e.detail;
       if (detail && (detail.regionId || detail.regionName)) {
@@ -156,7 +155,7 @@ export function RegionProvider({ children }) {
         setHasExplicitlySelectedLocation(true);
       } catch {}
 
-      // Save preferred region to DB in background if user is logged in
+      // agar user logged in hai toh uska preferred region db me update kar dete hai
       try {
         const token = localStorage.getItem("buildcity_token");
         if (token) {

@@ -186,7 +186,7 @@ const USERS_STORAGE_KEY = "buildcity_admin_users";
 const PRODUCTS_STORAGE_KEY = "buildcity_admin_products";
 const MASTER_PRODUCTS_STORAGE_KEY = "buildcity_admin_master_products";
 const ORDERS_STORAGE_KEY = "buildcity_admin_orders";
-// Minimum gap between syncs triggered by focus / window events (explicit refreshes are not throttled)
+// focus ya window change par baar baar sync na ho isliye throttle lagaya hai
 const EVENT_SYNC_MIN_INTERVAL_MS = 5000;
 
 const loadInitialUsers = () => {
@@ -240,7 +240,7 @@ export function AdminProvider({ children }) {
   const [drs, setDrs] = useState(loadInitialDrs);
   const [vendors, setVendors] = useState(loadInitialVendors);
   const [users, setUsers] = useState(loadInitialUsers);
-  // Server-side totals and pagination cursors from /cloud-sync
+  // server se aaye huye total count aur pagination ka cursor store kar rahe hai
   const [ordersSummary, setOrdersSummary] = useState(null);
   const [usersPage, setUsersPage] = useState(null);
   const [loadingMoreUsers, setLoadingMoreUsers] = useState(false);
@@ -254,9 +254,7 @@ export function AdminProvider({ children }) {
   const [products, setProducts] = useState(loadInitialProducts);
   const [productsLoading, setProductsLoading] = useState(true);
   const isFetchingRef = useRef(false);
-  // A sync requested while the logged-out public-catalog fetch is in flight (e.g. right after
-  // login) runs once it finishes instead of being dropped. Requests during a staff sync are still
-  // dropped: that sync already returns the latest data.
+  // agar public catalog fetch chal raha ho aur beech me login ho jaye toh sync drop nahi hoga
   const syncQueuedRef = useRef(false);
   const fetchCloudDataRef = useRef(null);
   const lastEventSyncRef = useRef(0);
@@ -281,7 +279,7 @@ export function AdminProvider({ children }) {
     return null;
   };
 
-  // Fetch Public Catalog for standard customers and visitors (Single Unified 0.05s call)
+  // normal customer aur visitors ke liye public catalog laane ka function
   const fetchPublicCatalog = async () => {
     try {
       let catsRes = [];
@@ -291,7 +289,7 @@ export function AdminProvider({ children }) {
       let masterRes = [];
       let bannersRes = [];
 
-      // 1. Try single consolidated endpoint first (Fastest path: 1 HTTP request)
+      // pehle fast consolidated endpoint try karte hai single call me data lane ke liye
       const unifiedRes = await authFetch(`${API_BASE_URL}/api/v1/public-catalog`)
         .then((r) => (r.ok ? r.json() : null))
         .catch(() => null);
@@ -304,7 +302,7 @@ export function AdminProvider({ children }) {
         masterRes = unifiedRes.masterProducts || [];
         bannersRes = unifiedRes.banners || [];
       } else {
-        // Fallback to individual parallel endpoints
+        // agar single endpoint fail hua toh alag alag individual endpoints se data mangwa lenge
         const [c, r, l, cp, m, bn] = await Promise.all([
           authFetch(`${API_BASE_URL}/api/v1/categories`).then((res) => res.json()).catch(() => []),
           authFetch(`${API_BASE_URL}/api/v1/regions`).then((res) => res.json()).catch(() => []),
@@ -404,7 +402,7 @@ export function AdminProvider({ children }) {
     }
   };
 
-  // Single Source of Truth: Supabase Cloud DB se live data sync karne ke liye (Admin / DR / Vendor)
+  // supabase cloud db se live data sync karne ka main logic (admin, dr aur vendor ke liye)
   const fetchCloudData = async () => {
     if (isFetchingRef.current) {
       syncQueuedRef.current = true;
@@ -434,7 +432,7 @@ export function AdminProvider({ children }) {
     }
 
     try {
-      // 1. Single Ultra-Fast Cached Cloud Sync Request (under 0.05s)
+      // fast cached cloud sync endpoint se data la rahe hai
       const syncRes = await authFetch(`${API_BASE_URL}/api/v1/cloud-sync`)
         .then((r) => (r.ok ? r.json() : null))
         .catch(() => null);
@@ -502,7 +500,7 @@ export function AdminProvider({ children }) {
       if (usersRes && Array.isArray(usersRes) && usersRes.length > 0) {
         localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(usersRes));
         if (olderUsersLoadedRef.current) {
-          // Keep the older pages the admin already loaded; refresh only the newest page
+          // admin ke pehle se loaded pages ko rakh kar sirf naye page ko refresh kar rahe hai
           setUsers((prev) => {
             const freshIds = new Set(usersRes.map((u) => u.id));
             return [...usersRes, ...(prev || []).filter((u) => !freshIds.has(u.id))];
@@ -668,8 +666,7 @@ export function AdminProvider({ children }) {
       }
 
       let fetchedOrders = ordersRes;
-      // Vendors get no orders from cloud-sync (their dashboard loads them itself), and GET /orders
-      // is admin/DR only, so the fallback would just be an extra round trip ending in a 403.
+      // vendors ka orders unka dashboard khud load karta hai, isliye yaha extra roundtrip aur 403 avoid kar rahe hai
       if (currentRole !== "vendor" && (!Array.isArray(fetchedOrders) || fetchedOrders.length === 0)) {
         fetchedOrders = await authFetch(`${API_BASE_URL}/api/v1/orders${ordersPageQuery(null)}`)
           .then((r) => r.json())
@@ -677,9 +674,7 @@ export function AdminProvider({ children }) {
           .catch(() => []);
       }
       if (Array.isArray(fetchedOrders) && fetchedOrders.length > 0) {
-        // Don't persist here: the formatted orders are already stored above. Writing a second,
-        // differently-shaped copy made the value change on every sync and triggered an endless
-        // cross-tab `storage` event -> cloud-sync loop.
+        // yaha dubara persist nahi karte taaki tabs ke beech me endless loop na ban jaye
         setOrders((prev) => (JSON.stringify(prev) === JSON.stringify(fetchedOrders) ? prev : fetchedOrders));
       }
 
@@ -763,38 +758,37 @@ export function AdminProvider({ children }) {
   const runQueuedSync = () => {
     if (!syncQueuedRef.current) return;
     syncQueuedRef.current = false;
-    // Only worth re-running if someone signed in meanwhile; otherwise the catalog is already fresh
+    // agar user login ho chuka hai tabhi dubara chalana chahiye, varna data already fresh hai
     let hasToken = false;
     try { hasToken = Boolean(localStorage.getItem("buildcity_token")); } catch {}
     if (hasToken) fetchCloudDataRef.current?.();
   };
 
-  // Smart Real-time Sync: Instant Event Sync + Focus/Visibility Aware Refresh (Zero waste when tab is inactive)
+  // tab focus aur visibility change hone par real-time sync handle kar rahe hai
   useEffect(() => {
     lastEventSyncRef.current = Date.now();
     fetchCloudData();
 
-    // 1. Smart Interval: Long idle fallback (every 10m instead of 60s, saving 90% egress)
+    // idle rehne par 10 minute me ek baar background sync chalega
     const interval = setInterval(() => {
       if (typeof document !== "undefined" && document.visibilityState === "visible") {
         fetchCloudData();
       }
     }, 600000);
 
-    // 2. Instant Sync on Window Focus (when user switches back to this tab)
+    // jab user is tab par wapas aaye toh turant sync trigger ho
     const handleFocus = () => {
       if (typeof document !== "undefined" && document.visibilityState === "visible") {
         handleStorage();
       }
     };
 
-    // 3. Event-Driven Sync (order placed, status changed, catalog edited).
-    // Throttled so bursts of events (or a misbehaving listener) can't hammer the database.
+    // order aane ya status change hone par event based sync, throttle ke sath taaki database par load na pade
     let trailingSyncTimer = null;
     const handleStorage = () => {
       const wait = lastEventSyncRef.current + EVENT_SYNC_MIN_INTERVAL_MS - Date.now();
       if (wait > 0) {
-        // Collapse the burst into one sync at the end of the window (never drop the update)
+        // lagatar aane wale events ko ek hi sync me combine kar dete hai
         if (!trailingSyncTimer) {
           trailingSyncTimer = setTimeout(() => {
             trailingSyncTimer = null;
@@ -807,8 +801,7 @@ export function AdminProvider({ children }) {
       fetchCloudData();
     };
 
-    // Cross-tab: only a login/logout in another tab needs a resync. Data keys written by a sync
-    // itself must be ignored, otherwise two open tabs keep re-triggering each other.
+    // dusre tab me login ya logout hone par hi resync karein, cross-tab infinite loop rokne ke liye
     const handleCrossTabStorage = (e) => {
       if (e.key === "buildcity_auth" || e.key === "buildcity_token") handleStorage();
     };
@@ -1123,7 +1116,7 @@ export function AdminProvider({ children }) {
       });
 
       if (res.ok) {
-        // 1. Smooth state & localStorage update after successful backend update
+        // backend me update hone ke baad local state aur storage ko sync kar rahe hai
         setVendors((prev) => {
           const updated = prev.map((v) => (v.id === id ? { ...v, status } : v));
           try {
@@ -1823,7 +1816,7 @@ export function AdminProvider({ children }) {
       addedBy: addedBy || "Vendor",
     };
 
-    // 1. Instant Optimistic UI update: Show in vendor dashboard consistently (0ms, no flicker)
+    // screen par bina ruke turant change dikhane ke liye optimistic update kiya hai
     setProducts((prev) => [optimisticListing, ...prev]);
 
     try {
@@ -1896,7 +1889,7 @@ export function AdminProvider({ children }) {
 
   const updateListingApprovalStatus = async (id, approvalStatus) => {
     markRecentEdit(id, { approvalStatus, isActive: approvalStatus === "APPROVED" });
-    // 1. Instant optimistic UI update strictly for targeted item ID
+    // targeted item ke liye turant optimistic update kar rahe hai
     setProducts((prev) =>
       prev.map((p) => (p.id === id ? { ...p, approvalStatus, isActive: approvalStatus === "APPROVED" } : p))
     );
@@ -1929,7 +1922,7 @@ export function AdminProvider({ children }) {
     }
   };
 
-  // Appends the next page of users (Admin → Customers tab)
+  // customers tab me users ka agla page load karne ke liye
   const loadMoreUsers = async () => {
     if (!usersPage?.nextCursor || loadingMoreUsers) return;
     setLoadingMoreUsers(true);
@@ -1951,7 +1944,7 @@ export function AdminProvider({ children }) {
     }
   };
 
-  // Orders are paginated, so platform totals come from the server summary when available
+  // orders paginated hai isliye total platform stats server summary se lete hai
   const platformSummary = ordersSummary?.revenueBasis === "all_orders_total" ? ordersSummary : null;
   const stats = {
     totalRevenue: platformSummary

@@ -110,7 +110,7 @@ export default function Orders() {
   const customerPhone = (user?.phone || "").trim();
   const customerId = user?.id;
 
-  // STRICT CUSTOMER ISOLATION: Show ONLY orders belonging to the logged-in customer
+  // Logged in customer ke hi orders dikhane ke liye filter
   const customerOrders = useMemo(() => {
     if (!customerPhone && !customerId) return orders || [];
     return (orders || []).filter((o) => {
@@ -137,12 +137,12 @@ export default function Orders() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-navy-900 pb-24 sm:pb-12 font-sans w-full max-w-full overflow-x-clip">
-      {/* Desktop header */}
+      {/* Desktop header navigation */}
       <div className="hidden lg:block">
         <Navbar />
       </div>
 
-      {/* Mobile header (Clean Orders Header without Logo/Region) */}
+      {/* Mobile header back navigation ke saath */}
       <div className="lg:hidden bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -173,14 +173,14 @@ export default function Orders() {
       </div>
 
       <main className="max-w-4xl mx-auto px-4 pt-6 space-y-6">
-        {/* Header Title */}
+        {/* Orders page ka title */}
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-navy-900 tracking-tight">
             My Orders
           </h1>
         </div>
 
-        {/* Status Filter Tabs */}
+        {/* Order status ke hisab se filter karne ke tabs */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1.5 border-b border-slate-200/90 no-scrollbar">
           {TABS.map((t) => (
             <button
@@ -197,7 +197,7 @@ export default function Orders() {
           ))}
         </div>
 
-        {/* Orders List */}
+        {/* Customer ke orders ki list */}
         {productsLoading ? (
           <div className="space-y-3.5 animate-pulse">
             {[1, 2, 3].map((n) => (
@@ -257,12 +257,12 @@ export default function Orders() {
                     to={`/orders/${order.id}`}
                     className={`relative overflow-hidden rounded-2xl border p-4 sm:p-5 hover:shadow-lg active:scale-[0.99] transition-all flex flex-col justify-between gap-3.5 group block ${statusInfo.tile}`}
                   >
-                    {/* Status accent vertical line on the left */}
+                    {/* Status ki vertical color line */}
                     <span className={`absolute inset-y-0 left-0 w-1.5 transition-colors duration-500 ${statusInfo.accent}`} aria-hidden="true" />
 
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
                       <div className="flex gap-3.5 sm:gap-4 items-center min-w-0 pl-1">
-                        {/* 📦 Box Emoji Container */}
+                        {/* Product package icon container */}
                         <div className="h-13 w-13 sm:h-14 sm:w-14 rounded-xl bg-white border border-slate-200/90 flex items-center justify-center text-2xl shrink-0 shadow-2xs group-hover:scale-105 group-hover:bg-brand-50 transition-all select-none">
                           📦
                         </div>

@@ -112,16 +112,12 @@ export default function FirstTimeLocationModal() {
         <div className="bg-gradient-to-r from-[#07132B] via-[#0A1A3A] to-[#0D224D] text-white p-4 sm:p-5 relative">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-lg sm:text-xl shadow-xs shrink-0">
-                📍
-              </div>
+            
               <div>
                 <h3 className="font-black text-sm sm:text-base text-white tracking-tight leading-tight">
                   Choose Delivery Location
                 </h3>
-                <p className="text-[10.5px] sm:text-xs text-slate-300 font-medium mt-0.5">
-                  Live local pricing & fast delivery
-                </p>
+              
               </div>
             </div>
 
@@ -249,7 +245,7 @@ export default function FirstTimeLocationModal() {
         {/* Footer info & CTA */}
         <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-3">
           <div className="text-[10px] text-slate-400 font-medium leading-tight">
-            🔒 Location preferences are saved to your account.
+          
           </div>
           <button
             type="button"

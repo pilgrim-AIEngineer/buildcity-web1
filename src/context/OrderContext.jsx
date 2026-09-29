@@ -4,7 +4,7 @@ import { useAuth } from "./AuthContext";
 import { API_BASE_URL } from "../config/api";
 import { mergeOrderLists, ordersPageQuery, readOrdersPage } from "../utils/orderPagination";
 
-// OrderContext Provider — Customer checkout, Vendor isolated orders, Status tracking aur Supabase DB sync handle karta hai
+// OrderContext Provider - checkout, vendor orders, status tracking aur database sync handle karta hai
 const OrderContext = createContext(null);
 const STORAGE_KEY = "buildcity_orders";
 export function OrderProvider({ children }) {
@@ -16,7 +16,7 @@ export function OrderProvider({ children }) {
   const userIdent = user?.id || user?.phone;
 
   const [orders, setOrders] = useState([]);
-  // Pagination: newest page is refreshed on sync; older pages are appended by loadMoreOrders()
+  // Pagination: naye orders upar aate hain aur purane orders loadMoreOrders se judte hain
   const [ordersCursor, setOrdersCursor] = useState(null);
   const [hasMoreOrders, setHasMoreOrders] = useState(false);
   const [loadingMoreOrders, setLoadingMoreOrders] = useState(false);
@@ -74,8 +74,7 @@ export function OrderProvider({ children }) {
     return `${STORAGE_KEY}_${userRole || "anon"}`;
   };
 
-  // Focus, visibilitychange, dashboards and events often ask for orders at the same moment:
-  // share one in-flight request instead of sending (and querying the DB) several times.
+  // Ek sath multiple requests se bachne ke liye request share kar rahe hain
   const inFlightOrdersRef = useRef(null);
   const fetchOrdersForCurrentRole = () => {
     if (inFlightOrdersRef.current) return inFlightOrdersRef.current;
@@ -86,8 +85,7 @@ export function OrderProvider({ children }) {
     return request;
   };
 
-  // GET a JSON orders page, sharing one in-flight request per URL. After a vendor logs in, this
-  // context and the vendor dashboard both ask for the same first page of /orders/vendor/:id at once.
+  // Same URL ke liye ek hi bar fetch call trigger ho uske liye cache
   const inFlightPagesRef = useRef(new Map());
   const getOrdersPageShared = (url) => {
     const pending = inFlightPagesRef.current.get(url);
@@ -99,7 +97,7 @@ export function OrderProvider({ children }) {
     return request;
   };
 
-  // Role-scoped order list endpoint (Admin/DR: all, Vendor: own shop, Customer: own orders)
+  // User role ke mutabiq sahi orders API URL nikalna
   const getOrdersListUrl = () => {
     if (isAdmin || isDr) return `${API_BASE_URL}/api/v1/orders`;
     if (isVendor) {
@@ -110,7 +108,7 @@ export function OrderProvider({ children }) {
     return null;
   };
 
-  // Appends the next (older) page of orders
+  // Agle purane orders fetch karke list me jodne ka function
   const loadMoreOrders = async () => {
     const listUrl = getOrdersListUrl();
     if (!listUrl || !ordersCursor || loadingMoreOrders) return [];
@@ -142,8 +140,7 @@ export function OrderProvider({ children }) {
     if (!listUrl) return orders;
 
     try {
-      // Exact totals for dashboards run alongside the list (they don't depend on loaded pages).
-      // The DR dashboard fetches its own district summary instead, so skip it for DRs.
+      // Dashboard ke live counts ke liye summary fetch karte hain
       if (!isDr) {
         authFetch(`${API_BASE_URL}/api/v1/orders/summary`)
           .then((r) => (r.ok ? r.json() : null))
@@ -157,7 +154,7 @@ export function OrderProvider({ children }) {
         const normalized = page.orders.map(normalizeOrder);
         const keepOlderPages = olderPagesLoadedRef.current;
         setOrders((prev) => {
-          // Once older pages are loaded, refresh the newest page without dropping them
+          // Purane loaded orders ko preserve rakhte hue naye orders merge karo
           const next = keepOlderPages ? mergeOrderLists(normalized, prev) : normalized;
           if (areOrdersEqual(prev, next)) return prev;
           try { localStorage.setItem(currentStorageKey, JSON.stringify(next)); } catch {}
@@ -177,8 +174,7 @@ export function OrderProvider({ children }) {
 
   useEffect(() => {
     const currentStorageKey = getRoleStorageKey();
-    // Reset paging only when a different account signs in (the auth context also re-emits the
-    // same user after refreshing its profile, which must not wipe loaded pages or the summary)
+    // Alag account login hone par hi pagination reset karo
     const identityKey = `${userRole}:${userIdent || ""}`;
     if (identityKeyRef.current !== identityKey) {
       identityKeyRef.current = identityKey;
@@ -196,26 +192,26 @@ export function OrderProvider({ children }) {
         localStorage.removeItem(currentStorageKey);
       }
     } else {
-      // Clear orders when switching to an un-cached role
+      // Role change hone par orders state reset karo
       setOrders([]);
     }
     fetchOrdersForCurrentRole();
 
-    // 1. Smart Interval: Poll only when tab is visible to the user (5m fallback instead of 90s)
+    // Tab open aur visible hone par hi polling karo
     const interval = setInterval(() => {
       if (typeof document !== "undefined" && document.visibilityState === "visible") {
         fetchOrdersForCurrentRole();
       }
     }, 300000);
 
-    // 2. Instant Sync on Window Focus (when user returns to the tab)
+    // Tab par wapas aane par turant fresh orders fetch karo
     const handleFocus = () => {
       if (typeof document !== "undefined" && document.visibilityState === "visible") {
         fetchOrdersForCurrentRole();
       }
     };
 
-    // 3. Instant Event-Driven Sync (0ms delay when order is placed or updated)
+    // Order place ya update hone par turant sync karo
     const handleOrderEvent = () => fetchOrdersForCurrentRole();
     window.addEventListener("focus", handleFocus);
     window.addEventListener("visibilitychange", handleFocus);
@@ -231,7 +227,7 @@ export function OrderProvider({ children }) {
     };
   }, [user, userRole, userIdent]);
 
-  // Instant Cross-Tab Storage Synchronization
+  // Dusre browser tab me badlav hone par sync karo
   useEffect(() => {
     const handleStorageChange = (e) => {
       if (e.key === STORAGE_KEY && e.newValue) {
@@ -242,9 +238,9 @@ export function OrderProvider({ children }) {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
-  // Order place - Multi-vendor isolated splitting with independent status & grouped items for same vendor
+  // Order place karna - alag alag vendors ke items ko group karke order banana
   const placeOrder = async ({ items, address, total, customerId, districtName, regionId, deliveryFee = 49 }) => {
-    // 1. Format items with vendorId & vendorName
+    // Items ko vendor details ke sath format karo
     const formattedItems = (items || []).map((it) => ({
       id: it.id || it.productId,
       productId: it.productId || it.id,
@@ -255,7 +251,7 @@ export function OrderProvider({ children }) {
       vendorName: it.vendorName || "District Vendor",
     }));
 
-    // 2. Group items strictly by vendor identity (same vendor's multiple items grouped into one order)
+    // Ek vendor ke sabhi items ko ek order me group karo
     const vendorMap = new Map();
     formattedItems.forEach((it, idx) => {
       const rawVendorId = it.vendorId ? String(it.vendorId).trim() : "";
@@ -270,7 +266,7 @@ export function OrderProvider({ children }) {
       } else if (!isGenericName) {
         vKey = `vname:${rawVendorName.toLowerCase()}`;
       } else {
-        // Group all generic/default district catalog items into 1 unified order instead of splitting!
+        // Default district catalog ke items ko ek sath group karo
         vKey = "default_district_vendor";
       }
 
@@ -282,13 +278,13 @@ export function OrderProvider({ children }) {
 
     const vendorGroups = Array.from(vendorMap.values());
 
-    // 3. Place orders in parallel (Promise.all) for instant checkout response
+    // Sabhi vendor groups ke orders parallel me dispatch karo
     const orderPromises = vendorGroups.map(async (groupItems, i) => {
       const groupSubtotal = groupItems.reduce(
         (sum, it) => sum + Number(it.price || 0) * (Number(it.quantity || 1)),
         0
       );
-      // Flat delivery fee per dispatch route (or 0 if total was free)
+      // Free delivery check aur delivery fee calculate karo
       const groupDeliveryFee = Number(total) >= 2000 ? 0 : Number(deliveryFee || 49);
       const groupTotal = groupSubtotal + groupDeliveryFee;
       const groupVendorName = groupItems[0]?.vendorName || "District Vendor";
@@ -318,7 +314,7 @@ export function OrderProvider({ children }) {
 
         const resData = await response.json();
         if (resData.success && resData.order) {
-          // Server creates one order per vendor, so a single checkout call can return several orders
+          // Har vendor ka alag order id generate hota hai
           const serverOrders = Array.isArray(resData.orders) && resData.orders.length > 0 ? resData.orders : [resData.order];
           ordersSaved = serverOrders.map((so) => normalizeOrder({
             id: so.id,
@@ -350,7 +346,7 @@ export function OrderProvider({ children }) {
 
     const createdOrders = (await Promise.all(orderPromises)).flat();
 
-    // 4. Update orders state synchronously & dispatch events
+    // Orders state update karo aur event trigger karo
     setOrders((prev) => {
       const newIds = new Set(createdOrders.map((o) => o.id));
       const updated = [...createdOrders, ...prev.filter((p) => !newIds.has(p.id))];
@@ -376,8 +372,7 @@ export function OrderProvider({ children }) {
     };
   };
 
-  // Vendor Isolated Orders fetch from Supabase Cloud DB
-  // One page of a vendor's orders: { orders, nextCursor, hasMore } (null cursor = newest page + open orders)
+  // Vendor ke specific orders database se fetch karna
   const fetchVendorOrdersPage = async (vendorId, cursor = null) => {
     const res = await getOrdersPageShared(`${API_BASE_URL}/api/v1/orders/vendor/${encodeURIComponent(vendorId)}${ordersPageQuery(cursor)}`);
     if (!res.ok) throw new Error(`Vendor orders HTTP ${res.status}`);
@@ -391,18 +386,18 @@ export function OrderProvider({ children }) {
     } catch (err) {
       console.warn("Fetch vendor orders note:", err.message);
     }
-    // Filter local orders if server unreachable
+    // Agar server down ho toh local orders filter karke do
     return orders.filter((o) =>
       o.items?.some((it) => it.vendorId === vendorId)
     );
   };
 
-  // Update Order Status in Supabase Cloud DB with instant synchronous cache persistence
+  // Order status change karna aur database me save karna
   const updateOrderStatus = async (orderId, newStatus) => {
     const currentStorageKey = getRoleStorageKey();
     const previousStatus = orders.find((o) => o.id === orderId)?.status;
 
-    // Optimistic local state + storage update so refreshes never see stale statuses
+    // UI me turant status update dikhao
     setOrders((prev) => {
       const updated = prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o));
       try { localStorage.setItem(currentStorageKey, JSON.stringify(updated)); } catch {}
@@ -432,7 +427,7 @@ export function OrderProvider({ children }) {
       return updated;
     }
 
-    // Server refused the change (e.g. not this vendor's order): undo the optimistic update and surface why
+    // Server se error aane par purana status wapas lagao
     const errData = await res.json().catch(() => ({}));
     setOrders((prev) => {
       const next = prev.map((o) => (o.id === orderId && previousStatus !== undefined ? { ...o, status: previousStatus } : o));

@@ -29,7 +29,7 @@ export default function Checkout() {
   const [payment, setPayment] = useState("cod");
   const [placing, setPlacing] = useState(false);
 
-  // New Address Form Modal State
+  // Naya address add karne ke modal ka state
   const [showAddModal, setShowAddModal] = useState(false);
   const [newFullName, setNewFullName] = useState(user?.name || "");
   const [newPhone, setNewPhone] = useState(user?.phone || "");
@@ -46,7 +46,7 @@ export default function Checkout() {
     }
   }, [region?.name]);
 
-  // Auto-update profile name if current name is missing, default, or placeholder
+  // Agar customer ka naam missing ya default hai toh auto update karo
   const maybeUpdateProfileName = (enteredName) => {
     if (!enteredName || typeof enteredName !== "string" || !updateProfile) return;
     const clean = enteredName.trim();
@@ -62,12 +62,12 @@ export default function Checkout() {
       /^user\s*\d*$/i.test(current);
 
     if (isPlaceholder && clean.toLowerCase() !== current) {
-      console.log("👤 Auto-updating customer profile name to:", clean);
+      console.log("Customer profile name update ho raha hai:", clean);
       updateProfile({ name: clean }).catch(() => null);
     }
   };
 
-  // Helper: check if an address matches the active region / district
+  // Check kar rahe hain ki address active district me deliver ho sakta hai ya nahi
   const isDeliverableInRegion = (addr, currentRegionName) => {
     if (!addr) return false;
     const reg = (currentRegionName || "Varanasi").toLowerCase().trim();
@@ -80,7 +80,7 @@ export default function Checkout() {
     return false;
   };
 
-  // Load Profile / Context Addresses for Logged-In Customer (Zero 404 network errors & zero flickering)
+  // Logged in user ke saved addresses load karne ka hook
   useEffect(() => {
     const activeRegion = region?.name || "Varanasi";
     const cleanContext = (contextAddresses || []).map((ca) => {
@@ -118,7 +118,7 @@ export default function Checkout() {
 
     setDbAddresses(uniqueAddrs);
     
-    // Auto-select the first deliverable address for the active region
+    // Pehla deliverable address automatically select kar lo
     const currentSelected = uniqueAddrs.find((a) => a.id === selectedAddrId);
     if (!currentSelected || !isDeliverableInRegion(currentSelected, activeRegion)) {
       const firstDeliverable = uniqueAddrs.find((a) => isDeliverableInRegion(a, activeRegion));
@@ -207,7 +207,7 @@ export default function Checkout() {
     setSavingAddr(false);
   };
 
-  // Order place - vendorId & vendorName strictly mapped with mandatory address DB insertion
+  // Order place karne ka main function - vendor aur address map karke
   const handlePlaceOrder = async () => {
     const activeRegionName = region?.name || "Varanasi";
     const activeRegionId = region?.id || "2ab0f187-d170-4432-8eef-e0ac31ed21c3";
@@ -218,11 +218,11 @@ export default function Checkout() {
       targetAddr = null;
     }
 
-    // If no saved deliverable address selected, check inline form fields
+    // Agar saved address nahi mila toh form ke input se address lo
     if (!targetAddr || !targetAddr.street) {
       if (!newStreet || !newStreet.trim()) {
         showAlert({
-          title: "📍 Deliverable Address Required",
+          title: "Deliverable Address Required",
           message: `Please select or add a delivery address in ${activeRegionName} to complete your order.`,
           type: "warning",
           buttonText: "Add Address",
@@ -250,7 +250,7 @@ export default function Checkout() {
       maybeUpdateProfileName(targetAddr.fullName);
     }
 
-    // Verify none of the items belong to suspended vendors or are inactive
+    // Check karo ki koi item suspended vendor ka ya inactive toh nahi hai
     const hasSuspendedItems = items.some((item) => {
       if (item.isVendorSuspended === true || item.inStock === false) return true;
       const matchedVendor = vendors.find(
@@ -268,7 +268,7 @@ export default function Checkout() {
 
     if (hasSuspendedItems) {
       showAlert({
-        title: "⚠️ Order Blocked",
+        title: "Order Blocked",
         message: "Your cart contains items that are currently unavailable. Please return to your cart and remove them before placing an order.",
         type: "warning",
         buttonText: "Return to Cart",
@@ -283,7 +283,7 @@ export default function Checkout() {
       const pId = i.id || i.productId;
       const cleanName = (i.name || i.productName || "").trim().toLowerCase();
 
-      // Find in catalog if vendorId is missing or empty
+      // Agar vendorId missing hai toh product catalog me dhundo
       const catalogProd = Array.isArray(products)
         ? products.find(
             (p) =>
@@ -333,7 +333,7 @@ export default function Checkout() {
       isOptimistic: false,
     };
 
-    // Authentic 2.2 - 2.5 second natural dispatch loading experience
+    // Natural loading delay taaki customer ko smooth confirmation lage
     const minDelayPromise = new Promise((resolve) => setTimeout(resolve, 2200));
 
     try {
@@ -356,14 +356,14 @@ export default function Checkout() {
       const customerName = targetAddr?.fullName || user?.name || "Customer";
       addNotification({
         id: `order_confirmed_${Date.now()}`,
-        title: `Order ${finalOrder.orderNumber || immediateOrderNumber} Confirmed! 📦`,
+        title: `Order ${finalOrder.orderNumber || immediateOrderNumber} Confirmed!`,
         message: `Thank you ${customerName}! Your order of ₹${Number(total).toLocaleString("en-IN")} is placed and sent for dispatch.`,
         type: "order",
         link: `/orders`,
       });
     } catch (err) {
       console.error("Order placement notice:", err);
-      // Fallback: If network had temporary glitch, still confirm locally so user cart isn't stuck
+      // Agar network me issue aaye toh local order confirm karke cart clear karo
       clearCart();
       setSuccessOrder(optimisticOrder);
     } finally {
@@ -380,7 +380,7 @@ export default function Checkout() {
 
         <div className="grid md:grid-cols-3 gap-6">
           <div className="md:col-span-2 space-y-5">
-            {/* Address Selection Section */}
+            {/* Delivery address choose karne ka section */}
             <div className="bg-white rounded-xl border border-slate-200 p-4">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-bold text-navy-900">
@@ -535,14 +535,14 @@ export default function Checkout() {
                     );
                   })}
 
-                  {/* If no deliverable address exists for this active region */}
+                  {/* Agar current district ka koi address nahi hai toh notice */}
                   {!hasDeliverableAddress && (
-                    <div className="p-3.5 bg-amber-50/90 border border-amber-200/80 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 mt-3">
+                    <div className="p-3.5 bg-sky-50 border border-sky-200 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 mt-3">
                       <div>
-                        <p className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
-                          <span>⚠️</span> No deliverable address found in {region?.name || "Varanasi"}
+                        <p className="text-xs font-bold text-sky-950 flex items-center gap-1.5">
+                          No deliverable address found in {region?.name || "Varanasi"}
                         </p>
-                        <p className="text-[11px] text-amber-700 font-medium mt-0.5">
+                        <p className="text-[11px] text-sky-800 font-medium mt-0.5">
                           Please add a site delivery address located in {region?.name || "Varanasi"} to place this order.
                         </p>
                       </div>
@@ -559,7 +559,7 @@ export default function Checkout() {
               )}
             </div>
 
-            {/* Payment ka hai — ONLY Cash on Delivery */}
+            {/* Payment method section - sirf cash on delivery */}
             <div className="bg-white rounded-xl border border-slate-200 p-4">
               <h3 className="text-sm font-bold text-navy-900 mb-3">
                 Payment Method
@@ -585,7 +585,7 @@ export default function Checkout() {
               </div>
             </div>
 
-            {/* Items */}
+            {/* Order me add kiye gaye items */}
             <div className="bg-white rounded-xl border border-slate-200 p-4">
               <h3 className="text-sm font-bold text-navy-900 mb-3">
                 Order Items ({items.length})
@@ -613,7 +613,7 @@ export default function Checkout() {
             </div>
           </div>
 
-          {/* Summary */}
+          {/* Order ka amount summary */}
           <div className="bg-white rounded-xl border border-slate-200 p-4 h-fit sm:sticky sm:top-20">
             <h3 className="text-sm font-bold text-navy-900 mb-3">
               Order Summary
@@ -659,15 +659,15 @@ export default function Checkout() {
             </button>
 
             {placing && (
-              <p className="text-[11px] text-amber-600 font-bold text-center mt-2 animate-pulse">
-                ⏳ Processing site delivery dispatch... Please wait.
+              <p className="text-[11px] text-brand-600 font-bold text-center mt-2 animate-pulse">
+                Processing site delivery dispatch... Please wait.
               </p>
             )}
           </div>
         </div>
       </main>
 
-      {/* Add New Address Modal */}
+      {/* Naya address add karne ka modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/60 backdrop-blur-xs">
           <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
@@ -769,14 +769,14 @@ export default function Checkout() {
         </div>
       )}
 
-      {/* Modern Order Success Celebration Screen / Modal */}
+      {/* Order success screen modal */}
       {successOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-emerald-100 text-center relative overflow-hidden animate-in zoom-in-95 duration-300">
-            {/* Ambient Top Glow */}
+            {/* Top background glow */}
             <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-64 h-64 bg-emerald-400/20 rounded-full blur-3xl pointer-events-none" />
 
-            {/* Success Checkmark Badge */}
+            {/* Success checkmark badge */}
             <div className="relative mx-auto mb-4 w-20 h-20 rounded-full bg-emerald-50 border-4 border-emerald-100 flex items-center justify-center shadow-lg shadow-emerald-500/10">
               <div className="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center text-2xl font-black shadow-md animate-bounce">
                 ✓
@@ -796,7 +796,7 @@ export default function Checkout() {
                 : "Your construction material order has been confirmed for immediate site delivery."}
             </p>
 
-            {/* Order Details Card */}
+            {/* Order ki details ka card */}
             <div className="bg-slate-50/90 rounded-2xl p-4 border border-slate-200/80 text-left space-y-3 mb-6 shadow-2xs">
               {successOrder.isMultiVendor && Array.isArray(successOrder.orders) && successOrder.orders.length > 1 ? (
                 <div className="space-y-2 pb-2.5 border-b border-slate-200/80">
@@ -856,7 +856,7 @@ export default function Checkout() {
               </div>
             </div>
 
-            {/* Action Buttons */}
+            {/* Order track karne ke buttons */}
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={() =>

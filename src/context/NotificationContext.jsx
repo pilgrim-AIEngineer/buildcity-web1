@@ -8,7 +8,7 @@ const NotificationContext = createContext(null);
 export function NotificationProvider({ children }) {
   const { user } = useAuth();
 
-  // Strict user isolation key
+  // Har user ke notifications ko alag rakhne ki storage key
   const userIdent = user?.phone
     ? user.phone.replace(/\D/g, "").slice(-10)
     : user?.id
@@ -30,7 +30,7 @@ export function NotificationProvider({ children }) {
   const [isLoadingNotifs, setIsLoadingNotifs] = useState(false);
   const [toastNotif, setToastNotif] = useState(null);
 
-  // Helper to get dismissed signatures set
+  // Delete ya dismiss kiye notifications ki set nikalna
   const getDismissedSet = () => {
     try {
       const arr = JSON.parse(localStorage.getItem(dismissedKey) || "[]");
@@ -40,7 +40,7 @@ export function NotificationProvider({ children }) {
     }
   };
 
-  // Helper to check if a notification has been permanently dismissed
+  // Check karna ki ye notification pehle dismiss ho chuka hai ya nahi
   const isDismissed = (notif, dismissedSet = getDismissedSet()) => {
     if (!notif) return true;
     if (notif.id && dismissedSet.has(notif.id)) return true;
@@ -49,7 +49,7 @@ export function NotificationProvider({ children }) {
     return false;
   };
 
-  // STRICT RULE: Only show Toast to Customers & exactly ONCE per notification
+  // Sirf customer ko popup toast dikhana aur ek bar hi dikhana
   const showToast = (notif) => {
     if (isStaff || !notif) return;
 
@@ -60,7 +60,7 @@ export function NotificationProvider({ children }) {
 
     const notifSig = notif.id || `${notif.title}_${notif.message}`;
     if (seenSet.has(notifSig) || isDismissed(notif)) {
-      return; // Already delivered once or dismissed
+      return; // Pehle hi toast dikh chuka hai
     }
 
     seenSet.add(notifSig);
@@ -74,13 +74,13 @@ export function NotificationProvider({ children }) {
     }, 6000);
   };
 
-  // Fetch real database notifications (orders & admin broadcasts)
+  // Database se notifications fetch karne ka function
   const fetchDbNotifications = async (showLoading = false) => {
     if (showLoading) setIsLoadingNotifs(true);
     try {
       let dbList = [];
 
-      // 1. Fetch from server DB notifications
+      // 1. Server database se notifications lao
       if (user) {
         try {
           const res = await authFetch(`${API_BASE_URL}/api/v1/notifications/me`);
@@ -114,7 +114,7 @@ export function NotificationProvider({ children }) {
           };
         });
 
-      // Load user's private confirmed order notifications
+      // User ke private confirmed order notifications load karo
       let localOrders = [];
       if (!isStaff) {
         try {
@@ -127,7 +127,7 @@ export function NotificationProvider({ children }) {
         } catch {}
       }
 
-      // Combine user orders and DB notifications
+      // Dono sources ke notifications combine karo
       const combined = isStaff && !isAdmin ? [] : [...localOrders, ...formattedDb];
       const unique = Array.from(new Map(combined.map((x) => [x.id || `${x.title}_${x.message}`, x])).values())
         .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
@@ -152,7 +152,7 @@ export function NotificationProvider({ children }) {
     }
   };
 
-  // Cross-Tab Broadcast Channel for Zero-Latency Real-Time Alerts
+  // Sabhi browser tabs me real-time broadcast channel
   useEffect(() => {
     let bc = null;
     try {
@@ -177,7 +177,7 @@ export function NotificationProvider({ children }) {
     };
   }, [isStaff, dismissedKey]);
 
-  // Load from user storage on start & auto-poll
+  // App start par notifications load karna aur polling setup
   useEffect(() => {
     const dismissedSet = getDismissedSet();
     try {
@@ -198,7 +198,7 @@ export function NotificationProvider({ children }) {
 
     fetchDbNotifications();
 
-    // Smart polling: Long fallback interval (5m instead of 120s, saving egress)
+    // Tab visible hone par hi polling karo
     const interval = setInterval(() => {
       if (typeof document !== "undefined" && document.visibilityState === "visible") {
         fetchDbNotifications();
@@ -223,7 +223,7 @@ export function NotificationProvider({ children }) {
     };
   }, [storageKey, user]);
 
-  // Real-Time Individual Order Confirmation / Event Notification Addition
+  // Naya order confirm ya event notification add karne ka function
   const addNotification = ({ id, title, message, type = "info", link = null }) => {
     const notifId = id || "n-" + Date.now() + "-" + Math.random().toString(36).substring(2, 6);
     const newNotif = {
@@ -247,7 +247,7 @@ export function NotificationProvider({ children }) {
       return updated;
     });
 
-    // Save strictly to private customer order notifications
+    // Sirf customer ke private storage me save karo
     if (type === "order" || (title || "").toLowerCase().includes("order")) {
       try {
         const prevOrders = JSON.parse(localStorage.getItem(orderNotifsKey) || "[]");
@@ -255,10 +255,10 @@ export function NotificationProvider({ children }) {
       } catch {}
     }
 
-    // Show instant toast to the customer
+    // Customer ko turant toast notification dikhao
     showToast(newNotif);
 
-    // If it's a broadcast offer, push across active tabs
+    // Agar offer broadcast hai toh sabhi tabs me bhejo
     if (type !== "order") {
       try {
         if (typeof window !== "undefined" && "BroadcastChannel" in window) {
@@ -272,7 +272,7 @@ export function NotificationProvider({ children }) {
     return newNotif;
   };
 
-  // Broadcast Message Dispatcher (Sends to all users in Offers tab)
+  // Admin broadcast message bhejne ka function
   const sendBroadcastNotification = async ({ title, message, type = "offer" }) => {
     if (!title || !message) return false;
     setIsSending(true);
@@ -363,7 +363,7 @@ export function NotificationProvider({ children }) {
     });
   };
 
-  // PERMANENT CLEAR: Dismissed notifications NEVER re-appear
+  // saare notifications ko permanently clear karne ka logic, taaki dubara na dikhe
   const clearAllNotifications = async () => {
     try {
       const prevDismissed = JSON.parse(localStorage.getItem(dismissedKey) || "[]");
@@ -383,7 +383,7 @@ export function NotificationProvider({ children }) {
     } catch {}
   };
 
-  // PERMANENT REMOVE: Single notification dismissal
+  // kisi ek notification ko remove karne ke liye
   const removeNotification = async (id) => {
     const target = notifications.find((n) => n.id === id);
     try {
@@ -392,7 +392,7 @@ export function NotificationProvider({ children }) {
       const updatedDismissed = Array.from(new Set([...prevDismissed, id, sig].filter(Boolean)));
       localStorage.setItem(dismissedKey, JSON.stringify(updatedDismissed));
 
-      // Remove from local order notifications if it was an order
+      // agar order notification tha toh local order list se bhi hata dete hai
       const prevOrders = JSON.parse(localStorage.getItem(orderNotifsKey) || "[]");
       localStorage.setItem(orderNotifsKey, JSON.stringify(prevOrders.filter((o) => o.id !== id)));
     } catch {}
@@ -432,11 +432,11 @@ export function NotificationProvider({ children }) {
     >
       {children}
 
-      {/* Floating Real-Time Notification Toast */}
+      {/* floating real-time notification toast yaha render ho raha hai */}
       {toastNotif && (
         <div className="fixed top-5 right-4 sm:right-6 z-[9999] max-w-sm w-[calc(100%-2rem)] sm:w-full animate-in slide-in-from-top-4 fade-in duration-300 pointer-events-auto">
           <div className="bg-slate-900/95 text-white border border-brand-500/40 rounded-2xl p-4 shadow-2xl backdrop-blur-xl flex items-start gap-3 relative overflow-hidden group">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 via-brand-500 to-rose-500 animate-pulse" />
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-sky-400 via-brand-500 to-rose-500 animate-pulse" />
 
             <span className="h-10 w-10 rounded-xl bg-brand-500/20 border border-brand-400/40 flex items-center justify-center text-xl shrink-0 mt-0.5 shadow-xs">
               {toastNotif.type === "offer" ? "🎁" : toastNotif.type === "price" ? "🏷️" : toastNotif.type === "order" ? "📦" : "📢"}
@@ -448,7 +448,7 @@ export function NotificationProvider({ children }) {
                   toastNotif.type === "offer"
                     ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
                     : toastNotif.type === "price"
-                    ? "bg-amber-500/20 text-amber-300 border-amber-500/30"
+                    ? "bg-sky-500/20 text-sky-300 border-sky-500/30"
                     : toastNotif.type === "order"
                     ? "bg-blue-500/20 text-blue-300 border-blue-500/30"
                     : "bg-purple-500/20 text-purple-300 border-purple-500/30"

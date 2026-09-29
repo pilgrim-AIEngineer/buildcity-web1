@@ -242,12 +242,12 @@ export default function Categories() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-28 font-sans w-full max-w-full overflow-x-clip">
-      {/* 🖥️ Desktop Navbar */}
+      {/* Desktop navbar */}
       <div className="hidden lg:block">
         <Navbar />
       </div>
 
-      {/* 📱 Mobile Header (Clean Categories Header without Logo/Region) */}
+      {/* Mobile screen ke liye categories header */}
       <div className="lg:hidden bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -276,7 +276,7 @@ export default function Categories() {
           </div>
         </div>
 
-        {/* Mobile Search Bar */}
+        {/* Search bar input box */}
         <form onSubmit={handleSearch} className="max-w-6xl mx-auto px-4 pb-3">
           <div className="w-full flex items-center gap-2 bg-slate-100 rounded-xl px-3 py-2 border border-slate-200 focus-within:border-brand-500 focus-within:bg-white transition-all shadow-2xs">
             <SearchIcon />
@@ -298,14 +298,14 @@ export default function Categories() {
 
       <main className="max-w-6xl mx-auto px-4 pt-4 sm:pt-6 space-y-6">
 
-        {/* 🛍️ 2. SHOP BY CATEGORY (8-CARD 4-COLUMN COMPACT GRID) */}
+        {/* 2. Shop by category cards grid */}
         <section className="space-y-2.5">
           <div className="flex items-center justify-between">
             <h3 className="text-sm sm:text-base font-extrabold text-navy-900 tracking-tight">Shop by Category</h3>
             <button
               type="button"
               onClick={() => handleSelectCategory("All")}
-              className="text-xs font-bold text-[#0284C7] hover:underline cursor-pointer"
+              className="text-xs font-bold text-[#c2410c] hover:text-[#9a3412] hover:underline cursor-pointer"
             >
               View all
             </button>
@@ -325,7 +325,7 @@ export default function Categories() {
                     isSelected
                       ? "bg-blue-50/90 border-2 border-[#0284C7] ring-2 ring-blue-200 shadow-xs"
                       : isComingSoon
-                      ? "bg-slate-50/80 border border-slate-200/60 opacity-60 hover:opacity-85"
+                      ? "bg-slate-50/80 border border-slate-200/60 opacity-85 hover:opacity-100"
                       : "bg-white border border-slate-200/70 hover:border-slate-300"
                   }`}
                 >
@@ -373,9 +373,10 @@ export default function Categories() {
                       {c.name}
                     </h4>
                     {isComingSoon ? (
-                      <span className="inline-block mt-0.5 text-[7.5px] sm:text-[8.5px] font-bold text-slate-500 bg-slate-200/70 px-1.5 py-0.5 rounded-full leading-tight">
-                        Coming soon
-                      </span>
+                     <span className="inline-block mt-0.5 text-[11px] sm:text-[12px] font-semibold text-slate-900 px-1 rounded-sm leading-tight tracking-tight"> 
+  Coming soon 
+</span>
+
                     ) : (
                       <p className="text-[8.5px] sm:text-[9.5px] text-slate-400 font-medium mt-0.5 truncate">
                         {c.countLabel}
@@ -388,7 +389,7 @@ export default function Categories() {
           </div>
         </section>
 
-        {/* 🌟 4. PRODUCTS GRID (4 PRODUCTS PER ROW - COMPACT & CLEAN) */}
+        {/* 3. Filtered products ki grid list */}
         <section ref={productsSectionRef} id="products-section" className="space-y-3 scroll-mt-20">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -403,7 +404,7 @@ export default function Categories() {
               <button
                 type="button"
                 onClick={() => handleSelectCategory("All", false)}
-                className="text-xs font-bold text-[#0284C7] hover:underline cursor-pointer"
+                className="text-xs font-bold text-[#c2410c] hover:text-[#9a3412] hover:underline cursor-pointer"
               >
                 Clear Filter (View All)
               </button>

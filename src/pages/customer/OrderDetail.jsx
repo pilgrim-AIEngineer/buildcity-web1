@@ -85,7 +85,7 @@ export default function OrderDetail() {
     currentStepIndex = STEP_FLOW.length - 1;
   }
 
-  // Animated line progress on customer entrance: starts at 0% and glides to current step, then stays there
+  // Page load hone par progress bar animation smooth chalane ke liye
   const [progressPercent, setProgressPercent] = useState(0);
 
   useEffect(() => {
@@ -120,7 +120,7 @@ export default function OrderDetail() {
             ? "border-emerald-300/80 bg-gradient-to-r from-emerald-50/70 via-white to-white"
             : "border-slate-200/90 bg-white"
         }`}>
-          {/* Status accent vertical stripe on the left */}
+          {/* Left side me status ka vertical accent color */}
           <span className={`absolute inset-y-0 left-0 w-1.5 transition-colors duration-500 ${isDelivered ? "bg-emerald-600" : statusInfo.accent}`} aria-hidden="true" />
 
           <div className="flex items-center justify-between gap-3 mb-2.5 flex-wrap pl-1">
@@ -146,7 +146,7 @@ export default function OrderDetail() {
           </div>
         </div>
 
-        {/* Live Delivery Status Progress Tracker (Flipkart-Style Hairline Stepper with Entrance Glide) */}
+        {/* Order track karne ka horizontal stepper bar */}
         <div className="bg-white rounded-2xl border border-slate-200/90 p-5 mb-5 shadow-[0_1px_3px_rgba(15,23,42,0.04),0_8px_20px_-8px_rgba(15,23,42,0.06)] overflow-hidden relative">
           <div className="flex items-center justify-between mb-5">
             <div>
@@ -162,7 +162,7 @@ export default function OrderDetail() {
           </div>
 
           <div className="relative pt-2 pb-2">
-            {/* Connecting Track Line behind nodes */}
+            {/* Stepper nodes ke peeche ki connecting line */}
             <div
               className="absolute top-6 -translate-y-1/2 h-[3.5px] bg-slate-100 rounded-full z-0 overflow-hidden"
               style={{
@@ -179,7 +179,7 @@ export default function OrderDetail() {
               />
             </div>
 
-            {/* Stepper Nodes */}
+            {/* Har step ke circles */}
             <div className="flex items-center justify-between relative z-10">
               {STEP_FLOW.map((step, i) => {
                 const isPassed = isDelivered || i < currentStepIndex;
@@ -229,7 +229,7 @@ export default function OrderDetail() {
           </div>
         </div>
 
-        {/* Items list */}
+        {/* Order me shamil products ki list */}
         <div className="bg-white rounded-2xl border border-slate-200/90 p-5 mb-5 shadow-[0_1px_3px_rgba(15,23,42,0.04),0_8px_20px_-8px_rgba(15,23,42,0.06)]">
           <div className="flex items-center justify-between mb-3.5">
             <h3 className="text-sm font-black text-navy-950">Ordered Materials</h3>
@@ -275,7 +275,7 @@ export default function OrderDetail() {
             })}
           </div>
 
-          {/* Invoice Summary */}
+          {/* Bill aur payment ka summary */}
           <div className="mt-4 pt-3.5 border-t border-dashed border-slate-200 space-y-2 text-xs">
             <div className="flex justify-between text-slate-600 font-medium">
               <span>Materials Subtotal</span>

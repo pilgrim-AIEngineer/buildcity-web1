@@ -441,6 +441,34 @@ export default function DrDashboard() {
   const [editingVendor, setEditingVendor] = useState(null);
   const [editingProduct, setEditingProduct] = useState(null);
 
+  // Edit modal me product ki 3 images manage karne ke liye helper state
+  const editingImages = useMemo(() => {
+    if (!editingProduct) return ["", "", ""];
+    const list = Array.isArray(editingProduct.images) && editingProduct.images.length > 0
+      ? editingProduct.images.filter(Boolean)
+      : (editingProduct.imageUrl || "").split(",").map((s) => s.trim()).filter(Boolean);
+    return [
+      editingProduct.img1 !== undefined ? editingProduct.img1 : (list[0] || ""),
+      editingProduct.img2 !== undefined ? editingProduct.img2 : (list[1] || ""),
+      editingProduct.img3 !== undefined ? editingProduct.img3 : (list[2] || ""),
+    ];
+  }, [editingProduct]);
+
+  const handleEditImageSlotChange = (slotIdx, val) => {
+    if (!editingProduct) return;
+    const nextSlots = [...editingImages];
+    nextSlots[slotIdx] = val;
+    const validList = nextSlots.map((s) => (s || "").trim()).filter(Boolean);
+    setEditingProduct({
+      ...editingProduct,
+      img1: nextSlots[0],
+      img2: nextSlots[1],
+      img3: nextSlots[2],
+      imageUrl: validList.join(", "),
+      images: validList,
+    });
+  };
+
   // Forms
   const [vendorForm, setVendorForm] = useState({
     shopName: "",
@@ -2219,14 +2247,29 @@ export default function DrDashboard() {
       {/* EDIT PRODUCT MODAL (DR) */}
       {editingProduct && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+          <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-100 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
               <h3 className="font-bold text-navy-900 text-base">Edit Master Product</h3>
-              <button onClick={() => setEditingProduct(null)} className="text-slate-400 hover:text-navy-900 text-lg leading-none">✕</button>
+              <button onClick={() => setEditingProduct(null)} className="text-slate-400 hover:text-navy-900 text-lg leading-none cursor-pointer">✕</button>
             </div>
             <form onSubmit={(e) => {
               e.preventDefault();
-              const prodToSave = { ...editingProduct };
+              const finalImgs = [
+                editingProduct.img1 !== undefined ? editingProduct.img1 : editingImages[0],
+                editingProduct.img2 !== undefined ? editingProduct.img2 : editingImages[1],
+                editingProduct.img3 !== undefined ? editingProduct.img3 : editingImages[2],
+              ].map((s) => (s || "").trim()).filter(Boolean);
+              const finalImageUrl = finalImgs.join(", ") || editingProduct.imageUrl || "";
+
+              const prodToSave = {
+                ...editingProduct,
+                imageUrl: finalImageUrl,
+                images: finalImgs,
+              };
+              delete prodToSave.img1;
+              delete prodToSave.img2;
+              delete prodToSave.img3;
+
               setEditingProduct(null);
               updateMasterProduct(prodToSave.id || prodToSave.masterProductId, prodToSave);
               showAlert({ title: "Product Updated", message: `Product "${prodToSave.name}" updated successfully!`, type: "success" });
@@ -2261,19 +2304,106 @@ export default function DrDashboard() {
                   />
                 </div>
               </div>
-              <div>
-                <label className="block text-xs font-bold text-navy-900 mb-1">Price (₹) *</label>
-                <input
-                  type="number"
-                  required
-                  value={editingProduct.suggestedPrice || editingProduct.price}
-                  onChange={(e) => setEditingProduct({ ...editingProduct, suggestedPrice: e.target.value, price: e.target.value })}
-                  className="w-full bg-slate-50 text-xs border border-slate-200 rounded-xl px-3 py-2.5 outline-none font-bold"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-navy-900 mb-1">Price (₹) *</label>
+                  <input
+                    type="number"
+                    required
+                    value={editingProduct.suggestedPrice || editingProduct.price}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, suggestedPrice: e.target.value, price: e.target.value })}
+                    className="w-full bg-slate-50 text-xs border border-slate-200 rounded-xl px-3 py-2.5 outline-none font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-navy-900 mb-1">Unit Packaging</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 50kg Bag, Box, 20L"
+                    value={editingProduct.unit !== undefined ? editingProduct.unit : ""}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, unit: e.target.value })}
+                    className="w-full bg-slate-50 text-xs border border-slate-200 rounded-xl px-3 py-2.5 outline-none font-bold"
+                  />
+                </div>
               </div>
+
+              <div>
+                <label className="block text-xs font-bold text-navy-900 mb-1">
+                  Product Images (1 to 3 Images for Interactive Slider)
+                </label>
+                <div className="flex gap-2 overflow-x-auto pb-2 mb-2.5 no-scrollbar">
+                  {PRESET_IMAGES.map((preset, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        const emptyIdx = editingImages.findIndex((s) => !s.trim());
+                        const targetIdx = emptyIdx !== -1 ? emptyIdx : 0;
+                        handleEditImageSlotChange(targetIdx, preset.url);
+                      }}
+                      className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-brand-50 hover:border-brand-300 text-[10px] font-semibold shrink-0 cursor-pointer"
+                    >
+                      + {preset.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="space-y-2">
+                  {[0, 1, 2].map((slotIdx) => {
+                    const slotValue = editingImages[slotIdx] || "";
+                    const isRequired = slotIdx === 0;
+                    const placeholder =
+                      slotIdx === 0
+                        ? "Main Image 1 URL *"
+                        : `Image ${slotIdx + 1} URL (Optional)`;
+
+                    return (
+                      <div key={slotIdx} className="flex items-center gap-2.5 bg-slate-50 p-2 rounded-xl border border-slate-200">
+                        <div className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 bg-white shrink-0 flex items-center justify-center">
+                          {slotValue && slotValue.trim() ? (
+                            <img
+                              src={slotValue}
+                              alt={`Slot ${slotIdx + 1}`}
+                              className="w-full h-full object-cover"
+                              onError={(e) => { e.currentTarget.style.display = "none"; }}
+                            />
+                          ) : (
+                            <span className="text-[10px] text-slate-400 font-extrabold">
+                              #{slotIdx + 1}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex-1">
+                          <input
+                            type="url"
+                            placeholder={placeholder}
+                            required={isRequired}
+                            value={slotValue}
+                            onChange={(e) => handleEditImageSlotChange(slotIdx, e.target.value)}
+                            className="w-full bg-white text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none font-medium font-mono text-[11px] focus:border-brand-500"
+                          />
+                        </div>
+
+                        {slotValue ? (
+                          <button
+                            type="button"
+                            onClick={() => handleEditImageSlotChange(slotIdx, "")}
+                            className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg text-xs cursor-pointer hover:bg-rose-50"
+                            title="Clear image"
+                          >
+                            ✕
+                          </button>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                 <button type="button" onClick={() => setEditingProduct(null)} className="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 rounded-xl">Cancel</button>
-                <button type="submit" className="px-5 py-2 text-xs font-bold text-white bg-brand-500 rounded-xl hover:bg-brand-600 shadow-xs">Save Changes</button>
+                <button type="submit" className="px-5 py-2 text-xs font-bold text-white bg-brand-500 rounded-xl hover:bg-brand-600 shadow-xs cursor-pointer">Save Changes</button>
               </div>
             </form>
           </div>

@@ -1733,6 +1733,7 @@ export function AdminProvider({ children }) {
           return {
             ...p,
             ...(updates.imageUrl ? { imageUrl: updates.imageUrl } : {}),
+            ...(updates.images ? { images: updates.images } : updates.imageUrl ? { images: updates.imageUrl.split(",").map((s) => s.trim()).filter(Boolean) } : {}),
             ...(updates.name ? { name: updates.name } : {}),
             ...(updates.brand ? { brand: updates.brand } : {}),
             ...(updates.grade ? { grade: updates.grade } : {}),

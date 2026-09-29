@@ -78,18 +78,18 @@ export default function ProductCard({ product, className = "" }) {
 
   return (
     <div
-      className={`bg-white rounded-2xl border border-slate-200/80 hover:border-brand-400 p-2.5 flex flex-col justify-between shadow-[0_2px_8px_-2px_rgba(15,23,42,0.05)] hover:shadow-[0_8px_24px_-4px_rgba(234,88,12,0.12)] active:scale-[0.98] transition-all duration-300 group relative ${className}`}
+      className={`bg-white rounded-2xl border border-slate-200/80 hover:border-brand-400 overflow-hidden flex flex-col justify-between shadow-[0_2px_8px_-2px_rgba(15,23,42,0.05)] hover:shadow-[0_8px_24px_-4px_rgba(234,88,12,0.12)] active:scale-[0.98] transition-all duration-300 group relative ${className}`}
     >
-      {/* 🖼️ Product Link & Image (Big, clear, unblocked image) */}
+      {/* 🖼️ Product Link & Image (Full Edge-to-Edge Amazon Style) */}
       <Link to={`/product/${product.id}`} className="block">
-        <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-slate-50 mb-2 border border-slate-100 flex items-center justify-center p-2 group-hover:bg-slate-50/80 transition-colors">
+        <div className="relative aspect-square w-full overflow-hidden bg-slate-100/80 flex items-center justify-center">
           {/* Discount Badge / Unavailable Badge */}
           {isUnavailable ? (
-            <span className="absolute top-1.5 left-1.5 z-10 bg-rose-50 text-rose-700 border border-rose-200 font-black text-[9px] px-2 py-0.5 rounded-full shadow-2xs tracking-tight">
+            <span className="absolute top-2 left-2 z-10 bg-rose-50 text-rose-700 border border-rose-200 font-black text-[9px] px-1.5 py-0.5 rounded-full shadow-2xs tracking-tight">
               Unavailable
             </span>
           ) : discountPct > 0 ? (
-            <span className="absolute top-1.5 left-1.5 z-10 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-[9px] px-2 py-0.5 rounded-full shadow-2xs tracking-tight">
+            <span className="absolute top-2 left-2 z-10 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-[9px] px-1.5 py-0.5 rounded-full shadow-2xs tracking-tight">
               {discountPct}% OFF
             </span>
           ) : null}
@@ -97,7 +97,7 @@ export default function ProductCard({ product, className = "" }) {
           <img
             src={product.imageUrl || product.img || "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&w=400&q=80"}
             alt={product.name}
-            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300 ease-out drop-shadow-2xs"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ease-out"
             loading="lazy"
             onError={(e) => {
               e.target.src = "/categories/cement.png";
@@ -106,19 +106,21 @@ export default function ProductCard({ product, className = "" }) {
         </div>
 
         {/* Brand & Full Product Title */}
-        <p className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider truncate mb-0.5">
-          {product.brand || "Standard"}
-        </p>
-        <h4 className="text-xs sm:text-[13px] font-black text-navy-950 leading-snug line-clamp-2 min-h-[2.3rem] group-hover:text-brand-600 transition-colors tracking-tight">
-          {product.name}
-        </h4>
+        <div className="px-2.5 pt-2">
+          <p className="text-[9px] sm:text-[9.5px] font-bold text-slate-400 uppercase tracking-wider truncate mb-0.5">
+            {product.brand || "Standard"}
+          </p>
+          <h4 className="text-xs sm:text-[13px] font-black text-navy-950 leading-snug line-clamp-2 min-h-[2rem] sm:min-h-[2.3rem] group-hover:text-brand-600 transition-colors tracking-tight">
+            {product.name}
+          </h4>
+        </div>
       </Link>
 
-      {/* 💰 Price, Unit & Savings */}
-      <div className="mt-2 pt-2 border-t border-slate-100 flex flex-col justify-between gap-1.5">
-        <div>
-          {/* Row 1: Price + Strike-through MRP */}
-          <div className="flex items-baseline gap-1.5">
+      {/* 💰 Price, Unit, Savings & Action Buttons */}
+      <div className="px-2.5 pb-2.5 pt-1 flex flex-col justify-between gap-1 flex-1">
+        <div className="pt-1 border-t border-slate-100">
+          {/* Row 1: Price + Strike-through MRP + inline % off */}
+          <div className="flex items-baseline gap-1.5 flex-wrap">
             <span className="text-sm sm:text-base font-black text-navy-950 tracking-tight tabular-nums">
               ₹{Number(price || 0).toLocaleString("en-IN")}
             </span>
@@ -127,17 +129,22 @@ export default function ProductCard({ product, className = "" }) {
                 ₹{Number(mrp || 0).toLocaleString("en-IN")}
               </span>
             )}
+            {discountPct > 0 && (
+              <span className="text-[9.5px] sm:text-[10px] font-bold text-emerald-600">
+                ({discountPct}% off)
+              </span>
+            )}
           </div>
 
           {/* Row 2: Unit tag + Savings pill */}
-          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
             {product.unit && (
-              <span className="text-[9.5px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-md leading-none truncate max-w-[95px]">
+              <span className="text-[9px] sm:text-[9.5px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-md leading-none truncate max-w-[95px]">
                 {product.unit}
               </span>
             )}
             {savings > 0 && (
-              <span className="bg-emerald-50 text-emerald-700 font-extrabold text-[9px] px-1.5 py-0.5 rounded-md border border-emerald-200/60 leading-none shadow-2xs">
+              <span className="bg-emerald-50 text-emerald-700 font-extrabold text-[8.5px] sm:text-[9px] px-1.5 py-0.5 rounded-md border border-emerald-200/60 leading-none shadow-2xs">
                 Save ₹{savings}
               </span>
             )}
@@ -145,7 +152,7 @@ export default function ProductCard({ product, className = "" }) {
         </div>
 
         {/* 🛒 Action Button / Stepper (Matching Cart.jsx clean tactile style) */}
-        <div className="w-full mt-1">
+        <div className="w-full mt-0.5">
           {isUnavailable ? (
             <div
               className="w-full bg-slate-100 text-rose-600 font-extrabold text-[11px] h-8 rounded-xl border border-rose-200/80 flex items-center justify-center select-none shadow-2xs cursor-not-allowed"

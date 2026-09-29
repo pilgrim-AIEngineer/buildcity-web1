@@ -440,7 +440,7 @@ export default function Home() {
         </form>
       </div>
 
-      <main className={`max-w-6xl mx-auto px-4 pt-4 sm:pt-6 space-y-6 ${
+      <main className={`max-w-6xl mx-auto px-4 pt-3.5 sm:pt-6 space-y-3.5 sm:space-y-5 ${
         Capacitor.isNativePlatform() ? "pb-20 sm:pb-24" : "pb-4 sm:pb-6"
       }`}>
         {/* 🌟 1. HERO CAROUSEL BANNER (SWIPEABLE) */}
@@ -554,7 +554,7 @@ export default function Home() {
         </div>
 
         {/* 🏷️ 3. TOP BRANDS CIRCULAR SHOWCASE */}
-        <section className="space-y-3">
+        <section className="space-y-1.5 sm:space-y-2.5">
           <div className="flex items-center justify-between">
             <h3 className="text-base sm:text-lg font-black text-navy-950 tracking-tight">Top Brands</h3>
             <Link to="/categories" className="text-xs font-bold text-brand-600 hover:text-brand-700 hover:underline flex items-center gap-1 active:scale-95 transition-transform">
@@ -563,7 +563,7 @@ export default function Home() {
             </Link>
           </div>
 
-          <div className="flex lg:grid lg:grid-cols-7 gap-3.5 sm:gap-5 lg:gap-6 overflow-x-auto lg:overflow-visible pb-2.5 pt-1 no-scrollbar scroll-smooth px-1">
+          <div className="flex lg:grid lg:grid-cols-7 gap-3.5 sm:gap-5 lg:gap-6 overflow-x-auto lg:overflow-visible pb-1 pt-0.5 no-scrollbar scroll-smooth px-1">
             {brandItems.map((b) => (
               <Link
                 key={b.name}
@@ -576,7 +576,7 @@ export default function Home() {
                 >
                   {b.renderLogo()}
                 </div>
-                <div className="w-full min-h-[28px] flex items-center justify-center text-center mt-2 px-0.5">
+                <div className="w-full min-h-[22px] flex items-center justify-center text-center mt-1 px-0.5">
                   <span className="text-[11px] sm:text-xs font-black text-navy-950 group-hover:text-brand-600 transition-colors leading-tight tracking-tight line-clamp-2">
                     {b.name}
                   </span>
@@ -587,7 +587,7 @@ export default function Home() {
         </section>
 
         {/* 🛍️ 4. SHOP BY CATEGORY (SCROLLABLE ON MOBILE, GRID ON DESKTOP) */}
-        <section className="space-y-3">
+        <section className="space-y-1.5 sm:space-y-2.5">
           <div className="flex items-center justify-between">
             <h3 className="text-base sm:text-lg font-extrabold text-navy-900 tracking-tight">Shop by Category</h3>
             <Link to="/categories" className="text-xs font-bold text-[#0284C7] hover:underline">
@@ -595,7 +595,7 @@ export default function Home() {
             </Link>
           </div>
 
-          <div className="flex overflow-x-auto lg:grid lg:grid-cols-7 gap-2.5 sm:gap-3.5 pb-2 no-scrollbar scroll-smooth">
+          <div className="flex overflow-x-auto lg:grid lg:grid-cols-7 gap-2.5 sm:gap-3.5 pb-1 no-scrollbar scroll-smooth">
             {categoryTiles.map((c) => (
               <Link
                 key={c.name}
@@ -631,7 +631,7 @@ export default function Home() {
         </section>
 
         {/* 🏗️ 5. BEST OFFERS (2 COLUMNS ON MOBILE, 3-4 ON DESKTOP) */}
-        <section className="space-y-3">
+        <section className="space-y-2 sm:space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <h3 className="text-base font-extrabold text-navy-900 tracking-tight">Best Offers in {region?.name || "Varanasi"}</h3>
@@ -645,7 +645,7 @@ export default function Home() {
           </div>
 
           {productsLoading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-3.5 animate-pulse">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3 animate-pulse">
               {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
                 <div key={n} className="bg-white rounded-2xl p-3 border border-slate-200 h-48" />
               ))}
@@ -655,7 +655,7 @@ export default function Home() {
               📦 No products listed in {region?.name || "Varanasi"} right now.
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-3.5 lg:gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3 lg:gap-4">
               {liveDisplayProducts.slice(0, 12).map((p) => (
                 <ProductCard key={p.id} product={p} />
               ))}

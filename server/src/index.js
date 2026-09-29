@@ -1934,6 +1934,7 @@ app.post("/api/v1/master-products", requireAuth, requireRole("ADMIN", "DR"), asy
         addedBy: addedBy || "Admin",
       },
     });
+    invalidateCache();
     res.status(201).json(newProduct);
   } catch (err) {
     sendServerError(res, err);
@@ -1982,6 +1983,7 @@ app.patch("/api/v1/master-products/:id", requireAuth, requireRole("ADMIN", "DR")
         }).catch(() => null);
       }
 
+      invalidateCache();
       console.log(`✅ Master Product ${mp.id} updated in DB successfully!`);
       return res.json(updatedMp);
     }
@@ -1998,6 +2000,7 @@ app.delete("/api/v1/master-products/:id", requireAuth, requireRole("ADMIN"), asy
     const rawId = req.params.id;
     await prisma.vendorProduct.deleteMany({ where: { masterProductId: rawId } }).catch(() => null);
     await prisma.productMaster.delete({ where: { id: rawId } }).catch(() => null);
+    invalidateCache();
     res.json({ success: true, message: "Master product deleted" });
   } catch (err) {
     sendServerError(res, err);
@@ -2225,6 +2228,9 @@ app.patch("/api/v1/vendor/listings/:id", requireAuth, requireRole("VENDOR", "DR"
         const effectiveStatus = updateData.approvalStatus || listing.approvalStatus;
         updateData.isActive = isVendorRole ? Boolean(isActive) && effectiveStatus === "APPROVED" : Boolean(isActive);
       }
+      if (req.body.description !== undefined) {
+        updateData.description = req.body.description;
+      }
 
       const updatedListing = await prisma.vendorProduct.update({
         where: { id: listing.id },
@@ -2232,6 +2238,7 @@ app.patch("/api/v1/vendor/listings/:id", requireAuth, requireRole("VENDOR", "DR"
         include: { vendor: { include: { region: true } }, masterProduct: true },
       });
 
+      invalidateCache();
       console.log(`✓ Live price update: Vendor listing ${listing.id} price set to ₹${updatedListing.price} in Supabase DB`);
       return res.json(updatedListing);
     }

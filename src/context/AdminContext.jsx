@@ -329,6 +329,7 @@ export function AdminProvider({ children }) {
         const formattedMaster = masterRes.map((mp) => ({
           ...mp,
           categoryName: mp.category?.name || mp.categoryName || "General",
+          description: mp.description || null,
         }));
         setMasterProducts(formattedMaster);
         try {
@@ -357,6 +358,7 @@ export function AdminProvider({ children }) {
             type: l.type || l.masterProduct?.type || matchedMaster.type || "Standard",
             grade: l.grade || l.masterProduct?.grade || matchedMaster.grade || "Standard Grade",
             unit: l.unit || l.masterProduct?.unit || matchedMaster.unit || "Unit",
+            description: l.description || l.masterProduct?.description || matchedMaster.description || null,
             vendorId: l.vendorId,
             vendorName: l.vendor?.shopName || l.vendorName || "District Vendor",
             regionId: resolvedRegionId,
@@ -603,6 +605,7 @@ export function AdminProvider({ children }) {
             unit: m.unit || "Unit",
             suggestedPrice: Number(m.suggestedPrice) || 100,
             imageUrl: m.imageUrl || "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&w=400&q=80",
+            description: m.description || null,
             addedBy: m.addedBy || "Admin",
           };
           const recent = getRecentEdit(m.id);
@@ -698,6 +701,7 @@ export function AdminProvider({ children }) {
             type: l.type || l.masterProduct?.type || "Standard",
             grade: l.grade || l.masterProduct?.grade || "Standard Grade",
             unit: l.unit || l.masterProduct?.unit || "Unit",
+            description: l.description || l.masterProduct?.description || null,
             vendorId: l.vendorId,
             vendorName: l.vendor?.shopName || matchedVendor?.shopName || l.vendorName || "District Vendor",
             regionId: resolvedRegionId,
@@ -1806,6 +1810,7 @@ export function AdminProvider({ children }) {
       type: mp ? mp.type : "Standard",
       grade: mp ? mp.grade : "Standard Grade",
       unit: mp ? mp.unit : "Unit",
+      description: mp?.description || null,
       vendorId: vendorId || ("v-" + Date.now()),
       vendorName: vendorName || "District Vendor",
       regionId: regionId || "r1",
@@ -1837,6 +1842,7 @@ export function AdminProvider({ children }) {
           price,
           mrp,
           stockQty,
+          description: mp?.description || null,
           addedBy,
           approvalStatus: optimisticListing.approvalStatus,
           isActive: optimisticListing.isActive,

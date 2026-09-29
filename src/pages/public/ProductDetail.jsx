@@ -98,7 +98,7 @@ export default function ProductDetail() {
   const { user } = useAuth();
   const { addItem } = useCart();
   const { region } = useRegion();
-  const { products = [], vendors = [], productsLoading } = useAdmin();
+  const { products = [], masterProducts = [], vendors = [], productsLoading } = useAdmin();
 
   const [directProduct, setDirectProduct] = useState(null);
   const [directLoading, setDirectLoading] = useState(false);
@@ -181,7 +181,9 @@ export default function ProductDetail() {
         inStock: (realProd.stockQty || 0) > 0 && !isSuspended,
         unit: realProd.unit || "Unit",
         description:
-          realProd.description ||
+          (realProd.description && realProd.description.trim()) ||
+          (realProd.masterProduct?.description && realProd.masterProduct.description.trim()) ||
+          (masterProducts.find((m) => m.id === realProd.masterProductId || m.id === realProd.id || (m.name && realProd.name && m.name.toLowerCase() === realProd.name.toLowerCase()))?.description) ||
           `High-quality certified ${realProd.name} by ${realProd.brand || "Authorized Brand"}. Supplied directly via BuildCity Certified Delivery Network.`,
         specs: [
           { label: "Fulfillment", value: "BuildCity Certified Network" },
@@ -195,7 +197,7 @@ export default function ProductDetail() {
       };
     }
     return generateProduct(id, region.priceFactor, region.name);
-  }, [id, products, directProduct, region]);
+  }, [id, products, masterProducts, directProduct, region]);
 
   // Check kar rahe hain ki vendor suspend toh nahi hai
   const isVendorSuspended = useMemo(() => {

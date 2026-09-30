@@ -5,7 +5,21 @@ import { Sheet, SearchField, Chip, ChipRow, Button, Field, EmptyState, Spinner }
 import { cx, inr } from "../ui/format";
 
 function OfferForm({ form, onSubmit, onCancel, isSubmitting }) {
-  const { mrp, discountPct, sellingPrice, stockQty, onMrpChange, onDiscountChange, onSellingPriceChange, onStockChange } = form;
+  const {
+    mrp,
+    discountPct,
+    sellingPrice,
+    stockQty,
+    bulkEnabled,
+    toggleBulkEnabled,
+    activePacks,
+    onPackPriceChange,
+    onPackStockChange,
+    onMrpChange,
+    onDiscountChange,
+    onSellingPriceChange,
+    onStockChange,
+  } = form;
   const formRef = useRef(null);
 
   // Bring the price form into view when it opens
@@ -13,6 +27,9 @@ function OfferForm({ form, onSubmit, onCancel, isSubmitting }) {
     const raf = requestAnimationFrame(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }));
     return () => cancelAnimationFrame(raf);
   }, []);
+
+  const unitMrp = Number(mrp) || Math.round((Number(sellingPrice) || 100) * 1.2);
+
   return (
     <form
       onSubmit={onSubmit}
@@ -32,6 +49,84 @@ function OfferForm({ form, onSubmit, onCancel, isSubmitting }) {
         {Number(mrp) > Number(sellingPrice) && <span className="tabular-nums text-slate-400 line-through">{inr(mrp)}</span>}
         {Number(discountPct) > 0 && (
           <span key={discountPct} className="vd-page rounded-md bg-emerald-600 px-1.5 py-0.5 text-xs font-semibold text-white">{discountPct}% off</span>
+        )}
+      </div>
+
+      {/* Bulk Rates Toggle */}
+      <div className="pt-2 border-t border-brand-200/60">
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <p className="text-xs font-bold text-navy-900 uppercase tracking-wider">Bulk Rates / Pack Sizes</p>
+            <p className="text-[11px] text-slate-500">Wholesale discount pack sizes (5, 10, 20, 50 units)</p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={bulkEnabled}
+            onClick={toggleBulkEnabled}
+            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+              bulkEnabled ? "bg-brand-500" : "bg-slate-300"
+            }`}
+          >
+            <span
+              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                bulkEnabled ? "translate-x-5" : "translate-x-0"
+              }`}
+            />
+          </button>
+        </div>
+
+        {bulkEnabled && activePacks && activePacks.length > 0 && (
+          <div className="space-y-2 bg-white/90 p-2.5 rounded-xl border border-brand-200">
+            {activePacks.map((pack, idx) => {
+              const packQty = Number(pack.qty) || 5;
+              const packMrp = Math.round(unitMrp * packQty);
+              const packPrice = Number(pack.price) || 0;
+              const discountPctVal = packMrp > packPrice && packPrice > 0 ? Math.round(((packMrp - packPrice) / packMrp) * 100) : 0;
+
+              return (
+                <div key={idx} className="bg-slate-50 p-2.5 rounded-lg border border-slate-200 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-extrabold text-slate-900">{pack.label}</span>
+                    {discountPctVal > 0 ? (
+                      <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-200">
+                        {discountPctVal}% OFF
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400">No discount</span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] font-semibold text-slate-600 mb-0.5">Selling Price (₹)</label>
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="Price"
+                        value={pack.price !== undefined ? pack.price : ""}
+                        onChange={(e) => onPackPriceChange(idx, e.target.value)}
+                        className="w-full px-2 py-1 bg-white text-xs border border-slate-200 rounded-md font-bold text-slate-900 focus:border-brand-500 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold text-slate-600 mb-0.5">Stock</label>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="Stock"
+                        value={pack.stock !== undefined ? pack.stock : ""}
+                        onChange={(e) => onPackStockChange(idx, e.target.value)}
+                        className="w-full px-2 py-1 bg-white text-xs border border-slate-200 rounded-md font-bold text-slate-900 focus:border-brand-500 outline-none"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-slate-400">
+                    Cut-off MRP: <strong className="text-slate-600">{inr(packMrp)}</strong>
+                  </p>
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
 

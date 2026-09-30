@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { ProductThumb } from "./ProductsTab";
 import { Sheet, Field, Button, ApprovalBadge, Spinner } from "../ui/primitives";
 import { inr } from "../ui/format";
@@ -22,7 +22,7 @@ export default function EditListingSheet({
   const mrp = Number(product.mrp || 0);
   const discount = Number(product.discountPct || 0);
 
-  // Standard rule-based packs for this product's category and unit
+  // Standard rule-based packs for this product's category (starting from 5 units)
   const defaultPacks = useMemo(() => getDefaultPacksForProduct(product), [product]);
 
   // Saved or assigned custom packs for this listing
@@ -33,23 +33,28 @@ export default function EditListingSheet({
         raw = JSON.parse(raw);
       } catch {}
     }
-    return Array.isArray(raw) && raw.length > 0 ? raw : null;
+    return Array.isArray(raw) && raw.length > 0 && raw.some((pk) => Number(pk.qty) > 1)
+      ? raw.filter((pk) => Number(pk.qty) > 1)
+      : null;
   }, [product.customPacks, product.custom_packs]);
+
+  // Bulk rates toggle: puraane products ke liye by default OFF rahega
+  const [bulkEnabled, setBulkEnabled] = useState(() => Boolean(parsedCustomPacks && parsedCustomPacks.length > 0));
 
   // Dynamic unit MRP: base unit MRP badalte hi turant update hoga
   const unitMrp = Number(product.mrp) || Math.round((Number(product.price) || 0) * 1.2);
 
-  // Current active packs list: top MRP ke hisaab se live Cut-off MRP calculate karta hai
+  // Current active packs list: minimum 5 units se shuru hota hai
   const activePacks = useMemo(() => {
-    if (parsedCustomPacks) {
+    if (parsedCustomPacks && parsedCustomPacks.length > 0) {
       return parsedCustomPacks.map((cp) => {
-        const qty = Number(cp.qty) || 1;
+        const qty = Number(cp.qty) || 5;
         const packMrp = Math.round(unitMrp * qty);
         return {
           ...cp,
           qty,
           mrp: packMrp,
-          price: cp.price !== undefined && cp.price !== "" ? cp.price : (qty === 1 ? price : Math.round(price * qty)),
+          price: cp.price !== undefined && cp.price !== "" ? cp.price : Math.round(price * qty),
           stock: cp.stock !== undefined && cp.stock !== "" ? cp.stock : (product.stockQty !== undefined ? product.stockQty : 100),
         };
       });
@@ -57,15 +62,32 @@ export default function EditListingSheet({
     return defaultPacks.map((dp) => ({
       label: dp.label,
       qty: dp.qty,
-      price: dp.qty === 1 ? price : dp.price,
+      price: dp.price,
       mrp: Math.round(unitMrp * dp.qty),
       stock: product.stockQty !== undefined ? product.stockQty : 100,
     }));
   }, [parsedCustomPacks, defaultPacks, unitMrp, price, product.stockQty]);
 
+  const handleToggleBulk = () => {
+    if (bulkEnabled) {
+      setBulkEnabled(false);
+      onCustomPacksChange?.(null);
+    } else {
+      setBulkEnabled(true);
+      const initialBulk = defaultPacks.map((dp) => ({
+        label: dp.label,
+        qty: dp.qty,
+        price: dp.price,
+        mrp: Math.round(unitMrp * dp.qty),
+        stock: product.stockQty !== undefined ? product.stockQty : 100,
+      }));
+      onCustomPacksChange?.(initialBulk);
+    }
+  };
+
   const handlePackPriceChange = (index, val) => {
     const next = activePacks.map((pk, idx) => {
-      const packQty = Number(pk.qty) || 1;
+      const packQty = Number(pk.qty) || 5;
       const packMrp = Math.round(unitMrp * packQty);
       if (idx !== index) return { ...pk, mrp: packMrp };
       const numPrice = val === "" ? "" : Number(val);
@@ -76,7 +98,7 @@ export default function EditListingSheet({
 
   const handlePackStockChange = (index, val) => {
     const next = activePacks.map((pk, idx) => {
-      const packQty = Number(pk.qty) || 1;
+      const packQty = Number(pk.qty) || 5;
       const packMrp = Math.round(unitMrp * packQty);
       if (idx !== index) return { ...pk, mrp: packMrp };
       const numStock = val === "" ? "" : Number(val);
@@ -140,17 +162,36 @@ export default function EditListingSheet({
           </p>
         </div>
 
-        {/* Pack Sizes & Bulk Rates Section */}
-        {defaultPacks.length > 1 && (
-          <div className="pt-2 border-t border-slate-200/80">
-            <div className="mb-3">
-              <h4 className="text-xs font-extrabold text-navy-900 uppercase tracking-wider">Pack Sizes & Bulk Rates</h4>
-              <p className="text-[11px] text-slate-500 mt-0.5">Har pack size ka selling price aur stock yahan directly set karein.</p>
+        {/* Pack Sizes & Bulk Rates Section with Toggle */}
+        <div className="pt-3 border-t border-slate-200">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h4 className="text-xs font-extrabold text-navy-900 uppercase tracking-wider">Bulk Rates / Pack Sizes</h4>
+              <p className="text-[11px] text-slate-500">Bade order ke liye wholesale discount packs (5, 10, 20, 50 units)</p>
             </div>
 
+            {/* Toggle Switch */}
+            <button
+              type="button"
+              role="switch"
+              aria-checked={bulkEnabled}
+              onClick={handleToggleBulk}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                bulkEnabled ? "bg-brand-500" : "bg-slate-300"
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                  bulkEnabled ? "translate-x-5" : "translate-x-0"
+                }`}
+              />
+            </button>
+          </div>
+
+          {bulkEnabled ? (
             <div className="space-y-2.5 bg-slate-50/70 p-3 rounded-xl border border-slate-200">
               {activePacks.map((pack, idx) => {
-                const packQty = Number(pack.qty) || 1;
+                const packQty = Number(pack.qty) || 5;
                 const packMrp = Math.round(unitMrp * packQty);
                 const packPrice = Number(pack.price) || 0;
                 const discountPct = (packMrp > packPrice && packPrice > 0)
@@ -162,9 +203,7 @@ export default function EditListingSheet({
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-extrabold text-slate-900">{pack.label}</span>
-                        {pack.qty > 1 && (
-                          <span className="text-[10px] text-slate-400 font-mono">({pack.qty}x base)</span>
-                        )}
+                        <span className="text-[10px] text-slate-400 font-mono">({pack.qty}x base)</span>
                       </div>
                       {discountPct > 0 ? (
                         <span className="text-[11px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/80">
@@ -185,7 +224,7 @@ export default function EditListingSheet({
                           <input
                             type="number"
                             min="1"
-                            placeholder="e.g. 500"
+                            placeholder="e.g. 1850"
                             value={pack.price !== undefined ? pack.price : ""}
                             onChange={(e) => handlePackPriceChange(idx, e.target.value)}
                             className="w-full pl-6 pr-2.5 py-1.5 bg-slate-50 text-xs border border-slate-200 rounded-lg outline-none font-bold text-slate-900 focus:border-brand-500 focus:bg-white transition-colors"
@@ -200,7 +239,7 @@ export default function EditListingSheet({
                         <input
                           type="number"
                           min="0"
-                          placeholder="e.g. 20"
+                          placeholder="e.g. 50"
                           value={pack.stock !== undefined ? pack.stock : ""}
                           onChange={(e) => handlePackStockChange(idx, e.target.value)}
                           className="w-full px-2.5 py-1.5 bg-slate-50 text-xs border border-slate-200 rounded-lg outline-none font-bold text-slate-900 focus:border-brand-500 focus:bg-white transition-colors"
@@ -218,8 +257,13 @@ export default function EditListingSheet({
                 );
               })}
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="rounded-xl bg-slate-50 p-3 border border-dashed border-slate-200 text-center">
+              <p className="text-xs font-semibold text-slate-600">Bulk rates are OFF</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Yeh product sirf single base unit rate par sell hoga.</p>
+            </div>
+          )}
+        </div>
       </form>
     </Sheet>
   );

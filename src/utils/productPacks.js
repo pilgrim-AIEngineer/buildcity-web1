@@ -100,53 +100,50 @@ export function getDefaultPacksForProduct(product) {
       nameLower.includes("morang") ||
       nameLower.includes("bajri"));
 
-  // Ab category ke hisaab se sahi unit aur 4 se 5 main packs set karte hai
+  // Ab category ke hisaab se packaging units aur bulk multipliers (minimum 5 se shuru)
   let cleanUnit = "Unit";
-  let packMultipliers = [1, 5, 10, 20, 50];
+  let packMultipliers = [5, 10, 20, 50];
   let customLabels = null;
 
   if (isPaint) {
-    // Paint ke standard market packs: 1L, 4L, 10L, 20L
+    // Paint ke bulk packs: 5L, 10L, 20L, 50L
     cleanUnit = "1 Litre";
-    packMultipliers = [1, 4, 10, 20];
+    packMultipliers = [5, 10, 20, 50];
     customLabels = {
-      1: "1 Litre",
-      4: "4 Litre (Bucket)",
+      5: "5 Litre (Bucket)",
       10: "10 Litre (Bucket)",
       20: "20 Litre (Drum)",
+      50: "50 Litre (Commercial)",
     };
   } else if (isCement) {
-    // Cement aur Putty hamesha 50 kg Bag packaging me aate hai
+    // Cement aur Putty 50 kg Bag packaging: minimum 5 bags se bulk packs
     cleanUnit = "50 kg";
-    packMultipliers = [1, 10, 20, 50, 100];
+    packMultipliers = [5, 10, 20, 50, 100];
     customLabels = {
-      1: "50 kg",
+      5: "50 kg, Pack of 5",
       10: "50 kg, Pack of 10",
       20: "50 kg, Pack of 20",
       50: "50 kg, Pack of 50",
       100: "50 kg, Pack of 100",
     };
   } else if (isSteel) {
-    // Steel me ton ya rod/piece packs
     if (unitLower.includes("piece") || unitLower.includes("pc") || unitLower.includes("rod") || unitLower.includes("bar")) {
       cleanUnit = "1 Piece";
-      packMultipliers = [1, 10, 25, 50, 100];
+      packMultipliers = [5, 10, 25, 50, 100];
     } else {
       cleanUnit = "1 Ton";
-      packMultipliers = [1, 2, 5, 10];
+      packMultipliers = [5, 10, 20, 50];
       customLabels = {
-        1: "1 Ton",
-        2: "2 Ton",
         5: "5 Ton",
         10: "10 Ton",
+        20: "20 Ton",
+        50: "50 Ton",
       };
     }
   } else if (isTile) {
-    // Tiles Box me aati hai
     cleanUnit = "1 Box";
-    packMultipliers = [1, 5, 10, 25, 50];
+    packMultipliers = [5, 10, 25, 50];
     customLabels = {
-      1: "1 Box",
       5: "5 Boxes",
       10: "10 Boxes",
       25: "25 Boxes",
@@ -155,57 +152,47 @@ export function getDefaultPacksForProduct(product) {
   } else if (isAggregate) {
     if (unitLower.includes("cft")) {
       cleanUnit = "100 CFT";
-      packMultipliers = [1, 2, 5, 10];
+      packMultipliers = [5, 10, 20, 50];
     } else {
       cleanUnit = "1 Ton";
-      packMultipliers = [1, 2, 5, 10];
+      packMultipliers = [5, 10, 20, 50];
       customLabels = {
-        1: "1 Ton",
-        2: "2 Ton",
         5: "5 Ton",
         10: "10 Ton",
+        20: "20 Ton",
+        50: "50 Ton",
       };
     }
   } else {
     // Baaki general categories (Plumbing, Electrical, Hardware)
     if (unitLower.includes("litre") || unitLower.includes("ltr") || unitLower.includes("liter")) {
       cleanUnit = "1 Litre";
-      packMultipliers = [1, 4, 10, 20];
+      packMultipliers = [5, 10, 20, 50];
     } else if (unitLower.includes("ton")) {
       cleanUnit = "1 Ton";
-      packMultipliers = [1, 2, 5, 10];
+      packMultipliers = [5, 10, 20, 50];
     } else if (unitLower.includes("50 kg") || unitLower.includes("bag")) {
       cleanUnit = "50 kg";
-      packMultipliers = [1, 10, 20, 50, 100];
+      packMultipliers = [5, 10, 20, 50, 100];
     } else if (unitLower.includes("kg")) {
       cleanUnit = "1 Kg";
-      packMultipliers = [1, 5, 10, 25, 50];
+      packMultipliers = [5, 10, 25, 50];
     } else if (unitLower.includes("bundle")) {
       cleanUnit = "1 Bundle";
-      packMultipliers = [1, 3, 5, 10];
+      packMultipliers = [5, 10, 20, 50];
     } else {
       cleanUnit = rawUnit && rawUnit.toLowerCase() !== "unit" ? rawUnit : "1 Piece";
-      packMultipliers = [1, 5, 10, 25, 50];
+      packMultipliers = [5, 10, 20, 50];
     }
   }
 
   return packMultipliers.map((qty) => {
     // Bulk discount logic: quantity badhne par extra discount rate
-    let bulkDiscountRate = 0;
-    if (isPaint) {
-      if (qty >= 20) bulkDiscountRate = 0.06;
-      else if (qty >= 10) bulkDiscountRate = 0.04;
-      else if (qty >= 4) bulkDiscountRate = 0.02;
-    } else if (isSteel || isAggregate) {
-      if (qty >= 10) bulkDiscountRate = 0.05;
-      else if (qty >= 5) bulkDiscountRate = 0.03;
-      else if (qty >= 2) bulkDiscountRate = 0.015;
-    } else {
-      if (qty >= 100) bulkDiscountRate = 0.06;
-      else if (qty >= 50) bulkDiscountRate = 0.04;
-      else if (qty >= 20) bulkDiscountRate = 0.02;
-      else if (qty >= 10) bulkDiscountRate = 0.01;
-    }
+    let bulkDiscountRate = 0.02;
+    if (qty >= 100) bulkDiscountRate = 0.08;
+    else if (qty >= 50) bulkDiscountRate = 0.06;
+    else if (qty >= 20) bulkDiscountRate = 0.04;
+    else if (qty >= 10) bulkDiscountRate = 0.03;
 
     const unitDiscountedPrice = basePrice * (1 - bulkDiscountRate);
     const finalPrice = Math.round(unitDiscountedPrice * qty);
@@ -216,11 +203,7 @@ export function getDefaultPacksForProduct(product) {
     const label =
       customLabels && customLabels[qty]
         ? customLabels[qty]
-        : qty === 1
-        ? cleanUnit
         : `${cleanUnit}, Pack of ${qty}`;
-
-    const isBulk = isPaint ? qty >= 10 : isSteel || isAggregate ? qty >= 5 : qty >= 20;
 
     return {
       qty,
@@ -231,12 +214,12 @@ export function getDefaultPacksForProduct(product) {
       savings,
       discountPct,
       perUnitPrice: Math.round(finalPrice / qty),
-      isBulk,
+      isBulk: true,
     };
   });
 }
 
-// Master function: vendor dwara set custom packs use karega, warna rule-based default packs return karega
+// Master function: vendor dwara set custom bulk packs use karega, warna puraane products ke liye bulk packs OFF (empty array) rahega
 export function generateProductPacks(product) {
   if (!product) return [];
 
@@ -247,33 +230,53 @@ export function generateProductPacks(product) {
     } catch {}
   }
 
-  if (Array.isArray(rawCustom) && rawCustom.length > 0) {
-    const basePrice = Number(product.price) || 100;
-    const baseMrp = Number(product.mrp) || Math.round(basePrice * 1.2);
+  // Agar custom packs set nahi hain ya empty hain, toh puraane products ke liye bulk rates OFF rahenge
+  if (!Array.isArray(rawCustom) || rawCustom.length === 0) {
+    return [];
+  }
 
-    return rawCustom.map((pk) => {
-      const qty = Number(pk.qty) || 1;
+  const basePrice = Number(product.price) || 100;
+  const baseMrp = Number(product.mrp) || Math.round(basePrice * 1.2);
+  const cleanUnit = product.unit || "Unit";
+
+  // Base 1 unit option for customer selector
+  const basePack = {
+    qty: 1,
+    unitName: cleanUnit,
+    label: `1 ${cleanUnit} (Standard)`,
+    price: basePrice,
+    mrp: baseMrp,
+    savings: Math.max(0, baseMrp - basePrice),
+    discountPct: (baseMrp > basePrice && basePrice > 0) ? Math.round(((baseMrp - basePrice) / baseMrp) * 100) : 0,
+    perUnitPrice: basePrice,
+    isBulk: false,
+    stock: product.stockQty !== undefined ? Number(product.stockQty) : 100,
+  };
+
+  const bulkOptions = rawCustom
+    .filter((pk) => Number(pk.qty) > 1)
+    .map((pk) => {
+      const qty = Number(pk.qty) || 5;
       const price = Number(pk.price) > 0 ? Number(pk.price) : Math.round(basePrice * qty);
-      const mrp = Math.round(baseMrp * qty);
+      const mrp = Number(pk.mrp) > 0 ? Number(pk.mrp) : Math.round(baseMrp * qty);
       const savings = Math.max(0, mrp - price);
       const discountPct = (mrp > price && price > 0) ? Math.round(((mrp - price) / mrp) * 100) : 0;
-      const isBulk = pk.isBulk !== undefined ? pk.isBulk : qty > 1;
 
       return {
         qty,
-        unitName: pk.unitName || pk.label || "Pack",
-        label: pk.label || (qty === 1 ? (product.unit || "Unit") : `${product.unit || "Unit"}, Pack of ${qty}`),
+        unitName: pk.unitName || pk.label || cleanUnit,
+        label: pk.label || `${cleanUnit}, Pack of ${qty}`,
         price,
         mrp,
         savings,
         discountPct,
         perUnitPrice: Math.round(price / qty),
-        isBulk,
+        isBulk: true,
         stock: pk.stock !== undefined && pk.stock !== "" ? Number(pk.stock) : (Number(product.stockQty) || 100),
       };
     });
-  }
 
-  return getDefaultPacksForProduct(product);
+  if (bulkOptions.length === 0) return [];
+  return [basePack, ...bulkOptions];
 }
 

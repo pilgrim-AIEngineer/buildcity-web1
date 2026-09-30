@@ -70,7 +70,7 @@ export default function VendorDashboard() {
   const catalog = useCatalogOffer({
     masterProducts,
     showAlert,
-    submitListing: ({ masterProduct, price, mrp, stockQty }) =>
+    submitListing: ({ masterProduct, price, mrp, stockQty, customPacks }) =>
       assignMasterProductToVendor({
         masterProductId: masterProduct.id,
         vendorId,
@@ -81,6 +81,7 @@ export default function VendorDashboard() {
         price,
         mrp,
         stockQty,
+        customPacks: customPacks || null,
         addedBy: `Vendor (${shopName})`,
       }),
   });

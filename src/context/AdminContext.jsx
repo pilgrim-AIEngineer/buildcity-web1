@@ -1834,7 +1834,7 @@ export function AdminProvider({ children }) {
     }
   };
 
-  const assignMasterProductToVendor = async ({ masterProductId, vendorId, vendorName, regionId, regionName, districtName, price, mrp, stockQty, addedBy }) => {
+  const assignMasterProductToVendor = async ({ masterProductId, vendorId, vendorName, regionId, regionName, districtName, price, mrp, stockQty, customPacks, addedBy }) => {
     const matchedVendor = vendors.find((v) => v.id === vendorId || (vendorName && (v.shopName || "").toLowerCase() === vendorName.toLowerCase()));
     const regName = regionName || districtName || matchedVendor?.regionName || matchedVendor?.districtName || matchedVendor?.region?.name || "Mirzapur";
     const validUuidRegionId = (regionId && regionId.length > 10) ? regionId : (matchedVendor?.regionId && matchedVendor.regionId.length > 10) ? matchedVendor.regionId : undefined;
@@ -1860,6 +1860,7 @@ export function AdminProvider({ children }) {
       mrp: Number(mrp) || Number(mp?.suggestedPrice) || Math.round((Number(price) || 100) * 1.2),
       price: Number(price) || (mp ? mp.suggestedPrice : 100),
       stockQty: Number(stockQty) || 100,
+      customPacks: customPacks || null,
       imageUrl: (mp && mp.imageUrl) ? mp.imageUrl : "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&w=400&q=80",
       isActive: (addedBy === "Admin" || addedBy === "DR") ? true : false,
       approvalStatus: (addedBy === "Admin" || addedBy === "DR") ? "APPROVED" : "PENDING_REVIEW",
@@ -1883,6 +1884,7 @@ export function AdminProvider({ children }) {
           price,
           mrp,
           stockQty,
+          customPacks: customPacks || null,
           description: mp?.description || null,
           addedBy,
           approvalStatus: optimisticListing.approvalStatus,
@@ -1902,6 +1904,7 @@ export function AdminProvider({ children }) {
             mrp: Number(createdItem.mrp || mrp || optimisticListing.mrp),
             price: Number(createdItem.price || price),
             stockQty: Number(createdItem.stockQty !== undefined ? createdItem.stockQty : stockQty),
+            customPacks: createdItem.customPacks || createdItem.custom_packs || customPacks || null,
           };
           setProducts((prev) => {
             const updated = prev.map((p) => (p.id === tempId ? resolvedItem : p));

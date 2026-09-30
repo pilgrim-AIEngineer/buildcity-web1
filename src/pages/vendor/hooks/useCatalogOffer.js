@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { withMrp, withDiscount, withPrice } from "../utils/pricing";
+import { getDefaultPacksForProduct } from "../../../utils/productPacks";
 
 const DEFAULT_DISCOUNT = 10;
 const EMPTY_OFFER = { mrp: "", discountPct: DEFAULT_DISCOUNT, price: "" };
 
 /**
  * "Add from catalogue" sheet: open state, category/search filters, the selected master product,
- * its MRP ⇄ discount ⇄ price offer, stock, and submission (goes to Admin/DR review).
+ * its MRP ⇄ discount ⇄ price offer, stock, optional bulk rates, and submission.
  */
 export default function useCatalogOffer({ masterProducts, submitListing, showAlert }) {
   const [open, setOpen] = useState(false);
@@ -15,6 +16,8 @@ export default function useCatalogOffer({ masterProducts, submitListing, showAle
   const [selected, setSelected] = useState(null);
   const [offer, setOffer] = useState(EMPTY_OFFER);
   const [stockQty, setStockQty] = useState(100);
+  const [bulkEnabled, setBulkEnabled] = useState(false);
+  const [customPacks, setCustomPacks] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const q = search.toLowerCase();
@@ -27,16 +30,63 @@ export default function useCatalogOffer({ masterProducts, submitListing, showAle
   const toggleSelect = (mp) => {
     if (selected?.id === mp.id) {
       setSelected(null);
+      setBulkEnabled(false);
+      setCustomPacks([]);
       return;
     }
     setSelected(mp);
     setOffer(withMrp(EMPTY_OFFER, Number(mp.suggestedPrice) || 390));
     setStockQty(100);
+    setBulkEnabled(false);
+    setCustomPacks([]);
   };
 
   const close = () => {
     setOpen(false);
     setSelected(null);
+    setBulkEnabled(false);
+    setCustomPacks([]);
+  };
+
+  const unitMrp = Number(offer.mrp) || Math.round((Number(offer.price) || 100) * 1.2);
+
+  const activePacks = useMemo(() => {
+    if (!selected) return [];
+    const baseP = Number(offer.price) || Number(selected.suggestedPrice) || 100;
+    const def = getDefaultPacksForProduct({ ...selected, price: baseP, mrp: unitMrp });
+    if (customPacks.length > 0) {
+      return customPacks.map((cp) => {
+        const qty = Number(cp.qty) || 5;
+        return {
+          ...cp,
+          qty,
+          mrp: Math.round(unitMrp * qty),
+          price: cp.price !== undefined && cp.price !== "" ? cp.price : Math.round(baseP * qty),
+          stock: cp.stock !== undefined && cp.stock !== "" ? cp.stock : stockQty,
+        };
+      });
+    }
+    return def.map((dp) => ({
+      label: dp.label,
+      qty: dp.qty,
+      price: dp.price,
+      mrp: Math.round(unitMrp * dp.qty),
+      stock: stockQty,
+    }));
+  }, [selected, offer.price, unitMrp, customPacks, stockQty]);
+
+  const toggleBulkEnabled = () => {
+    if (bulkEnabled) {
+      setBulkEnabled(false);
+      setCustomPacks([]);
+    } else {
+      setBulkEnabled(true);
+      if (selected) {
+        const baseP = Number(offer.price) || Number(selected.suggestedPrice) || 100;
+        const def = getDefaultPacksForProduct({ ...selected, price: baseP, mrp: unitMrp });
+        setCustomPacks(def);
+      }
+    }
   };
 
   const submit = async (e) => {
@@ -44,14 +94,35 @@ export default function useCatalogOffer({ masterProducts, submitListing, showAle
     if (!selected || !offer.price) return;
     setIsSubmitting(true);
     try {
+      let sanitizedPacks = null;
+      if (bulkEnabled && activePacks.length > 0) {
+        sanitizedPacks = activePacks
+          .filter((pk) => Number(pk.qty) > 1)
+          .map((pk) => {
+            const qty = Number(pk.qty) || 5;
+            const packMrp = Math.round(unitMrp * qty);
+            const packPrice = Number(pk.price) > 0 ? Number(pk.price) : Math.round((Number(offer.price) || 100) * qty);
+            return {
+              label: pk.label,
+              qty,
+              price: packPrice,
+              mrp: packMrp,
+              stock: pk.stock !== undefined && pk.stock !== "" ? Number(pk.stock) : Number(stockQty || 100),
+            };
+          });
+      }
+
       await submitListing({
         masterProduct: selected,
         price: Number(offer.price),
         mrp: Number(offer.mrp) || Number(selected.suggestedPrice) || Number(offer.price),
         stockQty: Number(stockQty) || 0,
+        customPacks: sanitizedPacks,
       });
       const name = selected.name;
       setSelected(null);
+      setBulkEnabled(false);
+      setCustomPacks([]);
       showAlert({
         title: "Submitted for review",
         message: `${name} will go live once your district team approves it.\n\nPrice ₹${offer.price}${Number(offer.discountPct) > 0 ? ` (${offer.discountPct}% off)` : ""} · Stock ${stockQty}`,
@@ -81,6 +152,27 @@ export default function useCatalogOffer({ masterProducts, submitListing, showAle
       discountPct: offer.discountPct,
       sellingPrice: offer.price,
       stockQty,
+      bulkEnabled,
+      toggleBulkEnabled,
+      activePacks,
+      onPackPriceChange: (index, val) => {
+        setCustomPacks((prev) => {
+          const list = prev.length > 0 ? [...prev] : [...activePacks];
+          const packQty = Number(list[index]?.qty) || 5;
+          const numPrice = val === "" ? "" : Number(val);
+          list[index] = { ...list[index], price: numPrice, mrp: Math.round(unitMrp * packQty) };
+          return list;
+        });
+      },
+      onPackStockChange: (index, val) => {
+        setCustomPacks((prev) => {
+          const list = prev.length > 0 ? [...prev] : [...activePacks];
+          const packQty = Number(list[index]?.qty) || 5;
+          const numStock = val === "" ? "" : Number(val);
+          list[index] = { ...list[index], stock: numStock, mrp: Math.round(unitMrp * packQty) };
+          return list;
+        });
+      },
       onMrpChange: (v) => setOffer((o) => withMrp(o, v)),
       onDiscountChange: (v) => setOffer((o) => withDiscount(o, v)),
       onSellingPriceChange: (v) => setOffer((o) => withPrice(o, v)),

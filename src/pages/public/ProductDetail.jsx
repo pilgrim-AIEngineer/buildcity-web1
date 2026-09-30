@@ -139,6 +139,19 @@ export default function ProductDetail() {
     }
   }, [id, products]);
 
+  const [syncTick, setSyncTick] = useState(0);
+
+  // Vendor dwara lot price ya discount badalne par customer page turant bina reload ke sync hoga
+  useEffect(() => {
+    const handleSync = () => setSyncTick((t) => t + 1);
+    window.addEventListener("buildcity_products_updated", handleSync);
+    window.addEventListener("storage", handleSync);
+    return () => {
+      window.removeEventListener("buildcity_products_updated", handleSync);
+      window.removeEventListener("storage", handleSync);
+    };
+  }, []);
+
   const product = useMemo(() => {
     const decodedId = decodeURIComponent(id || "").trim();
     const realProd =
@@ -152,7 +165,19 @@ export default function ProductDetail() {
 
     if (realProd) {
       const price = Number(realProd.price) || 100;
-      const mrp = realProd.mrp ? Number(realProd.mrp) : realProd.masterProduct?.suggestedPrice ? Math.max(Number(realProd.masterProduct.suggestedPrice), price) : Math.round(price * 1.2);
+      let resolvedMrp = Number(realProd.mrp || 0);
+      if (resolvedMrp <= 0) {
+        try {
+          const storedMrps = JSON.parse(localStorage.getItem("buildcity_listing_mrps") || "{}");
+          if (storedMrps[realProd.id] && Number(storedMrps[realProd.id]) > 0) {
+            resolvedMrp = Number(storedMrps[realProd.id]);
+          }
+        } catch {}
+      }
+      const mrp = resolvedMrp > 0
+        ? resolvedMrp
+        : (realProd.masterProduct?.mrp ? Number(realProd.masterProduct.mrp) : realProd.masterProduct?.suggestedPrice ? Math.max(Number(realProd.masterProduct.suggestedPrice), price) : Math.round(price * 1.2));
+
       const extractedImages = getProductImages(realProd);
       const isSuspended =
         realProd.isVendorSuspended === true ||
@@ -180,6 +205,20 @@ export default function ProductDetail() {
         reviews: 0,
         inStock: (realProd.stockQty || 0) > 0 && !isSuspended,
         unit: realProd.unit || "Unit",
+        customPacks: (() => {
+          let cp = realProd.customPacks || realProd.custom_packs;
+          if (typeof cp === "string") {
+            try { cp = JSON.parse(cp); } catch {}
+          }
+          if (Array.isArray(cp) && cp.length > 0) return cp;
+          try {
+            const stored = JSON.parse(localStorage.getItem("buildcity_custom_packs") || "{}");
+            if (Array.isArray(stored[realProd.id]) && stored[realProd.id].length > 0) {
+              return stored[realProd.id];
+            }
+          } catch {}
+          return realProd.masterProduct?.customPacks || null;
+        })(),
         description:
           (realProd.description && realProd.description.trim()) ||
           (realProd.masterProduct?.description && realProd.masterProduct.description.trim()) ||
@@ -197,7 +236,7 @@ export default function ProductDetail() {
       };
     }
     return generateProduct(id, region.priceFactor, region.name);
-  }, [id, products, masterProducts, directProduct, region]);
+  }, [id, products, masterProducts, directProduct, region, syncTick]);
 
   // Check kar rahe hain ki vendor suspend toh nahi hai
   const isVendorSuspended = useMemo(() => {

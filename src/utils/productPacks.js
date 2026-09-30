@@ -1,5 +1,5 @@
-// ye helper product ki category, name aur unit ke hisaab se sahi packaging packs generate karta hai
-export function generateProductPacks(product) {
+// ye helper product ki category, name aur unit ke hisaab se default rule-based packaging packs generate karta hai
+export function getDefaultPacksForProduct(product) {
   if (!product) return [];
 
   const basePrice = Number(product.price) || 100;
@@ -235,3 +235,45 @@ export function generateProductPacks(product) {
     };
   });
 }
+
+// Master function: vendor dwara set custom packs use karega, warna rule-based default packs return karega
+export function generateProductPacks(product) {
+  if (!product) return [];
+
+  let rawCustom = product.customPacks || product.custom_packs || product.masterProduct?.customPacks;
+  if (typeof rawCustom === "string") {
+    try {
+      rawCustom = JSON.parse(rawCustom);
+    } catch {}
+  }
+
+  if (Array.isArray(rawCustom) && rawCustom.length > 0) {
+    const basePrice = Number(product.price) || 100;
+    const baseMrp = Number(product.mrp) || Math.round(basePrice * 1.2);
+
+    return rawCustom.map((pk) => {
+      const qty = Number(pk.qty) || 1;
+      const price = Number(pk.price) > 0 ? Number(pk.price) : Math.round(basePrice * qty);
+      const mrp = Math.round(baseMrp * qty);
+      const savings = Math.max(0, mrp - price);
+      const discountPct = (mrp > price && price > 0) ? Math.round(((mrp - price) / mrp) * 100) : 0;
+      const isBulk = pk.isBulk !== undefined ? pk.isBulk : qty > 1;
+
+      return {
+        qty,
+        unitName: pk.unitName || pk.label || "Pack",
+        label: pk.label || (qty === 1 ? (product.unit || "Unit") : `${product.unit || "Unit"}, Pack of ${qty}`),
+        price,
+        mrp,
+        savings,
+        discountPct,
+        perUnitPrice: Math.round(price / qty),
+        isBulk,
+        stock: pk.stock !== undefined && pk.stock !== "" ? Number(pk.stock) : (Number(product.stockQty) || 100),
+      };
+    });
+  }
+
+  return getDefaultPacksForProduct(product);
+}
+

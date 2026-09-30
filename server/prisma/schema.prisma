@@ -163,6 +163,8 @@ model ProductMaster {
   suggestedPrice Decimal  @default(100.00)
   imageUrl       String   @default("https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&w=400&q=80")
   description    String?
+  mrp            Decimal? @default(0)
+  customPacks    Json?    @map("custom_packs")
   addedBy        String   @default("Admin")
   createdAt      DateTime @default(now())
 
@@ -200,9 +202,11 @@ model VendorProduct {
   grade           String
   unit            String
   price           Decimal
+  mrp             Decimal?       @default(0)
   stockQty        Int            @default(100)
   imageUrl        String
   description     String?
+  customPacks     Json?          @map("custom_packs")
   approvalStatus  ApprovalStatus @default(PENDING_REVIEW)
   isActive        Boolean        @default(false)
   addedBy         String         @default("Vendor Catalog Selection")

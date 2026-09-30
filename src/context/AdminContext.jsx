@@ -338,6 +338,13 @@ export function AdminProvider({ children }) {
       }
       if (Array.isArray(listingsRes)) {
         const masterList = Array.isArray(masterRes) && masterRes.length > 0 ? masterRes : masterProducts;
+        let storedCustomPacksMap = {};
+        let storedMrpsMap = {};
+        try {
+          storedCustomPacksMap = JSON.parse(localStorage.getItem("buildcity_custom_packs") || "{}");
+          storedMrpsMap = JSON.parse(localStorage.getItem("buildcity_listing_mrps") || "{}");
+        } catch {}
+
         const formattedListings = listingsRes.map((l) => {
           const isVendorSuspended = l.vendor?.status === "SUSPENDED";
           const resolvedRegionName = l.regionName || l.districtName || l.vendor?.region?.name || "Mirzapur";
@@ -347,6 +354,17 @@ export function AdminProvider({ children }) {
           const resolvedApproval = rawStatus === "REJECTED" ? "REJECTED" : isListingApproved ? "APPROVED" : "PENDING_REVIEW";
           const resolvedIsActive = isListingApproved && !isVendorSuspended && l.isActive !== false;
           const matchedMaster = masterList.find((m) => m.id === l.masterProductId) || {};
+
+          const rawCp = l.customPacks || l.custom_packs;
+          const parsedCp = typeof rawCp === "string" ? (() => { try { return JSON.parse(rawCp); } catch { return null; } })() : rawCp;
+          const fallbackCp = storedCustomPacksMap[l.id];
+          const resolvedCustomPacks = (Array.isArray(parsedCp) && parsedCp.length > 0)
+            ? parsedCp
+            : (Array.isArray(fallbackCp) && fallbackCp.length > 0 ? fallbackCp : (l.masterProduct?.customPacks || null));
+
+          const rawMrp = Number(l.mrp || l.masterProduct?.mrp || l.masterProduct?.suggestedPrice || matchedMaster.mrp || matchedMaster.suggestedPrice || 0);
+          const fallbackMrp = Number(storedMrpsMap[l.id] || 0);
+          const resolvedMrp = rawMrp > 0 ? rawMrp : (fallbackMrp > 0 ? fallbackMrp : Math.round((Number(l.price) || 100) * 1.2));
 
           return {
             id: l.id,
@@ -359,12 +377,13 @@ export function AdminProvider({ children }) {
             grade: l.grade || l.masterProduct?.grade || matchedMaster.grade || "Standard Grade",
             unit: l.unit || l.masterProduct?.unit || matchedMaster.unit || "Unit",
             description: l.description || l.masterProduct?.description || matchedMaster.description || null,
+            customPacks: resolvedCustomPacks,
             vendorId: l.vendorId,
             vendorName: l.vendor?.shopName || l.vendorName || "District Vendor",
             regionId: resolvedRegionId,
             regionName: resolvedRegionName,
             districtName: resolvedRegionName,
-            mrp: Number(l.mrp || l.masterProduct?.suggestedPrice || matchedMaster.suggestedPrice || Math.round((Number(l.price) || 100) * 1.2)),
+            mrp: resolvedMrp,
             price: Number(l.price) || 100,
             stockQty: Number(l.stockQty) || 100,
             imageUrl: l.imageUrl || l.masterProduct?.imageUrl || matchedMaster.imageUrl || "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&w=500&q=80",
@@ -682,6 +701,13 @@ export function AdminProvider({ children }) {
       }
 
       if (listingsRes && Array.isArray(listingsRes)) {
+        let storedCustomPacksMap = {};
+        let storedMrpsMap = {};
+        try {
+          storedCustomPacksMap = JSON.parse(localStorage.getItem("buildcity_custom_packs") || "{}");
+          storedMrpsMap = JSON.parse(localStorage.getItem("buildcity_listing_mrps") || "{}");
+        } catch {}
+
         const formattedListings = listingsRes.map((l) => {
           const matchedVendor = l.vendorId
             ? vendorsRes?.find((v) => String(v.id).toLowerCase() === String(l.vendorId).toLowerCase())
@@ -690,6 +716,17 @@ export function AdminProvider({ children }) {
           const resolvedRegionName = l.vendor?.region?.name || matchedVendor?.region?.name || l.regionName || l.districtName || "Varanasi";
           const resolvedRegionId = l.vendor?.regionId || l.vendor?.region?.id || matchedVendor?.regionId || matchedVendor?.region?.id || l.regionId || "2ab0f187-d170-4432-8eef-e0ac31ed21c3";
           const isListingApproved = l.approvalStatus === "APPROVED" || !l.approvalStatus || l.approvalStatus === "";
+
+          const rawCp = l.customPacks || l.custom_packs;
+          const parsedCp = typeof rawCp === "string" ? (() => { try { return JSON.parse(rawCp); } catch { return null; } })() : rawCp;
+          const fallbackCp = storedCustomPacksMap[l.id];
+          const resolvedCustomPacks = (Array.isArray(parsedCp) && parsedCp.length > 0)
+            ? parsedCp
+            : (Array.isArray(fallbackCp) && fallbackCp.length > 0 ? fallbackCp : (l.masterProduct?.customPacks || null));
+
+          const rawMrp = Number(l.mrp || l.masterProduct?.mrp || l.masterProduct?.suggestedPrice || 0);
+          const fallbackMrp = Number(storedMrpsMap[l.id] || 0);
+          const resolvedMrp = rawMrp > 0 ? rawMrp : (fallbackMrp > 0 ? fallbackMrp : Math.round((Number(l.price) || 100) * 1.2));
 
           let item = {
             id: l.id,
@@ -702,12 +739,14 @@ export function AdminProvider({ children }) {
             grade: l.grade || l.masterProduct?.grade || "Standard Grade",
             unit: l.unit || l.masterProduct?.unit || "Unit",
             description: l.description || l.masterProduct?.description || null,
+            customPacks: resolvedCustomPacks,
             vendorId: l.vendorId,
             vendorName: l.vendor?.shopName || matchedVendor?.shopName || l.vendorName || "District Vendor",
             regionId: resolvedRegionId,
             regionName: resolvedRegionName,
             districtName: resolvedRegionName,
             price: Number(l.price) || 100,
+            mrp: resolvedMrp,
             stockQty: Number(l.stockQty) || 100,
             imageUrl: l.imageUrl || l.masterProduct?.imageUrl || "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&w=500&q=80",
             approvalStatus: l.approvalStatus || "APPROVED",
@@ -735,10 +774,12 @@ export function AdminProvider({ children }) {
             if (
               p.approvalStatus !== f.approvalStatus ||
               p.price !== f.price ||
+              p.mrp !== f.mrp ||
               p.stockQty !== f.stockQty ||
               p.isActive !== f.isActive ||
               p.name !== f.name ||
-              p.vendorName !== f.vendorName
+              p.vendorName !== f.vendorName ||
+              JSON.stringify(p.customPacks) !== JSON.stringify(f.customPacks)
             ) {
               hasChanged = true;
               return f;
@@ -1876,18 +1917,46 @@ export function AdminProvider({ children }) {
 
   const updateVendorProductListing = async (id, updates) => {
     markRecentEdit(id, updates);
+
+    // Vendor ke custom packs aur mrp ko local storage map me turant persist karte hai
+    try {
+      const storedPacks = JSON.parse(localStorage.getItem("buildcity_custom_packs") || "{}");
+      if (updates.customPacks && Array.isArray(updates.customPacks) && updates.customPacks.length > 0) {
+        storedPacks[id] = updates.customPacks;
+      } else if (updates.customPacks === null) {
+        delete storedPacks[id];
+      }
+      localStorage.setItem("buildcity_custom_packs", JSON.stringify(storedPacks));
+    } catch {}
+
+    try {
+      const storedMrps = JSON.parse(localStorage.getItem("buildcity_listing_mrps") || "{}");
+      if (updates.mrp && Number(updates.mrp) > 0) {
+        storedMrps[id] = Number(updates.mrp);
+        localStorage.setItem("buildcity_listing_mrps", JSON.stringify(storedMrps));
+      }
+    } catch {}
+
     setProducts((prev) => {
       const updated = prev.map((p) => (p.id === id ? { ...p, ...updates } : p));
       try { localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(updated)); } catch {}
       return updated;
     });
 
+    // Customer page aur other tabs ko turant live update karne ke liye event bhej rahe hai
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("buildcity_products_updated", { detail: { id, updates } }));
+    }
+
     try {
-      await authFetch(`${API_BASE_URL}/api/v1/vendor/listings/${id}`, {
+      const res = await authFetch(`${API_BASE_URL}/api/v1/vendor/listings/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updates),
       });
+      if (res.ok) {
+        fetchCloudData();
+      }
     } catch (err) {
       console.warn("Live listing price update note:", err.message);
     }

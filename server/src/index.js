@@ -2161,9 +2161,11 @@ app.post("/api/v1/vendor/listings", requireAuth, requireRole("VENDOR", "DR", "AD
         grade: masterProd.grade,
         unit: masterProd.unit,
         price: listingPrice,
+        mrp: req.body.mrp ? Number(req.body.mrp) : (masterProd.mrp ? Number(masterProd.mrp) : Math.round(listingPrice * 1.2)),
         stockQty: listingStock,
         imageUrl: masterProd.imageUrl,
         description: masterProd.description || null,
+        customPacks: req.body.customPacks || req.body.custom_packs || masterProd.customPacks || null,
         approvalStatus: isAutoApproved ? "APPROVED" : "PENDING_REVIEW",
         isActive: isAutoApproved ? true : false,
         addedBy: isAutoApproved ? (req.auth.role === "ADMIN" ? "Admin" : "DR") : "Vendor",
@@ -2230,6 +2232,15 @@ app.patch("/api/v1/vendor/listings/:id", requireAuth, requireRole("VENDOR", "DR"
       }
       if (req.body.description !== undefined) {
         updateData.description = req.body.description;
+      }
+      if (req.body.mrp !== undefined) {
+        const m = Number(req.body.mrp);
+        if (m > 0) updateData.mrp = m;
+      }
+      if (req.body.customPacks !== undefined) {
+        updateData.customPacks = req.body.customPacks;
+      } else if (req.body.custom_packs !== undefined) {
+        updateData.customPacks = req.body.custom_packs;
       }
 
       const updatedListing = await prisma.vendorProduct.update({

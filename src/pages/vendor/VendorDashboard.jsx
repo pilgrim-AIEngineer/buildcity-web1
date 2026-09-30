@@ -205,6 +205,7 @@ export default function VendorDashboard() {
 
           {editor.editingProduct && (
             <EditListingSheet
+              key={editor.editingProduct.id}
               product={editor.editingProduct}
               image={imageFor(editor.editingProduct)}
               onClose={editor.close}
@@ -213,6 +214,7 @@ export default function VendorDashboard() {
               onDiscountChange={editor.onDiscountChange}
               onPriceChange={editor.onPriceChange}
               onStockChange={editor.onStockChange}
+              onCustomPacksChange={editor.onCustomPacksChange}
               isSaving={false}
             />
           )}

@@ -57,7 +57,6 @@ function OfferForm({ form, onSubmit, onCancel, isSubmitting }) {
         <div className="flex items-center justify-between mb-2">
           <div>
             <p className="text-xs font-bold text-navy-900 uppercase tracking-wider">Bulk Rates / Pack Sizes</p>
-            <p className="text-[11px] text-slate-500">Wholesale discount pack sizes (5, 10, 20, 50 units)</p>
           </div>
           <button
             type="button"

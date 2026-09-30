@@ -54,8 +54,8 @@ export default function EditListingSheet({
           ...cp,
           qty,
           mrp: packMrp,
-          price: cp.price !== undefined && cp.price !== "" ? cp.price : Math.round(price * qty),
-          stock: cp.stock !== undefined && cp.stock !== "" ? cp.stock : (product.stockQty !== undefined ? product.stockQty : 100),
+          price: cp.price !== undefined ? cp.price : Math.round(price * qty),
+          stock: cp.stock !== undefined ? cp.stock : (product.stockQty !== undefined ? product.stockQty : 100),
         };
       });
     }
@@ -90,8 +90,7 @@ export default function EditListingSheet({
       const packQty = Number(pk.qty) || 5;
       const packMrp = Math.round(unitMrp * packQty);
       if (idx !== index) return { ...pk, mrp: packMrp };
-      const numPrice = val === "" ? "" : Number(val);
-      return { ...pk, price: numPrice, mrp: packMrp };
+      return { ...pk, price: val, mrp: packMrp };
     });
     onCustomPacksChange?.(next);
   };
@@ -101,8 +100,7 @@ export default function EditListingSheet({
       const packQty = Number(pk.qty) || 5;
       const packMrp = Math.round(unitMrp * packQty);
       if (idx !== index) return { ...pk, mrp: packMrp };
-      const numStock = val === "" ? "" : Number(val);
-      return { ...pk, stock: numStock, mrp: packMrp };
+      return { ...pk, stock: val, mrp: packMrp };
     });
     onCustomPacksChange?.(next);
   };
@@ -167,7 +165,6 @@ export default function EditListingSheet({
           <div className="flex items-center justify-between mb-3">
             <div>
               <h4 className="text-xs font-extrabold text-navy-900 uppercase tracking-wider">Bulk Rates / Pack Sizes</h4>
-              <p className="text-[11px] text-slate-500">Bade order ke liye wholesale discount packs (5, 10, 20, 50 units)</p>
             </div>
 
             {/* Toggle Switch */}

@@ -52,13 +52,14 @@ export default function useListingEditor({ updateVendorProductListing, showAlert
           .map((pk) => {
             const qty = Number(pk.qty) || 5;
             const packMrp = Math.round(unitMrp * qty);
-            const packPrice = Number(pk.price) > 0 ? Number(pk.price) : Math.round((Number(prod.price) || 100) * qty);
+            const numPrice = pk.price === "" || pk.price === undefined ? 0 : Number(pk.price);
+            const numStock = pk.stock === "" || pk.stock === undefined ? 0 : Number(pk.stock);
             return {
               label: pk.label,
               qty,
-              price: packPrice,
+              price: numPrice >= 0 ? numPrice : 0,
               mrp: packMrp,
-              stock: pk.stock !== undefined && pk.stock !== "" ? Number(pk.stock) : Number(prod.stockQty || 100),
+              stock: numStock >= 0 ? numStock : 0,
             };
           });
       }

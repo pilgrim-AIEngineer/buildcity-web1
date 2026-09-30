@@ -156,13 +156,6 @@ export default function useCatalogOffer({ masterProducts, submitListing, showAle
       bulkEnabled,
       toggleBulkEnabled,
       activePacks,
-      onPackLabelChange: (index, val) => {
-        setCustomPacks((prev) => {
-          const list = prev.length > 0 ? [...prev] : [...activePacks];
-          list[index] = { ...list[index], label: val };
-          return list;
-        });
-      },
       onPackPriceChange: (index, val) => {
         setCustomPacks((prev) => {
           const list = prev.length > 0 ? [...prev] : [...activePacks];

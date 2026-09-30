@@ -13,7 +13,6 @@ function OfferForm({ form, onSubmit, onCancel, isSubmitting }) {
     bulkEnabled,
     toggleBulkEnabled,
     activePacks,
-    onPackLabelChange,
     onPackPriceChange,
     onPackStockChange,
     onMrpChange,
@@ -86,23 +85,17 @@ function OfferForm({ form, onSubmit, onCancel, isSubmitting }) {
 
               return (
                 <div key={idx} className="bg-slate-50 p-2.5 rounded-lg border border-slate-200 space-y-1.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex-1 flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={pack.label || ""}
-                        onChange={(e) => onPackLabelChange?.(idx, e.target.value)}
-                        placeholder="Pack Label"
-                        className="flex-1 max-w-[220px] px-2 py-1 bg-white focus:bg-white text-xs font-extrabold text-slate-900 border border-slate-200 rounded-lg outline-none focus:border-brand-500 transition-colors"
-                      />
-                      <span className="text-[10px] text-slate-400 font-mono whitespace-nowrap">({pack.qty}x base)</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-extrabold text-slate-900">{pack.label}</span>
+                      <span className="text-[10px] text-slate-400 font-mono">({pack.qty}x base)</span>
                     </div>
                     {discountPctVal > 0 ? (
-                      <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-200 shrink-0">
+                      <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-200">
                         {discountPctVal}% OFF
                       </span>
                     ) : (
-                      <span className="text-[10px] text-slate-400 shrink-0">No discount</span>
+                      <span className="text-[10px] text-slate-400">No discount</span>
                     )}
                   </div>
                   <div className="grid grid-cols-2 gap-2">

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { ProductThumb } from "./ProductsTab";
 import { Sheet, Field, Button, ApprovalBadge, Spinner } from "../ui/primitives";
 import { inr } from "../ui/format";
@@ -25,7 +25,7 @@ export default function EditListingSheet({
   // Standard rule-based packs for this product's category and unit
   const defaultPacks = useMemo(() => getDefaultPacksForProduct(product), [product]);
 
-  // Is custom pack mode active for this listing?
+  // Saved or assigned custom packs for this listing
   const parsedCustomPacks = useMemo(() => {
     let raw = product.customPacks || product.custom_packs;
     if (typeof raw === "string") {
@@ -35,9 +35,6 @@ export default function EditListingSheet({
     }
     return Array.isArray(raw) && raw.length > 0 ? raw : null;
   }, [product.customPacks, product.custom_packs]);
-
-  const hasCustomPacks = Boolean(parsedCustomPacks && parsedCustomPacks.length > 0);
-  const [customEnabled, setCustomEnabled] = useState(hasCustomPacks);
 
   // Dynamic unit MRP: base unit MRP badalte hi turant update hoga
   const unitMrp = Number(product.mrp) || Math.round((Number(product.price) || 0) * 1.2);
@@ -65,19 +62,6 @@ export default function EditListingSheet({
       stock: product.stockQty !== undefined ? product.stockQty : 100,
     }));
   }, [parsedCustomPacks, defaultPacks, unitMrp, price, product.stockQty]);
-
-  const handleToggleCustom = (enable) => {
-    setCustomEnabled(enable);
-    if (enable) {
-      const packsWithCurrentMrp = activePacks.map((pk) => ({
-        ...pk,
-        mrp: Math.round(unitMrp * (Number(pk.qty) || 1)),
-      }));
-      onCustomPacksChange?.(packsWithCurrentMrp);
-    } else {
-      onCustomPacksChange?.(null);
-    }
-  };
 
   const handlePackPriceChange = (index, val) => {
     const next = activePacks.map((pk, idx) => {
@@ -159,118 +143,81 @@ export default function EditListingSheet({
         {/* Pack Sizes & Bulk Rates Section */}
         {defaultPacks.length > 1 && (
           <div className="pt-2 border-t border-slate-200/80">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h4 className="text-xs font-extrabold text-navy-900 uppercase tracking-wider">Pack Sizes & Bulk Rates</h4>
-                <p className="text-[11px] text-slate-500 font-medium">Custom price & stock for different sizes</p>
-              </div>
-
-              {/* Mode Toggle Pills */}
-              <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
-                <button
-                  type="button"
-                  onClick={() => handleToggleCustom(false)}
-                  className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-all cursor-pointer ${
-                    !customEnabled
-                      ? "bg-white text-slate-900 shadow-2xs"
-                      : "text-slate-500 hover:text-slate-900"
-                  }`}
-                >
-                  Auto
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleToggleCustom(true)}
-                  className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-all cursor-pointer ${
-                    customEnabled
-                      ? "bg-brand-500 text-white shadow-2xs"
-                      : "text-slate-500 hover:text-slate-900"
-                  }`}
-                >
-                  Custom
-                </button>
-              </div>
+            <div className="mb-3">
+              <h4 className="text-xs font-extrabold text-navy-900 uppercase tracking-wider">Pack Sizes & Bulk Rates</h4>
+              <p className="text-[11px] text-slate-500 mt-0.5">Har pack size ka selling price aur stock yahan directly set karein.</p>
             </div>
 
-            {customEnabled ? (
-              <div className="space-y-2.5 bg-slate-50/70 p-3 rounded-xl border border-slate-200">
-                {activePacks.map((pack, idx) => {
-                  const packQty = Number(pack.qty) || 1;
-                  const packMrp = Math.round(unitMrp * packQty);
-                  const packPrice = Number(pack.price) || 0;
-                  const discountPct = (packMrp > packPrice && packPrice > 0)
-                    ? Math.round(((packMrp - packPrice) / packMrp) * 100)
-                    : 0;
+            <div className="space-y-2.5 bg-slate-50/70 p-3 rounded-xl border border-slate-200">
+              {activePacks.map((pack, idx) => {
+                const packQty = Number(pack.qty) || 1;
+                const packMrp = Math.round(unitMrp * packQty);
+                const packPrice = Number(pack.price) || 0;
+                const discountPct = (packMrp > packPrice && packPrice > 0)
+                  ? Math.round(((packMrp - packPrice) / packMrp) * 100)
+                  : 0;
 
-                  return (
-                    <div key={idx} className="bg-white p-3 rounded-xl border border-slate-200/90 shadow-2xs space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-extrabold text-slate-900">{pack.label}</span>
-                          {pack.qty > 1 && (
-                            <span className="text-[10px] text-slate-400 font-mono">({pack.qty}x base)</span>
-                          )}
-                        </div>
-                        {discountPct > 0 ? (
-                          <span className="text-[11px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/80">
-                            {discountPct}% OFF
-                          </span>
-                        ) : (
-                          <span className="text-[10px] text-slate-400 font-medium">No discount</span>
+                return (
+                  <div key={idx} className="bg-white p-3 rounded-xl border border-slate-200/90 shadow-2xs space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-extrabold text-slate-900">{pack.label}</span>
+                        {pack.qty > 1 && (
+                          <span className="text-[10px] text-slate-400 font-mono">({pack.qty}x base)</span>
                         )}
                       </div>
+                      {discountPct > 0 ? (
+                        <span className="text-[11px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/80">
+                          {discountPct}% OFF
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-400 font-medium">No discount</span>
+                      )}
+                    </div>
 
-                      <div className="grid grid-cols-2 gap-2.5">
-                        <div>
-                          <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                            Selling Price (₹) *
-                          </label>
-                          <div className="relative flex items-center">
-                            <span className="absolute left-2.5 text-xs text-slate-400 font-bold">₹</span>
-                            <input
-                              type="number"
-                              min="1"
-                              placeholder="e.g. 500"
-                              value={pack.price !== undefined ? pack.price : ""}
-                              onChange={(e) => handlePackPriceChange(idx, e.target.value)}
-                              className="w-full pl-6 pr-2.5 py-1.5 bg-slate-50 text-xs border border-slate-200 rounded-lg outline-none font-bold text-slate-900 focus:border-brand-500 focus:bg-white transition-colors"
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                            Stock Available
-                          </label>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                          Selling Price (₹) *
+                        </label>
+                        <div className="relative flex items-center">
+                          <span className="absolute left-2.5 text-xs text-slate-400 font-bold">₹</span>
                           <input
                             type="number"
-                            min="0"
-                            placeholder="e.g. 20"
-                            value={pack.stock !== undefined ? pack.stock : ""}
-                            onChange={(e) => handlePackStockChange(idx, e.target.value)}
-                            className="w-full px-2.5 py-1.5 bg-slate-50 text-xs border border-slate-200 rounded-lg outline-none font-bold text-slate-900 focus:border-brand-500 focus:bg-white transition-colors"
+                            min="1"
+                            placeholder="e.g. 500"
+                            value={pack.price !== undefined ? pack.price : ""}
+                            onChange={(e) => handlePackPriceChange(idx, e.target.value)}
+                            className="w-full pl-6 pr-2.5 py-1.5 bg-slate-50 text-xs border border-slate-200 rounded-lg outline-none font-bold text-slate-900 focus:border-brand-500 focus:bg-white transition-colors"
                           />
                         </div>
                       </div>
 
-                      <p className="text-[10px] text-slate-400 font-medium flex items-center justify-between pt-1 border-t border-slate-100">
-                        <span>Cut-off MRP: <strong className="font-semibold text-slate-600">{inr(packMrp)}</strong></span>
-                        {packPrice > 0 && pack.qty > 1 && (
-                          <span>₹{Math.round(packPrice / pack.qty)} / unit</span>
-                        )}
-                      </p>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                          Stock Available
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          placeholder="e.g. 20"
+                          value={pack.stock !== undefined ? pack.stock : ""}
+                          onChange={(e) => handlePackStockChange(idx, e.target.value)}
+                          className="w-full px-2.5 py-1.5 bg-slate-50 text-xs border border-slate-200 rounded-lg outline-none font-bold text-slate-900 focus:border-brand-500 focus:bg-white transition-colors"
+                        />
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="rounded-xl bg-slate-50 p-3 border border-dashed border-slate-300 text-center">
-                <p className="text-xs font-semibold text-slate-700">⚡ Auto-Calculation Active</p>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  Standard sizes ({defaultPacks.map((p) => p.label).join(", ")}) base price ke hisaab se bulk wholesale discount ke sath automatically chalenge.
-                </p>
-              </div>
-            )}
+
+                    <p className="text-[10px] text-slate-400 font-medium flex items-center justify-between pt-1 border-t border-slate-100">
+                      <span>Cut-off MRP: <strong className="font-semibold text-slate-600">{inr(packMrp)}</strong></span>
+                      {packPrice > 0 && pack.qty > 1 && (
+                        <span>₹{Math.round(packPrice / pack.qty)} / unit</span>
+                      )}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
       </form>

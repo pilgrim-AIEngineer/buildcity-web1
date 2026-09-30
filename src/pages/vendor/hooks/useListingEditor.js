@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { withMrp, withDiscount, withPrice, discountFor } from "../utils/pricing";
+import { getDefaultPacksForProduct } from "../../../utils/productPacks";
 
 /** "Edit listing" sheet: the listing being edited, MRP ⇄ discount ⇄ price sync, stock, and save. */
 export default function useListingEditor({ updateVendorProductListing, showAlert }) {
@@ -14,13 +15,26 @@ export default function useListingEditor({ updateVendorProductListing, showAlert
         customPacks = JSON.parse(customPacks);
       } catch {}
     }
+    const defPacks = getDefaultPacksForProduct(p);
+    const initialPacks = (Array.isArray(customPacks) && customPacks.length > 0)
+      ? customPacks
+      : (defPacks && defPacks.length > 1
+          ? defPacks.map((dp) => ({
+              label: dp.label,
+              qty: dp.qty,
+              price: dp.qty === 1 ? price : dp.price,
+              mrp: Math.round(mrp * dp.qty),
+              stock: p.stockQty !== undefined ? p.stockQty : 100,
+            }))
+          : null);
+
     setEditingProduct({
       ...p,
       mrp,
       price,
       discountPct: mrp > price ? discountFor(mrp, price) : 0,
       stockQty: p.stockQty !== undefined ? p.stockQty : 100,
-      customPacks: Array.isArray(customPacks) ? customPacks : null,
+      customPacks: initialPacks,
     });
   };
 

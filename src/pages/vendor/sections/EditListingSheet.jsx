@@ -85,6 +85,14 @@ export default function EditListingSheet({
     }
   };
 
+  const handlePackLabelChange = (index, val) => {
+    const next = activePacks.map((pk, idx) => {
+      if (idx !== index) return pk;
+      return { ...pk, label: val };
+    });
+    onCustomPacksChange?.(next);
+  };
+
   const handlePackPriceChange = (index, val) => {
     const next = activePacks.map((pk, idx) => {
       const packQty = Number(pk.qty) || 5;
@@ -197,17 +205,23 @@ export default function EditListingSheet({
 
                 return (
                   <div key={idx} className="bg-white p-3 rounded-xl border border-slate-200/90 shadow-2xs space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-extrabold text-slate-900">{pack.label}</span>
-                        <span className="text-[10px] text-slate-400 font-mono">({pack.qty}x base)</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex-1 flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={pack.label || ""}
+                          onChange={(e) => handlePackLabelChange(idx, e.target.value)}
+                          placeholder="Pack Label"
+                          className="flex-1 max-w-[220px] px-2 py-1 bg-slate-50 hover:bg-white focus:bg-white text-xs font-extrabold text-slate-900 border border-slate-200 rounded-lg outline-none focus:border-brand-500 transition-colors"
+                        />
+                        <span className="text-[10px] text-slate-400 font-mono whitespace-nowrap">({pack.qty}x base)</span>
                       </div>
                       {discountPct > 0 ? (
-                        <span className="text-[11px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/80">
+                        <span className="text-[11px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/80 shrink-0">
                           {discountPct}% OFF
                         </span>
                       ) : (
-                        <span className="text-[10px] text-slate-400 font-medium">No discount</span>
+                        <span className="text-[10px] text-slate-400 font-medium shrink-0">No discount</span>
                       )}
                     </div>
 
@@ -257,7 +271,6 @@ export default function EditListingSheet({
           ) : (
             <div className="rounded-xl bg-slate-50 p-3 border border-dashed border-slate-200 text-center">
               <p className="text-xs font-semibold text-slate-600">Bulk rates are OFF</p>
-              <p className="text-[11px] text-slate-400 mt-0.5">Yeh product sirf single base unit rate par sell hoga.</p>
             </div>
           )}
         </div>

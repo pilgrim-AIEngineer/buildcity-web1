@@ -55,7 +55,7 @@ export default function useListingEditor({ updateVendorProductListing, showAlert
             const numPrice = pk.price === "" || pk.price === undefined ? 0 : Number(pk.price);
             const numStock = pk.stock === "" || pk.stock === undefined ? 0 : Number(pk.stock);
             return {
-              label: pk.label,
+              label: pk.label && String(pk.label).trim() ? String(pk.label).trim() : `${prod.unit || "Unit"}, Pack of ${qty}`,
               qty,
               price: numPrice >= 0 ? numPrice : 0,
               mrp: packMrp,

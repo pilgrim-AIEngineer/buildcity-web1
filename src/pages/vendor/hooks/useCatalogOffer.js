@@ -104,7 +104,7 @@ export default function useCatalogOffer({ masterProducts, submitListing, showAle
             const numPrice = pk.price === "" || pk.price === undefined ? 0 : Number(pk.price);
             const numStock = pk.stock === "" || pk.stock === undefined ? 0 : Number(pk.stock);
             return {
-              label: pk.label,
+              label: pk.label && String(pk.label).trim() ? String(pk.label).trim() : `${selected.unit || "Unit"}, Pack of ${qty}`,
               qty,
               price: numPrice >= 0 ? numPrice : 0,
               mrp: packMrp,
@@ -156,6 +156,13 @@ export default function useCatalogOffer({ masterProducts, submitListing, showAle
       bulkEnabled,
       toggleBulkEnabled,
       activePacks,
+      onPackLabelChange: (index, val) => {
+        setCustomPacks((prev) => {
+          const list = prev.length > 0 ? [...prev] : [...activePacks];
+          list[index] = { ...list[index], label: val };
+          return list;
+        });
+      },
       onPackPriceChange: (index, val) => {
         setCustomPacks((prev) => {
           const list = prev.length > 0 ? [...prev] : [...activePacks];

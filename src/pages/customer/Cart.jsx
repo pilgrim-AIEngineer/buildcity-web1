@@ -276,9 +276,7 @@ export default function Cart() {
         <main className="max-w-lg mx-auto px-4 py-20 text-center">
           <span className="text-5xl mb-3 inline-block">🛒</span>
           <h1 className="text-xl font-extrabold text-navy-900 mb-2">Your Cart is Empty</h1>
-          <p className="text-xs text-slate-500 mb-6">
-            Building materials & supplies add karein aur yahan wapas aayein checkout ke liye.
-          </p>
+          
           <Link
             to="/"
             className="inline-block bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold rounded-xl px-6 py-3 shadow-xs transition-colors"

@@ -219,6 +219,26 @@ export function getDefaultPacksForProduct(product) {
   });
 }
 
+// Helper: single unit ke label ko clean format me render karta hai (jaise "1 Bag (50 kg)")
+export function getStandardPackLabel(unit) {
+  const raw = (unit || "Unit").trim();
+  const lower = raw.toLowerCase();
+
+  // Cement / Putty: 50kg bag -> "1 Bag (50 kg)"
+  if (lower.includes("50") || lower.includes("bag")) {
+    return "1 Bag (50 kg)";
+  }
+  // Agar pehle se "1 " se shuru hai jaise "1 Litre", "1 Piece", "1 Ton", "1 Box"
+  if (/^1\s+/i.test(raw)) {
+    return `${raw} (Standard)`;
+  }
+  // Agar kisi number se shuru hai jaise "100 CFT"
+  if (/^\d+/i.test(raw)) {
+    return `${raw} (Standard)`;
+  }
+  return `1 ${raw} (Standard)`;
+}
+
 // Master function: vendor dwara set custom bulk packs use karega, warna puraane products ke liye bulk packs OFF (empty array) rahega
 export function generateProductPacks(product) {
   if (!product) return [];
@@ -243,7 +263,7 @@ export function generateProductPacks(product) {
   const basePack = {
     qty: 1,
     unitName: cleanUnit,
-    label: `1 ${cleanUnit} (Standard)`,
+    label: getStandardPackLabel(cleanUnit),
     price: basePrice,
     mrp: baseMrp,
     savings: Math.max(0, baseMrp - basePrice),

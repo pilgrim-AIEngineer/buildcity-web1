@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import Navbar from "../../components/Navbar";
 import ProductImageSlider, { getProductImages } from "../../components/ProductImageSlider";
 import { useCart } from "../../context/CartContext";
@@ -95,7 +95,11 @@ function filterOutDemoReviews(list) {
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
+  const userRole = String(user?.role || "").toLowerCase();
+  const isPartner = ["admin", "dr", "district_rep", "vendor"].includes(userRole) || Boolean(user?.drInfo) || Boolean(user?.vendorInfo);
+  const isCustomer = Boolean(user && !isPartner);
   const { addItem } = useCart();
   const { region } = useRegion();
   const { products = [], masterProducts = [], vendors = [], productsLoading } = useAdmin();
@@ -267,6 +271,10 @@ export default function ProductDetail() {
   const currentPrice = selectedPack ? selectedPack.price : (product?.price || 0);
   const currentMrp = selectedPack ? selectedPack.mrp : (product?.mrp || 0);
 
+  const targetProductId = useMemo(() => {
+    return String(product?.id || id || "").trim();
+  }, [product?.id, id]);
+
   // Product ke customer reviews ka state aur database sync
   const [reviewsList, setReviewsList] = useState(() => {
     try {
@@ -274,7 +282,6 @@ export default function ProductDetail() {
       if (saved) {
         const parsed = JSON.parse(saved);
         const clean = filterOutDemoReviews(parsed);
-        localStorage.setItem(`buildcity_reviews_${id}`, JSON.stringify(clean));
         return clean;
       }
     } catch (err) {}
@@ -286,22 +293,24 @@ export default function ProductDetail() {
   const [reviewerName, setReviewerName] = useState(user?.name || "");
   const [reviewComment, setReviewComment] = useState("");
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
+  const [reviewError, setReviewError] = useState("");
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [showForm, setShowForm] = useState(false);
 
   // Product ID badalane par reviews reset aur sync karo
   useEffect(() => {
+    if (!targetProductId) return;
     try {
-      const saved = localStorage.getItem(`buildcity_reviews_${id}`);
+      const saved = localStorage.getItem(`buildcity_reviews_${targetProductId}`);
       if (saved) {
         const parsed = JSON.parse(saved);
         const clean = filterOutDemoReviews(parsed);
-        localStorage.setItem(`buildcity_reviews_${id}`, JSON.stringify(clean));
         setReviewsList(clean);
         return;
       }
     } catch (e) {}
     setReviewsList([]);
-  }, [id]);
+  }, [targetProductId]);
 
   useEffect(() => {
     if (user?.name && !reviewerName) {
@@ -311,8 +320,9 @@ export default function ProductDetail() {
 
   // Backend API se live reviews fetch karne ka function
   useEffect(() => {
+    if (!targetProductId) return;
     let isMounted = true;
-    authFetch(`${API_BASE_URL}/api/v1/reviews?productId=${encodeURIComponent(id)}`)
+    authFetch(`${API_BASE_URL}/api/v1/reviews?productId=${encodeURIComponent(targetProductId)}`)
       .then((res) => {
         if (!res.ok) throw new Error("API status " + res.status);
         return res.json();
@@ -320,23 +330,10 @@ export default function ProductDetail() {
       .then((data) => {
         if (isMounted && Array.isArray(data)) {
           const cleanData = filterOutDemoReviews(data);
-          setReviewsList((prevList) => {
-            const cleanPrev = filterOutDemoReviews(prevList);
-            const mergedMap = new Map();
-            cleanData.forEach((item) => {
-              if (item && item.comment) mergedMap.set(item.id || item.comment, item);
-            });
-            cleanPrev.forEach((item) => {
-              if (item && item.comment && !mergedMap.has(item.id || item.comment)) {
-                mergedMap.set(item.id || item.comment, item);
-              }
-            });
-            const merged = Array.from(mergedMap.values());
-            try {
-              localStorage.setItem(`buildcity_reviews_${id}`, JSON.stringify(merged));
-            } catch (e) {}
-            return merged;
-          });
+          setReviewsList(cleanData);
+          try {
+            localStorage.setItem(`buildcity_reviews_${targetProductId}`, JSON.stringify(cleanData));
+          } catch (e) {}
         }
       })
       .catch((err) => {
@@ -345,7 +342,7 @@ export default function ProductDetail() {
     return () => {
       isMounted = false;
     };
-  }, [id]);
+  }, [targetProductId]);
 
   // Average star rating aur total reviews live calculate karna
   const avgRating = useMemo(() => {
@@ -388,60 +385,61 @@ export default function ProductDetail() {
 
   const handleAddReview = async (e) => {
     e.preventDefault();
-    if (!reviewComment.trim()) return;
+    setReviewError("");
+
+    if (!user) {
+      navigate(`/login?redirect=${encodeURIComponent(location.pathname)}`);
+      return;
+    }
+
+    if (isPartner) {
+      setReviewError("Only customer accounts can submit reviews. Admin, DR, and Vendor accounts cannot post reviews.");
+      return;
+    }
+
+    if (!reviewComment.trim()) {
+      setReviewError("Please enter your review comments.");
+      return;
+    }
 
     const nameToUse = reviewerName.trim() || user?.name || "Verified Customer";
+    setIsSubmittingReview(true);
 
-    const newRev = {
-      id: `rev-${Date.now()}`,
-      productId: id,
-      name: nameToUse,
-      rating: Number(newRating),
-      comment: reviewComment.trim(),
-      createdAt: new Date().toISOString(),
-      date: "Just now",
-    };
-
-    // Pehle local state aur localStorage me turant save karo
-    setReviewsList((prev) => {
-      const updated = [newRev, ...prev.filter((r) => r.id !== newRev.id && r.comment !== newRev.comment)];
-      try {
-        localStorage.setItem(`buildcity_reviews_${id}`, JSON.stringify(updated));
-      } catch (err) {}
-      return updated;
-    });
-
-    setReviewComment("");
-    setReviewSubmitted(true);
-    setShowForm(false);
-
-    // Fir backend database me review insert karo
     try {
       const res = await authFetch(`${API_BASE_URL}/api/v1/reviews`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          productId: id,
+          productId: targetProductId,
           name: nameToUse,
           rating: Number(newRating),
           comment: reviewComment.trim(),
         }),
       });
-      if (res.ok) {
-        const savedRev = await res.json();
-        setReviewsList((prev) => {
-          const synced = prev.map((r) => (r.id === newRev.id ? savedRev : r));
-          try {
-            localStorage.setItem(`buildcity_reviews_${id}`, JSON.stringify(synced));
-          } catch (e) {}
-          return synced;
-        });
-      }
-    } catch (err) {
-      console.error("Failed to post review to DB (kept in device storage):", err);
-    }
 
-    setTimeout(() => setReviewSubmitted(false), 3000);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to submit review to database.");
+      }
+
+      // Review successfully saved in Database!
+      setReviewsList((prev) => {
+        const updated = [data, ...prev.filter((r) => r.id !== data.id && r.comment !== data.comment)];
+        try {
+          localStorage.setItem(`buildcity_reviews_${targetProductId}`, JSON.stringify(updated));
+        } catch (err) {}
+        return updated;
+      });
+
+      setReviewComment("");
+      setReviewSubmitted(true);
+      setShowForm(false);
+      setTimeout(() => setReviewSubmitted(false), 4000);
+    } catch (err) {
+      setReviewError(err.message || "Failed to save review to database. Please check your connection and try again.");
+    } finally {
+      setIsSubmittingReview(false);
+    }
   };
 
   if ((productsLoading && directLoading) || (!product && directLoading)) {
@@ -685,24 +683,59 @@ export default function ProductDetail() {
               <p className="text-xs text-slate-500 mt-0.5">Verified customer ratings & real site experiences.</p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setShowForm((v) => !v)}
-              className="bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xs transition-all active:scale-[0.98] cursor-pointer shrink-0"
-            >
-              {showForm ? "✕ Close Form" : "✍️ Write a Review"}
-            </button>
+            {!user ? (
+              <button
+                type="button"
+                onClick={() => navigate(`/login?redirect=${encodeURIComponent(location.pathname)}`)}
+                className="bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xs transition-all active:scale-[0.98] cursor-pointer shrink-0 flex items-center gap-1.5"
+              >
+                <span>🔑</span> Login to Write a Review
+              </button>
+            ) : isPartner ? (
+              <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 border border-slate-200/90 px-3 py-1.5 rounded-xl shrink-0">
+                Customer Review Only
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setReviewError("");
+                  setShowForm((v) => !v);
+                }}
+                className="bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xs transition-all active:scale-[0.98] cursor-pointer shrink-0"
+              >
+                {showForm ? "✕ Close Form" : "✍️ Write a Review"}
+              </button>
+            )}
           </div>
+
+          {/* Notice if logged in as admin/dr/vendor */}
+          {isPartner && (
+            <div className="mb-6 p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 text-xs font-medium flex items-center gap-2">
+              <span className="text-sm">ℹ️</span>
+              <span>
+                You are logged in as <strong>{userRole.toUpperCase()}</strong>. Product reviews can only be submitted by verified customer accounts.
+              </span>
+            </div>
+          )}
 
           {/* Review submit hone par success alert */}
           {reviewSubmitted && (
             <div className="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2 animate-fade-in">
-              <span>Thank you! Your review has been published successfully.</span>
+              <span>Thank you! Your review has been published and saved to the database successfully.</span>
+            </div>
+          )}
+
+          {/* Review submit error alert */}
+          {reviewError && (
+            <div className="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold flex items-center gap-2 animate-fade-in">
+              <span>⚠️</span>
+              <span>{reviewError}</span>
             </div>
           )}
 
           {/* Naya review likhne ka form */}
-          {showForm && (
+          {showForm && isCustomer && (
             <form onSubmit={handleAddReview} className="mb-8 p-5 bg-brand-50/40 border border-brand-200/60 rounded-2xl space-y-4">
               <h3 className="font-extrabold text-navy-900 text-sm">Write Your Product Review</h3>
 
@@ -758,16 +791,27 @@ export default function ProductDetail() {
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowForm(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50"
+                  onClick={() => {
+                    setReviewError("");
+                    setShowForm(false);
+                  }}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-xs font-bold text-white bg-brand-500 rounded-xl shadow-xs hover:bg-brand-600 active:scale-[0.98] transition-all cursor-pointer"
+                  disabled={isSubmittingReview}
+                  className="px-5 py-2 text-xs font-bold text-white bg-brand-500 rounded-xl shadow-xs hover:bg-brand-600 active:scale-[0.98] transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Submit Review
+                  {isSubmittingReview ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                      Saving...
+                    </>
+                  ) : (
+                    "Submit Review"
+                  )}
                 </button>
               </div>
             </form>
@@ -780,13 +824,26 @@ export default function ProductDetail() {
               <h4 className="text-xs font-black text-navy-900 mb-1">No Customer Reviews Yet</h4>
               <p className="text-[11px] text-slate-500 max-w-sm mb-3">Be the first verified customer to share your experience with this product!</p>
               {!showForm && (
-                <button
-                  type="button"
-                  onClick={() => setShowForm(true)}
-                  className="bg-navy-900 hover:bg-brand-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all cursor-pointer shadow-2xs"
-                >
-                  ✍️ Write the First Review
-                </button>
+                !user ? (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/login?redirect=${encodeURIComponent(location.pathname)}`)}
+                    className="bg-navy-900 hover:bg-brand-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all cursor-pointer shadow-2xs flex items-center gap-1.5"
+                  >
+                    🔑 Login to Write First Review
+                  </button>
+                ) : isCustomer ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReviewError("");
+                      setShowForm(true);
+                    }}
+                    className="bg-navy-900 hover:bg-brand-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all cursor-pointer shadow-2xs"
+                  >
+                    ✍️ Write the First Review
+                  </button>
+                ) : null
               )}
             </div>
           ) : (

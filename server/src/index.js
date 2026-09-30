@@ -3402,6 +3402,13 @@ app.get("/api/v1/reviews", async (req, res) => {
 
 app.post("/api/v1/reviews", requireAuth, async (req, res) => {
   try {
+    const userRole = String(req.auth?.role || "").toUpperCase();
+    if (userRole === "ADMIN" || userRole === "DR" || userRole === "VENDOR") {
+      return res.status(403).json({
+        error: "Admin, DR, and Vendor accounts cannot post product reviews. Only verified customers can write reviews.",
+      });
+    }
+
     const { productId, name, rating, comment } = req.body;
     if (!productId || !comment) {
       return res.status(400).json({ error: "productId and comment are required" });
@@ -3415,10 +3422,19 @@ app.post("/api/v1/reviews", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "Review is too long" });
     }
 
+    let authorName = String(name || "").trim().slice(0, 80);
+    if (!authorName || authorName.toLowerCase() === "customer") {
+      if (req.auth?.userId) {
+        const u = await prisma.user.findUnique({ where: { id: req.auth.userId } }).catch(() => null);
+        if (u?.name) authorName = u.name;
+      }
+    }
+    if (!authorName) authorName = "Verified Customer";
+
     const review = await prisma.review.create({
       data: {
         productId: String(productId),
-        name: String(name || "Verified Customer").trim().slice(0, 80),
+        name: authorName,
         rating: cleanRating,
         comment: String(comment).trim(),
       },

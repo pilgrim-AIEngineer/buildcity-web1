@@ -773,13 +773,9 @@ export default function ProductDetail() {
                   <h2 className="text-base sm:text-lg font-black text-navy-900 tracking-tight">
                     Similar Products
                   </h2>
-                  <span className="bg-brand-50 text-brand-700 font-extrabold text-[11px] px-2.5 py-0.5 rounded-full border border-brand-200/80">
-                    Recommended Alternatives
-                  </span>
+                  
                 </div>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">
-                  Customers also viewed these top alternatives in {product.category || "this category"}
-                </p>
+             
               </div>
               <Link
                 to={`/categories?cat=${encodeURIComponent(product.category || "")}`}

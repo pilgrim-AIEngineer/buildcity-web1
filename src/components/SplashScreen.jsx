@@ -73,23 +73,10 @@ export default function SplashScreen({ minDuration = 1400, onFinished }) {
           India&apos;s Building Material Superstore
         </p>
 
-        {/* Sleek Animated Progress Beam */}
-        <div className="mt-8 flex flex-col items-center gap-2">
-          <div className="w-36 h-1 bg-slate-800/90 rounded-full overflow-hidden relative shadow-inner">
-            <div className="absolute inset-y-0 w-24 bg-gradient-to-r from-transparent via-brand-500 to-transparent rounded-full animate-splash-beam" />
-          </div>
-          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-            Loading Marketplace...
-          </span>
-        </div>
+       
       </div>
 
-      {/* Footer Branding */}
-      <div className="text-center pb-2">
-        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-          Verified Vendors • Direct Pricing • Fast Delivery
-        </p>
-      </div>
+     
     </div>
   );
 }

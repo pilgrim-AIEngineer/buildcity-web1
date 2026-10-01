@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import Navbar from "../../components/Navbar";
+import ProductCard from "../../components/ProductCard";
 import ProductImageSlider, { getProductImages } from "../../components/ProductImageSlider";
 import { useCart } from "../../context/CartContext";
 import { useRegion } from "../../context/RegionContext";
@@ -270,6 +271,101 @@ export default function ProductDetail() {
   const selectedPack = packs[selectedPackIndex] || packs[0];
   const currentPrice = selectedPack ? selectedPack.price : (product?.price || 0);
   const currentMrp = selectedPack ? selectedPack.mrp : (product?.mrp || 0);
+
+  // Jab product badle toh page top par smoothly scroll karo
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [id]);
+
+  // Similar Products / Recommended Alternatives matching logic
+  const similarProducts = useMemo(() => {
+    if (!product) return [];
+
+    const currentCat = String(
+      (typeof product.category === "string" ? product.category : product.category?.name) ||
+      product.categoryName ||
+      ""
+    ).toLowerCase().trim();
+
+    const currentId = String(product.id || id || "").toLowerCase().trim();
+    const currentName = String(product.name || "").toLowerCase().trim();
+
+    const result = [];
+    const seenIds = new Set([currentId]);
+    if (id) seenIds.add(String(id).toLowerCase().trim());
+
+    // 1. Pehle live vendor listings me se same category ke active products dhoondo
+    if (Array.isArray(products) && products.length > 0) {
+      const candidates = products.filter((p) => {
+        if (!p || p.isActive === false) return false;
+        if (p.isVendorSuspended || p.vendor?.status === "SUSPENDED") return false;
+        const pId = String(p.id || "").toLowerCase().trim();
+        if (seenIds.has(pId)) return false;
+        if (currentName && String(p.name || "").toLowerCase().trim() === currentName) return false;
+
+        const pCat = String(
+          (typeof p.category === "string" ? p.category : p.category?.name) ||
+          p.categoryName ||
+          p.masterProduct?.categoryName ||
+          ""
+        ).toLowerCase().trim();
+
+        if (!currentCat || !pCat) return false;
+        return pCat === currentCat || pCat.includes(currentCat) || currentCat.includes(pCat);
+      });
+
+      // Sort: different brand ko thoda priority do taaki ACC, Ambuja, etc. variety dikhe
+      candidates.sort((a, b) => {
+        const aDiffBrand = a.brand && product.brand && a.brand.toLowerCase() !== product.brand.toLowerCase();
+        const bDiffBrand = b.brand && product.brand && b.brand.toLowerCase() !== product.brand.toLowerCase();
+        if (aDiffBrand && !bDiffBrand) return -1;
+        if (!aDiffBrand && bDiffBrand) return 1;
+        return (Number(b.stockQty) || 0) - (Number(a.stockQty) || 0);
+      });
+
+      candidates.slice(0, 4).forEach((p) => {
+        seenIds.add(String(p.id || "").toLowerCase().trim());
+        result.push(p);
+      });
+    }
+
+    // 2. Agar live vendor listings me 4 se kam hain, toh masterProducts catalog se fill karo
+    if (result.length < 4 && Array.isArray(masterProducts) && masterProducts.length > 0) {
+      const masterCandidates = masterProducts.filter((mp) => {
+        if (!mp) return false;
+        const mpId = String(mp.id || "").toLowerCase().trim();
+        if (seenIds.has(mpId)) return false;
+        if (currentName && String(mp.name || "").toLowerCase().trim() === currentName) return false;
+
+        const mpCat = String(
+          (typeof mp.category === "string" ? mp.category : mp.category?.name) ||
+          mp.categoryName ||
+          ""
+        ).toLowerCase().trim();
+
+        if (!currentCat || !mpCat) return false;
+        return mpCat === currentCat || mpCat.includes(currentCat) || currentCat.includes(mpCat);
+      });
+
+      masterCandidates.forEach((mp) => {
+        if (result.length >= 4) return;
+        seenIds.add(String(mp.id || "").toLowerCase().trim());
+        result.push({
+          id: mp.id,
+          name: mp.name,
+          brand: mp.brand || "BuildCity Certified",
+          category: mp.categoryName || product.category || "Building Materials",
+          imageUrl: mp.imageUrl || mp.image,
+          price: Number(mp.suggestedPrice || mp.mrp || 100),
+          mrp: Number(mp.mrp || Math.round((Number(mp.suggestedPrice) || 100) * 1.2)),
+          unit: mp.unit || "Unit",
+          inStock: true,
+        });
+      });
+    }
+
+    return result.slice(0, 4);
+  }, [product, id, products, masterProducts]);
 
   const targetProductId = useMemo(() => {
     return String(product?.id || id || "").trim();
@@ -667,6 +763,40 @@ export default function ProductDetail() {
             </div>
           </div>
         </div>
+
+        {/* Similar Products / Recommended Alternatives */}
+        {similarProducts.length > 0 && (
+          <section className="mt-12 bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4 mb-5">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base sm:text-lg font-black text-navy-900 tracking-tight">
+                    Similar Products
+                  </h2>
+                  <span className="bg-brand-50 text-brand-700 font-extrabold text-[11px] px-2.5 py-0.5 rounded-full border border-brand-200/80">
+                    Recommended Alternatives
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 font-medium mt-0.5">
+                  Customers also viewed these top alternatives in {product.category || "this category"}
+                </p>
+              </div>
+              <Link
+                to={`/categories?cat=${encodeURIComponent(product.category || "")}`}
+                className="text-xs font-bold text-brand-600 hover:text-brand-700 flex items-center gap-1 group transition-colors"
+              >
+                <span>View all in category</span>
+                <span className="transition-transform group-hover:translate-x-0.5">→</span>
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3.5 sm:gap-4">
+              {similarProducts.map((p) => (
+                <ProductCard key={p.id} product={p} />
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Customer reviews aur ratings section */}
         <section className="mt-12 bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-xs">

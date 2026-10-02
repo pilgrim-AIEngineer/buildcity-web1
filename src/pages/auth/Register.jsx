@@ -60,6 +60,11 @@ export default function Register() {
       return;
     }
 
+    if (!/^[a-zA-Z\s]+$/.test(name.trim())) {
+      setError("Please enter a valid name (only letters and spaces allowed)");
+      return;
+    }
+
     const cleanedMobile = phone.replace(/\D/g, "").slice(-10);
     if (cleanedMobile.length !== 10) {
       setError("Please enter a valid 10-digit mobile number");
@@ -145,9 +150,6 @@ export default function Register() {
         </div>
 
         <div>
-          <span className="inline-flex items-center gap-1 text-[11px] font-black uppercase tracking-wider bg-brand-50 text-brand-700 px-2.5 py-0.5 rounded-full border border-brand-200/80 mb-2">
-             Customer Registration
-          </span>
           <h1 className="text-2xl font-black text-navy-900 tracking-tight">Create Customer Account</h1>
           <p className="text-xs text-slate-500 mt-1">
             Sign up in seconds to purchase construction materials at verified wholesale prices.
@@ -172,7 +174,7 @@ export default function Register() {
                 required
                 placeholder="e.g. Ramesh Kumar"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => setName(e.target.value.replace(/[^a-zA-Z\s]/g, ""))}
                 className="w-full bg-slate-50 border border-slate-200 text-xs font-bold rounded-xl px-3.5 py-3 outline-none focus:border-brand-500 focus:bg-white transition-all"
               />
             </div>

@@ -63,12 +63,12 @@ const brandItems = [
     category: "Paints",
     bgColor: "#FFFFFF",
     renderLogo: () => (
-      <div className="flex flex-col items-center justify-center">
-        <div className="flex items-center text-lg font-black tracking-tighter leading-none">
+      <div className="flex flex-col items-center justify-center pointer-events-none">
+        <div className="flex items-center text-base sm:text-lg font-black tracking-tighter leading-none">
           <span className="text-[#9333EA]">a</span>
           <span className="text-[#DC2626]">p</span>
         </div>
-        <span className="text-[6.5px] font-extrabold text-[#DC2626] tracking-tight leading-none mt-0.5">
+        <span className="text-[6px] sm:text-[6.5px] font-extrabold text-[#DC2626] tracking-tight leading-none mt-0.5">
           asianpaints
         </span>
       </div>
@@ -79,9 +79,9 @@ const brandItems = [
     category: "Tiles",
     bgColor: "#DC2626",
     renderLogo: () => (
-      <div className="flex flex-col items-center justify-center text-white">
-        <span className="font-black text-[12px] tracking-tighter leading-none">SOMANY</span>
-        <span className="text-[5px] font-extrabold tracking-widest leading-none mt-0.5 opacity-95">
+      <div className="flex flex-col items-center justify-center text-white px-1 pointer-events-none">
+        <span className="font-black text-[9px] sm:text-[11px] tracking-tight leading-none">SOMANY</span>
+        <span className="text-[4.5px] sm:text-[5px] font-extrabold tracking-wider leading-none mt-0.5 opacity-95">
           TILES | BATH
         </span>
       </div>
@@ -92,14 +92,14 @@ const brandItems = [
     category: "Bathware",
     bgColor: "#FFFFFF",
     renderLogo: () => (
-      <div className="flex flex-col items-center justify-center">
+      <div className="flex flex-col items-center justify-center px-1 pointer-events-none">
         <div className="flex items-center gap-1">
-          <div className="w-2.5 h-2.5 bg-[#DC2626] rounded-xs flex items-center justify-center">
-            <div className="w-1 h-1 bg-white" />
+          <div className="w-2 h-2 bg-[#DC2626] rounded-2xs flex items-center justify-center shrink-0">
+            <div className="w-0.5 h-0.5 bg-white" />
           </div>
-          <span className="font-black text-[9.5px] text-navy-950 tracking-tight leading-none">JOHNSON</span>
+          <span className="font-black text-[8px] sm:text-[9px] text-navy-950 tracking-tight leading-none">JOHNSON</span>
         </div>
-        <span className="text-[5.5px] font-extrabold text-[#DC2626] tracking-wider leading-none mt-0.5 uppercase">
+        <span className="text-[4.5px] sm:text-[5.5px] font-extrabold text-[#DC2626] tracking-wider leading-none mt-0.5 uppercase">
           BATHWARE
         </span>
       </div>
@@ -110,11 +110,11 @@ const brandItems = [
     category: "Sanitary",
     bgColor: "#FFFFFF",
     renderLogo: () => (
-      <div className="flex flex-col items-center justify-center">
-        <span className="font-black text-sm text-[#0284C7] tracking-widest leading-none">
+      <div className="flex flex-col items-center justify-center px-1 pointer-events-none">
+        <span className="font-black text-xs sm:text-sm text-[#0284C7] tracking-wider leading-none">
           CERA
         </span>
-        <span className="text-[5.5px] font-bold text-slate-400 tracking-tight leading-none mt-0.5">
+        <span className="text-[5px] sm:text-[5.5px] font-bold text-slate-400 tracking-tight leading-none mt-0.5">
           Sanitaryware
         </span>
       </div>
@@ -125,11 +125,11 @@ const brandItems = [
     category: "Ceramics",
     bgColor: "#034EA2",
     renderLogo: () => (
-      <div className="flex flex-col items-center justify-center text-white">
-        <span className="font-black text-[13px] tracking-tight italic leading-none font-serif">
+      <div className="flex flex-col items-center justify-center text-white px-1 pointer-events-none">
+        <span className="font-black text-[10px] sm:text-[12px] tracking-tight italic leading-none font-serif">
           Kajaria
         </span>
-        <span className="text-[5.5px] font-extrabold tracking-widest leading-none mt-0.5 opacity-90">
+        <span className="text-[4.5px] sm:text-[5.5px] font-extrabold tracking-widest leading-none mt-0.5 opacity-90">
           TILES
         </span>
       </div>
@@ -140,14 +140,14 @@ const brandItems = [
     category: "Cement",
     bgColor: "#F59E0B",
     renderLogo: () => (
-      <div className="flex flex-col items-center justify-center text-navy-950">
-        <div className="w-3.5 h-2.5 bg-[#DC2626] flex items-center justify-center rounded-2xs mb-0.5 shadow-2xs">
-          <div className="w-1.5 h-1.5 bg-[#FBBF24] rotate-45" />
+      <div className="flex flex-col items-center justify-center text-navy-950 px-1 pointer-events-none">
+        <div className="w-3 h-2 bg-[#DC2626] flex items-center justify-center rounded-2xs mb-0.5 shadow-2xs shrink-0">
+          <div className="w-1 h-1 bg-[#FBBF24] rotate-45" />
         </div>
-        <span className="font-black text-[8.5px] tracking-tighter leading-none text-navy-950">
+        <span className="font-black text-[7.5px] sm:text-[8.5px] tracking-tighter leading-none text-navy-950">
           UltraTech
         </span>
-        <span className="text-[5px] font-extrabold text-navy-900 tracking-tight leading-none mt-0.5">
+        <span className="text-[4.5px] sm:text-[5px] font-extrabold text-navy-900 tracking-tight leading-none mt-0.5">
           CEMENT
         </span>
       </div>
@@ -158,14 +158,14 @@ const brandItems = [
     category: "Steel",
     bgColor: "#FFFFFF",
     renderLogo: () => (
-      <div className="flex flex-col items-center justify-center">
-        <span className="font-black text-[8.5px] text-[#0369A1] tracking-widest leading-none">
+      <div className="flex flex-col items-center justify-center px-1 pointer-events-none">
+        <span className="font-black text-[7.5px] sm:text-[8.5px] text-[#0369A1] tracking-widest leading-none">
           TATA
         </span>
-        <span className="font-black text-[9.5px] text-[#DC2626] tracking-tighter leading-none mt-0.5">
+        <span className="font-black text-[8px] sm:text-[9.5px] text-[#DC2626] tracking-tighter leading-none mt-0.5">
           TISCON
         </span>
-        <span className="text-[5px] font-bold text-slate-400 tracking-tighter leading-none mt-0.5">
+        <span className="text-[4.5px] sm:text-[5px] font-bold text-slate-400 tracking-tighter leading-none mt-0.5">
           550D
         </span>
       </div>
@@ -570,10 +570,12 @@ export default function Home() {
                 className="w-[74px] sm:w-[84px] lg:w-auto shrink-0 lg:shrink flex flex-col items-center text-center group active:scale-95 transition-all"
               >
                 <div
-                  className="w-16 h-16 sm:w-18 sm:h-18 lg:w-20 lg:h-20 rounded-full flex items-center justify-center p-2.5 shadow-[0_2px_8px_-2px_rgba(15,23,42,0.08)] border border-slate-200/90 group-hover:border-brand-500 group-hover:shadow-[0_6px_20px_-4px_rgba(234,88,12,0.2)] group-hover:scale-105 transition-all duration-300 select-none overflow-hidden"
+                  className="w-16 h-16 sm:w-18 sm:h-18 lg:w-20 lg:h-20 rounded-full flex items-center justify-center p-2 shadow-[0_2px_8px_-2px_rgba(15,23,42,0.08)] border border-slate-200/90 group-hover:border-brand-500 group-hover:shadow-[0_6px_20px_-4px_rgba(234,88,12,0.2)] group-hover:scale-105 transition-all duration-300 select-none overflow-hidden"
                   style={{ backgroundColor: b.bgColor }}
                 >
-                  {b.renderLogo()}
+                  <div className="w-full h-full max-w-[82%] max-h-[82%] flex items-center justify-center">
+                    {b.renderLogo()}
+                  </div>
                 </div>
                 <div className="w-full min-h-[22px] flex items-center justify-center text-center mt-1 px-0.5">
                   <span className="text-[11px] sm:text-xs font-black text-navy-950 group-hover:text-brand-600 transition-colors leading-tight tracking-tight line-clamp-2">

@@ -205,20 +205,20 @@ export default function Profile() {
 
         {/* 2 Simple Stat Cards: Active Coupons & Total Orders (Wallet Removed) */}
         {!editing && (
-          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-3.5">
             {/* 1. Active Coupons (Click to view active coupons) */}
             <button
               type="button"
               onClick={() => setShowCouponsModal(true)}
-              className="bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-5 text-center shadow-xs hover:shadow-md hover:border-brand-400 active:scale-[0.98] transition-all cursor-pointer group block"
+              className="bg-white rounded-xl border border-slate-200/90 py-2.5 px-3 sm:py-3.5 sm:px-4 text-center shadow-xs hover:shadow-md hover:border-brand-400 active:scale-[0.98] transition-all cursor-pointer group block"
             >
-              <div className="flex items-center justify-center mb-1.5">
-                <span className="text-[10.5px] font-black text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200/80">Active</span>
+              <div className="flex items-center justify-center mb-1">
+                <span className="text-[9.5px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/80">Active</span>
               </div>
-              <p className="text-xl sm:text-2xl font-black text-brand-600 group-hover:text-brand-700 transition-colors tabular-nums">
+              <p className="text-lg sm:text-xl font-black text-brand-600 group-hover:text-brand-700 transition-colors tabular-nums">
                 {activeCouponsCount} Active
               </p>
-              <p className="text-[11px] font-bold text-slate-500 mt-0.5 flex items-center justify-center gap-1">
+              <p className="text-[10px] font-bold text-slate-500 mt-0.5 flex items-center justify-center gap-1">
                 <span>{activeCouponsCount === 1 ? "Coupon Available" : "Coupons Available"}</span>
                 <span className="text-brand-600 font-bold group-hover:translate-x-0.5 transition-transform">→</span>
               </p>
@@ -228,15 +228,15 @@ export default function Profile() {
             <button
               type="button"
               onClick={() => navigate("/orders")}
-              className="bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-5 text-center shadow-xs hover:shadow-md hover:border-navy-400 active:scale-[0.98] transition-all cursor-pointer group block"
+              className="bg-white rounded-xl border border-slate-200/90 py-2.5 px-3 sm:py-3.5 sm:px-4 text-center shadow-xs hover:shadow-md hover:border-navy-400 active:scale-[0.98] transition-all cursor-pointer group block"
             >
-              <div className="flex items-center justify-center mb-1.5">
-                <span className="text-[10.5px] font-black text-navy-800 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">History</span>
+              <div className="flex items-center justify-center mb-1">
+                <span className="text-[9.5px] font-black text-navy-800 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">History</span>
               </div>
-              <p className="text-xl sm:text-2xl font-black text-navy-950 group-hover:text-brand-600 transition-colors tabular-nums">
+              <p className="text-lg sm:text-xl font-black text-navy-950 group-hover:text-brand-600 transition-colors tabular-nums">
                 {Math.max(ordersSummary?.totalOrders || 0, myOrders.length)}
               </p>
-              <p className="text-[11px] font-bold text-slate-500 mt-0.5 flex items-center justify-center gap-1">
+              <p className="text-[10px] font-bold text-slate-500 mt-0.5 flex items-center justify-center gap-1">
                 <span>Total Orders</span>
                 <span className="text-navy-950 font-bold group-hover:translate-x-0.5 transition-transform">→</span>
               </p>

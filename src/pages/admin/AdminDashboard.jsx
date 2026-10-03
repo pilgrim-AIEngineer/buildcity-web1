@@ -670,10 +670,10 @@ export default function AdminDashboard() {
   const [deletingProductId, setDeletingProductId] = useState(null);
 
   const handleDeleteProduct = async (p) => {
-    showAlert({
+    showConfirm({
       title: "Delete Product?",
       message: `Are you sure you want to delete "${p.name}"? This will also remove it from vendor listings.`,
-      type: "warning",
+      type: "danger",
       confirmText: "Yes, Delete",
       cancelText: "Cancel",
       onConfirm: async () => {

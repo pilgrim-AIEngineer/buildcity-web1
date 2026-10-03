@@ -312,8 +312,14 @@ export function OrderProvider({ children }) {
           }),
         });
 
-        const resData = await response.json();
-        if (resData.success && resData.order) {
+        let resData = null;
+        try {
+          resData = await response.json();
+        } catch {
+          resData = { error: "Network or server connection failed." };
+        }
+
+        if (response.ok && resData?.success && resData?.order) {
           // Har vendor ka alag order id generate hota hai
           const serverOrders = Array.isArray(resData.orders) && resData.orders.length > 0 ? resData.orders : [resData.order];
           ordersSaved = serverOrders.map((so) => normalizeOrder({
@@ -334,7 +340,7 @@ export function OrderProvider({ children }) {
             deliveryFee: Number(so.deliveryFee) || groupDeliveryFee,
           }));
         } else {
-          throw new Error(resData.error || "Order placement failed on server");
+          throw new Error(resData?.error || "Order not placed , please try again.");
         }
       } catch (err) {
         console.error("Order placement error for vendor group:", err.message);

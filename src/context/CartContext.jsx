@@ -229,8 +229,57 @@ export function CartProvider({ children }) {
     });
   };
 
+  const buyNow = (product, quantity = 1) => {
+    const isCustomPack = Boolean(product.packLabel && product.packQty > 1);
+    const item = {
+      id: isCustomPack ? `${product.id}-pack-${product.packQty}` : product.id,
+      productId: product.productId || product.id,
+      name: isCustomPack ? `${product.name} (${product.packLabel})` : product.name,
+      brand: product.brand || "",
+      img: product.img || product.images?.[0] || product.image || "/categories/cement.png",
+      price: Number(product.price) || 0,
+      basePrice: Number(product.basePrice || product.price) || 0,
+      mrp: Number(product.mrp || product.price) || 0,
+      packLabel: product.packLabel || null,
+      packQty: product.packQty || 1,
+      unit: product.unit || "unit",
+      vendorId: product.vendorId || "",
+      vendorName: product.vendorName || "District Vendor",
+      qty: Math.max(1, Number(quantity) || 1),
+      addedRegionId: region?.id || null,
+      addedRegionName: region?.name || null,
+    };
+
+    // Purane kisi bhi item ko hata kar sirf is item ko direct set karte hain
+    setItems([item]);
+    setLastAddedAt(Date.now());
+
+    if (cartStorageKey) {
+      try {
+        localStorage.setItem(cartStorageKey, JSON.stringify([item]));
+        localStorage.removeItem("buildcity_cart_guest");
+      } catch {}
+      if (user?.phone || user?.id) {
+        authFetch(`${API_BASE_URL}/api/v1/cart`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ items: [item] }),
+        }).catch(() => {});
+      }
+    }
+    return item;
+  };
+
   const clearCart = () => {
     setItems([]);
+    try {
+      localStorage.removeItem("buildcity_cart_guest");
+      localStorage.removeItem("buildcity_cart");
+      if (cartStorageKey) {
+        localStorage.setItem(cartStorageKey, JSON.stringify([]));
+      }
+    } catch {}
+
     if (user?.phone || user?.id) {
       try {
         authFetch(`${API_BASE_URL}/api/v1/cart`, {
@@ -240,6 +289,7 @@ export function CartProvider({ children }) {
         }).catch(() => {});
       } catch {}
     }
+    window.dispatchEvent(new CustomEvent("buildcity_cart_cleared"));
   };
 
   // Check karo ki customer ka active district cart ke district se alag toh nahi hai
@@ -329,6 +379,7 @@ export function CartProvider({ children }) {
       value={{
         items,
         addItem,
+        buyNow,
         removeItem,
         updateQty,
         clearCart,

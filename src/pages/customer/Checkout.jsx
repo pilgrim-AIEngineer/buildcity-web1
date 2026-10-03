@@ -318,23 +318,8 @@ export default function Checkout() {
       };
     });
 
-    const immediateOrderNumber = `ORD-${Date.now().toString().slice(-6)}`;
-    const optimisticOrder = {
-      id: immediateOrderNumber,
-      orderNumber: immediateOrderNumber,
-      status: "PENDING",
-      createdAt: new Date().toISOString(),
-      totalAmount: total,
-      total,
-      deliveryFee: 49,
-      items: orderItems,
-      address: targetAddr,
-      customer: user || { name: targetAddr?.fullName || "Customer", phone: targetAddr?.phone || "" },
-      isOptimistic: false,
-    };
-
     // Natural loading delay taaki customer ko smooth confirmation lage
-    const minDelayPromise = new Promise((resolve) => setTimeout(resolve, 2200));
+    const minDelayPromise = new Promise((resolve) => setTimeout(resolve, 1500));
 
     try {
       const [realOrder] = await Promise.all([
@@ -349,23 +334,40 @@ export default function Checkout() {
         minDelayPromise,
       ]);
 
-      const finalOrder = realOrder || optimisticOrder;
+      if (!realOrder || (!realOrder.id && (!Array.isArray(realOrder.orders) || realOrder.orders.length === 0))) {
+        throw new Error("Order not placed , please try again.");
+      }
+
+      // Real database order confirm hone par hi cart clear karo
       clearCart();
-      setSuccessOrder(finalOrder);
+      setSuccessOrder(realOrder);
 
       const customerName = targetAddr?.fullName || user?.name || "Customer";
+      const displayId = formatShortId(realOrder.orderNumber || realOrder.id, "ORD");
       addNotification({
         id: `order_confirmed_${Date.now()}`,
-        title: `Order ${finalOrder.orderNumber || immediateOrderNumber} Confirmed!`,
+        title: `Order ${displayId} Confirmed!`,
         message: `Thank you ${customerName}! Your order of ₹${Number(total).toLocaleString("en-IN")} is placed and sent for dispatch.`,
         type: "order",
         link: `/orders`,
       });
     } catch (err) {
-      console.error("Order placement notice:", err);
-      // Agar network me issue aaye toh local order confirm karke cart clear karo
-      clearCart();
-      setSuccessOrder(optimisticOrder);
+      console.error("Order placement error:", err);
+      // Cart clear NAHI hoga taaki customer ke items cart me safe rahein
+      const rawMsg = err?.message || "";
+      const isNetworkIssue = rawMsg.toLowerCase().includes("failed to fetch") || rawMsg.toLowerCase().includes("network");
+      const displayMsg = isNetworkIssue
+        ? "Network connection issue. Order not placed , please try again."
+        : rawMsg && rawMsg !== "Order placement failed on server"
+        ? rawMsg
+        : "Order not placed , please try again.";
+
+      showAlert({
+        title: "Order Failed",
+        message: displayMsg,
+        type: "error",
+        buttonText: "OK",
+      });
     } finally {
       setPlacing(false);
     }

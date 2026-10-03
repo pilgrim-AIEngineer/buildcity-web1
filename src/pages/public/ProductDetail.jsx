@@ -101,7 +101,7 @@ export default function ProductDetail() {
   const userRole = String(user?.role || "").toLowerCase();
   const isPartner = ["admin", "dr", "district_rep", "vendor"].includes(userRole) || Boolean(user?.drInfo) || Boolean(user?.vendorInfo);
   const isCustomer = Boolean(user && !isPartner);
-  const { addItem } = useCart();
+  const { addItem, buyNow } = useCart();
   const { region } = useRegion();
   const { products = [], masterProducts = [], vendors = [], productsLoading } = useAdmin();
 
@@ -475,7 +475,25 @@ export default function ProductDetail() {
   };
 
   const handleBuyNow = () => {
-    handleAddToCart();
+    const isCustomPack = selectedPack && selectedPack.qty > 1;
+    buyNow(
+      {
+        id: product.id,
+        productId: product.id,
+        name: product.name,
+        brand: product.brand,
+        img: product.images?.[0] || product.image,
+        price: selectedPack ? selectedPack.price : product.price,
+        basePrice: selectedPack ? selectedPack.price : product.price,
+        mrp: selectedPack ? selectedPack.mrp : product.mrp,
+        packLabel: selectedPack ? selectedPack.label : null,
+        packQty: selectedPack ? selectedPack.qty : 1,
+        unit: selectedPack ? selectedPack.unitName : product.unit,
+        vendorId: product.vendorId,
+        vendorName: product.vendorName,
+      },
+      qty
+    );
     navigate("/checkout");
   };
 

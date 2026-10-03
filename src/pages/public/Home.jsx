@@ -664,6 +664,19 @@ export default function Home() {
           )}
         </section>
 
+        {/* Wholesale & 1-Day Delivery Highlight Banner */}
+        <section className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-xs hover:shadow-md transition-all duration-300 group">
+          <Link to="/categories" className="block relative overflow-hidden bg-slate-950">
+            <img
+              src="/images/varanasi_delivery_banner.jpg"
+              alt="Construction materials delivered in 1 day - BuildCity"
+              loading="lazy"
+              className="w-full h-auto max-h-[320px] sm:max-h-[380px] lg:max-h-[420px] object-cover object-center group-hover:scale-[1.015] transition-transform duration-500 block"
+            />
+            <div className="absolute inset-0 ring-1 ring-inset ring-black/5 rounded-2xl sm:rounded-3xl pointer-events-none" />
+          </Link>
+        </section>
+
         {/* 5. Deal of the week (horizontal scroll cards) */}
         {dealOfTheWeekProducts.length > 0 && (
           <section className="space-y-3 bg-slate-50/90 p-3.5 sm:p-4.5 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-2xs">

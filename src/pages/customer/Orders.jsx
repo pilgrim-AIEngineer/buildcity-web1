@@ -294,6 +294,11 @@ export default function Orders() {
                             <span className="text-[10px] font-bold text-slate-500 bg-white/90 px-2 py-0.5 rounded-md border border-slate-200/80">
                               Delivery: ₹{Number(order.deliveryFee !== undefined ? order.deliveryFee : 49)}
                             </span>
+                            {order.couponCode && (
+                              <span className="text-[10px] font-extrabold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
+                                🏷️ {order.couponCode} {Number(order.discountAmount) > 0 ? `(-₹${Number(order.discountAmount).toLocaleString("en-IN")})` : ""}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>

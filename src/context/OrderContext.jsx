@@ -239,7 +239,7 @@ export function OrderProvider({ children }) {
   }, []);
 
   // Order place karna - alag alag vendors ke items ko group karke order banana
-  const placeOrder = async ({ items, address, total, customerId, districtName, regionId, deliveryFee = 49 }) => {
+  const placeOrder = async ({ items, address, total, customerId, districtName, regionId, deliveryFee = 49, couponCode = null, discountAmount = 0 }) => {
     // Items ko vendor details ke sath format karo
     const formattedItems = (items || []).map((it) => ({
       id: it.id || it.productId,
@@ -286,7 +286,9 @@ export function OrderProvider({ children }) {
       );
       // Free delivery check aur delivery fee calculate karo
       const groupDeliveryFee = Number(total) >= 2000 ? 0 : Number(deliveryFee || 49);
-      const groupTotal = groupSubtotal + groupDeliveryFee;
+      const groupDiscount = i === 0 ? Number(discountAmount || 0) : 0;
+      const groupCouponCode = i === 0 && couponCode ? String(couponCode).toUpperCase() : null;
+      const groupTotal = Math.max(0, groupSubtotal + groupDeliveryFee - groupDiscount);
       const groupVendorName = groupItems[0]?.vendorName || "District Vendor";
       const groupVendorId = groupItems[0]?.vendorId || "v1";
 
@@ -302,6 +304,8 @@ export function OrderProvider({ children }) {
             customerId,
             totalAmount: groupTotal,
             deliveryFee: groupDeliveryFee,
+            discountAmount: groupDiscount,
+            couponCode: groupCouponCode,
             districtName: districtName || "Varanasi",
             regionId: regionId || "varanasi",
             address: address || { street: "Main Delivery Address", city: districtName || "Varanasi", state: "Uttar Pradesh", pincode: "221001" },
@@ -338,6 +342,8 @@ export function OrderProvider({ children }) {
             total: Number(so.totalAmount) || groupTotal,
             totalAmount: Number(so.totalAmount) || groupTotal,
             deliveryFee: Number(so.deliveryFee) || groupDeliveryFee,
+            discountAmount: Number(so.discountAmount) || groupDiscount,
+            couponCode: so.couponCode || groupCouponCode,
           }));
         } else {
           throw new Error(resData?.error || "Order not placed , please try again.");

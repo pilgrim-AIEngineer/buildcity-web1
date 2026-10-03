@@ -28,6 +28,9 @@ export default function Cart() {
     cartRegionName,
     currentRegionName,
     updateCartToCurrentRegion,
+    appliedCoupon,
+    applyCoupon,
+    removeCoupon,
   } = useCart();
   const { coupons: adminCoupons = [], products = [], vendors = [] } = useAdmin();
   const { region } = useRegion();
@@ -39,10 +42,15 @@ export default function Cart() {
   const [isUpdatingPrices, setIsUpdatingPrices] = useState(false);
 
   // Apply kiye gaye coupon ka state
-  const [couponCode, setCouponCode] = useState("");
-  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponCode, setCouponCode] = useState(appliedCoupon?.code || "");
   const [couponError, setCouponError] = useState("");
   const [showCouponsModal, setShowCouponsModal] = useState(false);
+
+  useEffect(() => {
+    if (appliedCoupon?.code) {
+      setCouponCode(appliedCoupon.code);
+    }
+  }, [appliedCoupon]);
 
   // Check kar rahe hain ki cart me koi suspended vendor ya out-of-stock item toh nahi hai
   const unavailableItemIds = useMemo(() => {
@@ -224,7 +232,7 @@ export default function Cart() {
       return;
     }
 
-    setAppliedCoupon({
+    applyCoupon({
       ...matched,
       discountAmount: Number(matched.discountAmount) || 0,
       minOrder: Number(matched.minOrder) || 0,
@@ -234,7 +242,7 @@ export default function Cart() {
   };
 
   const handleRemoveCoupon = () => {
-    setAppliedCoupon(null);
+    removeCoupon();
     setCouponCode("");
     setCouponError("");
   };

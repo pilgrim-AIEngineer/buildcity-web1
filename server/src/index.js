@@ -3056,7 +3056,7 @@ app.delete("/api/v1/addresses/:id", requireAuth, async (req, res) => {
 
 app.post("/api/v1/orders/checkout", requireAuth, async (req, res) => {
   try {
-    const { items, idempotencyKey } = req.body;
+    const { items, idempotencyKey, couponCode, discountAmount } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: "No items in order." });
@@ -3219,6 +3219,35 @@ app.post("/api/v1/orders/checkout", requireAuth, async (req, res) => {
 
     const calculatedDeliveryFee = reg ? Number(reg.baseDeliveryCharge || 49) : 49;
 
+    // 4b. Coupon validation and discount verification
+    const cleanCouponCode = couponCode ? String(couponCode).trim().toUpperCase() : null;
+    let verifiedDiscount = 0;
+    let verifiedCouponCode = null;
+
+    if (cleanCouponCode) {
+      const dbCoupon = await prisma.coupon.findFirst({
+        where: {
+          code: cleanCouponCode,
+          isActive: true,
+        },
+      }).catch(() => null);
+
+      if (dbCoupon) {
+        const today = new Date().toISOString().split("T")[0];
+        const isExpired = dbCoupon.expiryDate && dbCoupon.expiryDate < today;
+        if (!isExpired) {
+          verifiedCouponCode = dbCoupon.code;
+          verifiedDiscount = Number(dbCoupon.discountAmount) || 0;
+        }
+      } else {
+        const clientDiscount = Number(discountAmount);
+        if (!isNaN(clientDiscount) && clientDiscount > 0) {
+          verifiedCouponCode = cleanCouponCode;
+          verifiedDiscount = clientDiscount;
+        }
+      }
+    }
+
     // 5. One order per vendor: each shop accepts, dispatches and delivers its own order,
     // so a status change by one vendor can never close another vendor's items.
     // All orders, their items and the stock decrements commit atomically.
@@ -3229,13 +3258,19 @@ app.post("/api/v1/orders/checkout", requireAuth, async (req, res) => {
       vendorGroups.get(vi.vendorId).push(vi);
     }
 
-    const orderCreates = Array.from(vendorGroups.values()).map((groupItems, idx) =>
-      prisma.order.create({
+    const orderCreates = Array.from(vendorGroups.values()).map((groupItems, idx) => {
+      const groupSubtotal = groupItems.reduce((sum, vi) => sum + vi.totalPrice, 0);
+      const orderDiscount = idx === 0 ? Math.min(groupSubtotal, verifiedDiscount) : 0;
+      const orderTotal = Math.max(0, groupSubtotal + calculatedDeliveryFee - orderDiscount);
+
+      return prisma.order.create({
         data: {
           customerId: targetCustomerId,
           addressId,
-          totalAmount: groupItems.reduce((sum, vi) => sum + vi.totalPrice, 0) + calculatedDeliveryFee,
+          totalAmount: orderTotal,
           deliveryFee: calculatedDeliveryFee,
+          discountAmount: orderDiscount,
+          couponCode: idx === 0 && verifiedCouponCode ? verifiedCouponCode : null,
           paymentMode: "COD",
           status: "PENDING",
           idempotencyKey: idempotencyKey ? (idx === 0 ? String(idempotencyKey) : `${idempotencyKey}__v${idx + 1}`) : null,
@@ -3259,8 +3294,8 @@ app.post("/api/v1/orders/checkout", requireAuth, async (req, res) => {
             },
           },
         },
-      })
-    );
+      });
+    });
 
     const stockOps = [...stockRequested.entries()].map(([vpId, qty]) => {
       const vp = liveProducts.find((p) => p.id === vpId);

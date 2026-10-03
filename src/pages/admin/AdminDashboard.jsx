@@ -2088,6 +2088,11 @@ export default function AdminDashboard() {
                           <td className="py-3.5 px-4">
                             <span className="font-black text-navy-900 text-sm">₹{displayAmt.toLocaleString("en-IN")}</span>
                             <span className="block text-[10px] font-bold text-emerald-600 uppercase">💵 COD</span>
+                            {o.couponCode && (
+                              <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200">
+                                🏷️ {o.couponCode} {Number(o.discountAmount) > 0 ? `(-₹${Number(o.discountAmount).toLocaleString("en-IN")})` : ""}
+                              </span>
+                            )}
                           </td>
                           <td className="py-3.5 px-4">
                             <div className="flex items-center gap-2">

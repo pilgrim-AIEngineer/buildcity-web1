@@ -14,7 +14,7 @@ import { API_BASE_URL } from "../../config/api";
 import { formatShortId } from "../../utils/formatId";
 
 export default function Checkout() {
-  const { items, subtotal, mrpTotal = subtotal, clearCart, hasRegionMismatch } = useCart();
+  const { items, subtotal, mrpTotal = subtotal, clearCart, hasRegionMismatch, appliedCoupon, applyCoupon, removeCoupon } = useCart();
   const { placeOrder } = useOrders();
   const { showAlert } = useAlert();
   const { addNotification } = useNotifications();
@@ -49,8 +49,9 @@ export default function Checkout() {
     }
     return mrpTotal;
   }, [directItem, mrpTotal]);
+
   const { user, updateProfile } = useAuth();
-  const { products = [], vendors = [] } = useAdmin() || {};
+  const { products = [], vendors = [], coupons = [] } = useAdmin() || {};
   const { region } = useRegion();
   const { addresses: contextAddresses = [], addAddress: addContextAddress } = useAddresses();
 
@@ -58,6 +59,10 @@ export default function Checkout() {
   const [selectedAddrId, setSelectedAddrId] = useState("");
   const [payment, setPayment] = useState("cod");
   const [placing, setPlacing] = useState(false);
+
+  // Checkout coupon input state
+  const [checkoutCouponCode, setCheckoutCouponCode] = useState("");
+  const [couponError, setCouponError] = useState("");
 
   // Naya address add karne ke modal ka state
   const [showAddModal, setShowAddModal] = useState(false);
@@ -162,9 +167,49 @@ export default function Checkout() {
 
   const baseDeliveryFee = Number(region?.baseDeliveryCharge) || 49;
   const deliveryCharge = checkoutSubtotal >= 25000 ? 0 : baseDeliveryFee;
-  const total = checkoutSubtotal + deliveryCharge;
+  const couponDiscount = useMemo(() => {
+    if (!appliedCoupon) return 0;
+    const minOrderVal = Number(appliedCoupon.minOrder) || 0;
+    if (checkoutSubtotal < minOrderVal) return 0;
+    return Number(appliedCoupon.discountAmount) || 0;
+  }, [appliedCoupon, checkoutSubtotal]);
+  const total = Math.max(0, checkoutSubtotal + deliveryCharge - couponDiscount);
   const hasDeliverableAddress = dbAddresses.some((a) => isDeliverableInRegion(a, region?.name));
   const activeAddress = dbAddresses.find((a) => a.id === selectedAddrId && isDeliverableInRegion(a, region?.name));
+
+  const handleApplyCheckoutCoupon = (e) => {
+    e?.preventDefault?.();
+    const code = (checkoutCouponCode || "").trim().toUpperCase();
+    setCouponError("");
+    if (!code) return;
+
+    const list = Array.isArray(coupons) && coupons.length > 0 ? coupons : [
+      { code: "BUILDCITY100", title: "Flat ₹100 OFF", minOrder: 1000, discountAmount: 100, expiryDate: "2026-12-31", isActive: true },
+      { code: "SUPER500", title: "Flat ₹500 OFF", minOrder: 5000, discountAmount: 500, expiryDate: "2026-12-31", isActive: true },
+      { code: "WELCOME200", title: "Flat ₹200 OFF", minOrder: 1500, discountAmount: 200, expiryDate: "2026-12-31", isActive: true },
+    ];
+    const matched = list.find((c) => c.code === code);
+    if (!matched) {
+      setCouponError(`Invalid coupon code "${code}". Please enter a valid coupon.`);
+      return;
+    }
+    const todayStr = new Date().toISOString().split("T")[0];
+    if (matched.isActive === false || (matched.expiryDate && matched.expiryDate < todayStr)) {
+      setCouponError(`Coupon code "${matched.code}" is expired or inactive.`);
+      return;
+    }
+    if (checkoutSubtotal < (Number(matched.minOrder) || 0)) {
+      setCouponError(`Minimum order value ₹${Number(matched.minOrder || 0).toLocaleString("en-IN")} required.`);
+      return;
+    }
+
+    applyCoupon({
+      ...matched,
+      discountAmount: Number(matched.discountAmount) || 0,
+      minOrder: Number(matched.minOrder) || 0,
+    });
+    setCheckoutCouponCode("");
+  };
 
   const fetchWithRetry = async (url, options = {}, retries = 3) => {
     for (let i = 0; i < retries; i++) {
@@ -360,6 +405,8 @@ export default function Checkout() {
           total,
           districtName: activeRegionName,
           regionId: activeRegionId,
+          couponCode: appliedCoupon && couponDiscount > 0 ? appliedCoupon.code : null,
+          discountAmount: couponDiscount || 0,
         }),
         minDelayPromise,
       ]);
@@ -619,6 +666,55 @@ export default function Checkout() {
               </div>
             </div>
 
+            {/* Promo / Coupon Code Section */}
+            <div className="bg-white rounded-xl border border-slate-200 p-4">
+              <h3 className="text-sm font-bold text-navy-900 mb-2 flex items-center justify-between">
+                <span>🏷️ Have a Coupon / Promo Code?</span>
+                {appliedCoupon && couponDiscount > 0 && (
+                  <span className="text-[11px] text-emerald-600 font-bold">✓ Coupon Applied</span>
+                )}
+              </h3>
+              {appliedCoupon && couponDiscount > 0 ? (
+                <div className="flex items-center justify-between p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
+                  <div>
+                    <span className="text-xs font-black text-emerald-800 tracking-wide uppercase font-mono">{appliedCoupon.code}</span>
+                    <p className="text-[11px] text-emerald-600 font-medium">₹{couponDiscount.toLocaleString("en-IN")} discount applied to your order</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={removeCoupon}
+                    className="text-xs font-bold text-red-600 hover:text-red-800 bg-white border border-red-200 px-2.5 py-1 rounded-lg cursor-pointer transition-colors"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <form onSubmit={handleApplyCheckoutCoupon} className="flex gap-2">
+                    <input
+                      type="text"
+                      value={checkoutCouponCode}
+                      onChange={(e) => {
+                        setCheckoutCouponCode(e.target.value.toUpperCase());
+                        setCouponError("");
+                      }}
+                      placeholder="e.g. BUILDCITY100"
+                      className="flex-1 text-xs border border-slate-200 rounded-lg px-3 py-2 uppercase font-mono font-bold tracking-wider outline-none focus:border-brand-500"
+                    />
+                    <button
+                      type="submit"
+                      className="bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold px-4 py-2 rounded-lg cursor-pointer transition-all active:scale-95"
+                    >
+                      Apply
+                    </button>
+                  </form>
+                  {couponError && (
+                    <p className="text-[11px] text-red-600 font-medium mt-1.5">{couponError}</p>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* Order me add kiye gaye items */}
             <div className="bg-white rounded-xl border border-slate-200 p-4">
               <h3 className="text-sm font-bold text-navy-900 mb-3">
@@ -661,6 +757,22 @@ export default function Checkout() {
                 <span>Discount</span>
                 <span>− ₹{(checkoutMrpTotal - checkoutSubtotal).toLocaleString("en-IN")}</span>
               </div>
+              {appliedCoupon && couponDiscount > 0 && (
+                <div className="flex justify-between items-center text-emerald-700 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-200">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-extrabold text-xs">🏷️ {appliedCoupon.code}</span>
+                    <button
+                      type="button"
+                      onClick={removeCoupon}
+                      className="text-[10px] text-red-500 hover:text-red-700 font-bold ml-1 cursor-pointer"
+                      title="Remove coupon"
+                    >
+                      (✕ Remove)
+                    </button>
+                  </div>
+                  <span className="font-black">− ₹{couponDiscount.toLocaleString("en-IN")}</span>
+                </div>
+              )}
               <div className="flex justify-between text-slate-500">
                 <span>Delivery</span>
                 <span className={deliveryCharge === 0 ? "text-success" : ""}>

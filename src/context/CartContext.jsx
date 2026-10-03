@@ -16,6 +16,34 @@ export function CartProvider({ children }) {
   const [lastAddedAt, setLastAddedAt] = useState(0);
   const isInitialCloudSyncDone = useRef(false);
 
+  // Applied Coupon state persisted in localStorage
+  const [appliedCoupon, setAppliedCoupon] = useState(() => {
+    try {
+      const saved = localStorage.getItem("buildcity_applied_coupon");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const applyCoupon = (coupon) => {
+    setAppliedCoupon(coupon);
+    try {
+      if (coupon) {
+        localStorage.setItem("buildcity_applied_coupon", JSON.stringify(coupon));
+      } else {
+        localStorage.removeItem("buildcity_applied_coupon");
+      }
+    } catch {}
+  };
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    try {
+      localStorage.removeItem("buildcity_applied_coupon");
+    } catch {}
+  };
+
   // Logged in user ya guest ke liye alag localStorage key nikal rahe hain
   // Partner accounts (admin, dr, vendor) ka shopping cart nahi hota toh unhe skip kiya
   const isPartner = ["admin", "dr", "vendor"].includes(String(user?.role || "").toLowerCase());
@@ -253,6 +281,7 @@ export function CartProvider({ children }) {
 
   const clearCart = () => {
     setItems([]);
+    removeCoupon();
     try {
       localStorage.removeItem("buildcity_cart_guest");
       localStorage.removeItem("buildcity_cart");
@@ -374,6 +403,10 @@ export function CartProvider({ children }) {
         currentRegionName,
         hasRegionMismatch,
         updateCartToCurrentRegion,
+        appliedCoupon,
+        applyCoupon,
+        removeCoupon,
+        couponDiscount: appliedCoupon ? Number(appliedCoupon.discountAmount || 0) : 0,
       }}
     >
       {children}

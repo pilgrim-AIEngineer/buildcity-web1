@@ -176,7 +176,9 @@ const loadInitialBanners = () => {
     const saved = localStorage.getItem(BANNERS_STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.sort((a, b) => (Number(a.displayOrder) || 0) - (Number(b.displayOrder) || 0));
+      }
     }
   } catch {}
   return seedBanners;
@@ -410,7 +412,7 @@ export function AdminProvider({ children }) {
           const recent = getRecentEdit(b.id);
           if (recent) item = { ...item, ...recent };
           return item;
-        });
+        }).sort((a, b) => (Number(a.displayOrder) || 0) - (Number(b.displayOrder) || 0));
         setBanners((prev) => (JSON.stringify(prev) === JSON.stringify(formattedBanners) ? prev : formattedBanners));
         try {
           localStorage.setItem(BANNERS_STORAGE_KEY, JSON.stringify(formattedBanners));
@@ -549,7 +551,7 @@ export function AdminProvider({ children }) {
           const recent = getRecentEdit(b.id);
           if (recent) item = { ...item, ...recent };
           return item;
-        });
+        }).sort((a, b) => (Number(a.displayOrder) || 0) - (Number(b.displayOrder) || 0));
         localStorage.setItem(BANNERS_STORAGE_KEY, JSON.stringify(formattedBanners));
         setBanners((prev) => (JSON.stringify(prev) === JSON.stringify(formattedBanners) ? prev : formattedBanners));
       }
@@ -1576,8 +1578,50 @@ export function AdminProvider({ children }) {
     }
   };
 
+  const setBannerPosition = async (id, newPosition) => {
+    const targetPos = Math.max(1, parseInt(newPosition, 10) || 1);
+    let finalUpdated = [];
+
+    setBanners((prev) => {
+      const sorted = [...prev].sort((a, b) => (Number(a.displayOrder) || 0) - (Number(b.displayOrder) || 0));
+      const currentIdx = sorted.findIndex((b) => b.id === id);
+      if (currentIdx === -1) return prev;
+
+      const targetIdx = Math.max(0, Math.min(sorted.length - 1, targetPos - 1));
+      if (currentIdx === targetIdx) return prev;
+
+      const [moved] = sorted.splice(currentIdx, 1);
+      sorted.splice(targetIdx, 0, moved);
+
+      finalUpdated = sorted.map((b, idx) => ({
+        ...b,
+        displayOrder: idx + 1,
+      }));
+
+      try {
+        localStorage.setItem(BANNERS_STORAGE_KEY, JSON.stringify(finalUpdated));
+        window.dispatchEvent(new Event("buildcity_banners_updated"));
+      } catch {}
+
+      return finalUpdated;
+    });
+
+    if (finalUpdated.length > 0) {
+      for (const b of finalUpdated) {
+        recentEditsRef.current.set(String(b.id), { updates: { displayOrder: b.displayOrder }, timestamp: Date.now() });
+        authFetch(`${API_BASE_URL}/api/v1/banners/${encodeURIComponent(b.id)}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ displayOrder: b.displayOrder }),
+        }).catch((e) => console.warn("Sync banner position note:", e.message));
+      }
+    }
+  };
+
   const addBanner = async (bannerData) => {
     if (!bannerData || !bannerData.imageUrl) throw new Error("Image URL is required");
+
+    const desiredOrder = Math.max(1, Number(bannerData.displayOrder) || (banners.length + 1));
 
     const payload = {
       tag: bannerData.tag || "BUILD YOUR DREAM SPACE",
@@ -1585,9 +1629,10 @@ export function AdminProvider({ children }) {
       imageUrl: bannerData.imageUrl.trim(),
       targetUrl: bannerData.targetUrl || "/categories",
       isActive: bannerData.isActive !== false,
-      displayOrder: Number(bannerData.displayOrder) || (banners.length + 1),
+      displayOrder: desiredOrder,
     };
 
+    let saved = null;
     try {
       const res = await authFetch(`${API_BASE_URL}/api/v1/banners`, {
         method: "POST",
@@ -1595,42 +1640,63 @@ export function AdminProvider({ children }) {
         body: JSON.stringify(payload),
       });
       if (res.ok) {
-        const saved = await res.json();
-        setBanners((prev) => {
-          const updated = [...prev.filter((b) => b.id !== saved.id), saved];
-          localStorage.setItem(BANNERS_STORAGE_KEY, JSON.stringify(updated));
-          window.dispatchEvent(new Event("buildcity_banners_updated"));
-          return updated;
-        });
-        return saved;
+        saved = await res.json();
       }
     } catch (err) {
       console.warn("DB Banner save note:", err.message);
     }
 
-    const fallbackBanner = {
-      id: "b-" + Date.now(),
-      ...payload,
-      createdAt: new Date().toISOString(),
-    };
+    if (!saved) {
+      saved = {
+        id: "b-" + Date.now(),
+        ...payload,
+        createdAt: new Date().toISOString(),
+      };
+    }
 
+    let finalUpdated = [];
     setBanners((prev) => {
-      const updated = [...prev, fallbackBanner];
-      localStorage.setItem(BANNERS_STORAGE_KEY, JSON.stringify(updated));
-      window.dispatchEvent(new Event("buildcity_banners_updated"));
-      return updated;
+      const filtered = prev.filter((b) => b.id !== saved.id).sort((a, b) => (Number(a.displayOrder) || 0) - (Number(b.displayOrder) || 0));
+      const targetIdx = Math.max(0, Math.min(filtered.length, desiredOrder - 1));
+      filtered.splice(targetIdx, 0, saved);
+
+      finalUpdated = filtered.map((b, idx) => ({ ...b, displayOrder: idx + 1 }));
+      try {
+        localStorage.setItem(BANNERS_STORAGE_KEY, JSON.stringify(finalUpdated));
+        window.dispatchEvent(new Event("buildcity_banners_updated"));
+      } catch {}
+      return finalUpdated;
     });
 
-    return fallbackBanner;
+    if (finalUpdated.length > 0) {
+      for (const b of finalUpdated) {
+        if (b.id !== saved.id) {
+          recentEditsRef.current.set(String(b.id), { updates: { displayOrder: b.displayOrder }, timestamp: Date.now() });
+          authFetch(`${API_BASE_URL}/api/v1/banners/${encodeURIComponent(b.id)}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ displayOrder: b.displayOrder }),
+          }).catch(() => {});
+        }
+      }
+    }
+
+    return saved;
   };
 
   const updateBanner = async (id, updates) => {
     recentEditsRef.current.set(String(id), { updates, timestamp: Date.now() });
 
+    if (updates.displayOrder !== undefined && Number(updates.displayOrder) > 0) {
+      await setBannerPosition(id, Number(updates.displayOrder));
+    }
+
     setBanners((prev) => {
       const updated = prev.map((b) => (b.id === id ? { ...b, ...updates } : b));
-      localStorage.setItem(BANNERS_STORAGE_KEY, JSON.stringify(updated));
-      window.dispatchEvent(new Event("buildcity_banners_updated"));
+      try {
+        localStorage.setItem(BANNERS_STORAGE_KEY, JSON.stringify(updated));
+        window.dispatchEvent(new Event("buildcity_banners_updated"));
+      } catch {}
       return updated;
     });
 
@@ -1644,7 +1710,9 @@ export function AdminProvider({ children }) {
         const saved = await res.json();
         setBanners((prev) => {
           const updated = prev.map((b) => (b.id === saved.id ? { ...b, ...saved } : b));
-          localStorage.setItem(BANNERS_STORAGE_KEY, JSON.stringify(updated));
+          try {
+            localStorage.setItem(BANNERS_STORAGE_KEY, JSON.stringify(updated));
+          } catch {}
           return updated;
         });
       }
@@ -1687,17 +1755,22 @@ export function AdminProvider({ children }) {
   const removeBanner = async (id) => {
     recentEditsRef.current.delete(String(id));
     setBanners((prev) => {
-      const updated = prev.filter((b) => b.id !== id);
-      localStorage.setItem(BANNERS_STORAGE_KEY, JSON.stringify(updated));
+      const remaining = prev
+        .filter((b) => b.id !== id)
+        .sort((a, b) => (Number(a.displayOrder) || 0) - (Number(b.displayOrder) || 0))
+        .map((b, idx) => ({ ...b, displayOrder: idx + 1 }));
+      localStorage.setItem(BANNERS_STORAGE_KEY, JSON.stringify(remaining));
       window.dispatchEvent(new Event("buildcity_banners_updated"));
-      return updated;
+      return remaining;
     });
 
     try {
       await authFetch(`${API_BASE_URL}/api/v1/banners/${encodeURIComponent(id)}`, {
         method: "DELETE",
       });
-    } catch {}
+    } catch (err) {
+      console.warn("Delete banner note:", err.message);
+    }
   };
 
   const addMasterProduct = async (mpData) => {
@@ -2101,6 +2174,7 @@ export function AdminProvider({ children }) {
         updateBanner,
         toggleBannerActive,
         removeBanner,
+        setBannerPosition,
         addMasterProduct,
         updateMasterProduct,
         removeMasterProduct,

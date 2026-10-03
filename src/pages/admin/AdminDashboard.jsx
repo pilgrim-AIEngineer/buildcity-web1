@@ -89,6 +89,7 @@ export default function AdminDashboard() {
     updateBanner,
     removeBanner,
     toggleBannerActive,
+    setBannerPosition,
     addMasterProduct,
     updateMasterProduct,
     removeMasterProduct,
@@ -225,6 +226,7 @@ export default function AdminDashboard() {
     imageUrl: "",
     targetUrl: "/categories",
     isActive: true,
+    displayOrder: 1,
   });
   const [isSubmittingBanner, setIsSubmittingBanner] = useState(false);
   const [deletingBannerId, setDeletingBannerId] = useState(null);
@@ -342,7 +344,7 @@ export default function AdminDashboard() {
     setIsSubmittingBanner(true);
     try {
       await addBanner(bannerForm);
-      setBannerForm({ tag: "", title: "", imageUrl: "", targetUrl: "/categories", isActive: true });
+      setBannerForm({ tag: "", title: "", imageUrl: "", targetUrl: "/categories", isActive: true, displayOrder: 1 });
       setShowBannerForm(false);
       showAlert({ title: "Banner Created", message: "New homepage hero banner added successfully!", type: "success" });
     } catch (err) {
@@ -588,6 +590,11 @@ export default function AdminDashboard() {
       editingProduct.img3 !== undefined ? editingProduct.img3 : (list[2] || ""),
     ];
   }, [editingProduct]);
+
+  // Homepage hero carousel banners sorted by user-selected displayOrder sequence
+  const sortedBanners = useMemo(() => {
+    return [...(banners || [])].sort((a, b) => (Number(a.displayOrder) || 0) - (Number(b.displayOrder) || 0));
+  }, [banners]);
 
   const handleEditImageSlotChange = (slotIdx, val) => {
     if (!editingProduct) return;
@@ -2506,7 +2513,7 @@ export default function AdminDashboard() {
               <form onSubmit={handleAddBanner} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-4 animate-in fade-in duration-200">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                   <h4 className="font-bold text-navy-900 text-xs uppercase tracking-wider">Create New Homepage Banner</h4>
-                  <span className="text-[11px] text-slate-400 font-medium">Recommended ratio: 16:8 or 24:8 landscape banner</span>
+                  <span className="text-[11px] text-slate-400 font-medium">Recommended: 16:9 standard landscape banner (1920×1080 / 1280×720)</span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2595,17 +2602,41 @@ export default function AdminDashboard() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 pt-1">
-                      <input
-                        type="checkbox"
-                        id="banner_active_checkbox"
-                        checked={bannerForm.isActive}
-                        onChange={(e) => setBannerForm({ ...bannerForm, isActive: e.target.checked })}
-                        className="w-4 h-4 text-brand-600 rounded cursor-pointer"
-                      />
-                      <label htmlFor="banner_active_checkbox" className="text-xs font-bold text-navy-900 cursor-pointer">
-                        Active & Visible on Homepage
-                      </label>
+                    {/* Slider Position (Slide Number) & Active Selector */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-slate-100">
+                      <div>
+                        <label className="block text-xs font-bold text-navy-900 mb-1">
+                          Slider Position (Slide Number) *
+                        </label>
+                        <select
+                          value={bannerForm.displayOrder}
+                          onChange={(e) => setBannerForm({ ...bannerForm, displayOrder: Number(e.target.value) })}
+                          className="w-full bg-slate-50 text-xs border border-slate-200 rounded-xl px-3 py-2 outline-none font-bold text-navy-900 focus:border-brand-500 cursor-pointer"
+                        >
+                          <option value={1}>Slide 1 (First Slide)</option>
+                          {sortedBanners.map((_, i) => (
+                            <option key={i + 2} value={i + 2}>
+                              Slide {i + 2} {i + 1 === sortedBanners.length ? "(Last Slide)" : ""}
+                            </option>
+                          ))}
+                        </select>
+                        <p className="text-[10.5px] text-slate-500 mt-1">
+                          Select the slide sequence number. Other banners will auto-shift accordingly.
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2 sm:pt-6">
+                        <input
+                          type="checkbox"
+                          id="banner_active_checkbox"
+                          checked={bannerForm.isActive}
+                          onChange={(e) => setBannerForm({ ...bannerForm, isActive: e.target.checked })}
+                          className="w-4 h-4 text-brand-600 rounded cursor-pointer"
+                        />
+                        <label htmlFor="banner_active_checkbox" className="text-xs font-bold text-navy-900 cursor-pointer">
+                          Active & Visible on Homepage
+                        </label>
+                      </div>
                     </div>
                   </div>
 
@@ -2659,13 +2690,14 @@ export default function AdminDashboard() {
               </form>
             )}
 
-            {/* BANNERS LIST GRID */}
+            {/* BANNERS LIST GRID - Order sorted sequence */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {(banners || []).map((b, idx) => {
+              {sortedBanners.map((b, idx) => {
                 const isActive = b.isActive !== false;
                 const bImg = b.imageUrl || b.img;
                 const bTag = b.tag || "HERO BANNER";
-                const bTitle = b.title || `Homepage Slide #${idx + 1}`;
+                const currentPos = b.displayOrder || (idx + 1);
+                const bTitle = b.title || `Homepage Slide #${currentPos}`;
                 const bLink = b.targetUrl || b.link || "/categories";
 
                 return (
@@ -2687,9 +2719,49 @@ export default function AdminDashboard() {
                         <span className={`absolute top-2 right-2 text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs ${isActive ? "bg-emerald-500 text-white" : "bg-slate-700 text-white"}`}>
                           {isActive ? "ACTIVE" : "INACTIVE"}
                         </span>
-                        <span className="absolute bottom-2 left-2 text-[10px] font-mono font-bold bg-black/60 text-white px-2 py-0.5 rounded-md backdrop-blur-xs">
-                          Slide #{idx + 1}
+                        <span className="absolute bottom-2 left-2 text-[11px] font-extrabold bg-navy-950/85 text-white px-2.5 py-1 rounded-lg backdrop-blur-xs flex items-center border border-white/20 shadow-md">
+                          Slide #{currentPos}
                         </span>
+                      </div>
+
+                      {/* Slider Sequence Position Control Dropdown & Quick Shift Buttons */}
+                      <div className="flex items-center justify-between bg-slate-50 border border-slate-200/90 rounded-xl p-2 gap-2">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="text-[11px] font-extrabold text-navy-900 shrink-0">Slider No:</span>
+                          <select
+                            value={currentPos}
+                            onChange={(e) => setBannerPosition(b.id, Number(e.target.value))}
+                            className="bg-white text-navy-950 font-black text-xs px-2.5 py-1 rounded-lg border border-slate-300 outline-none cursor-pointer focus:ring-2 focus:ring-brand-500 shadow-2xs"
+                            title="Slide Number"
+                          >
+                            {sortedBanners.map((_, sIdx) => (
+                              <option key={sIdx + 1} value={sIdx + 1}>
+                                Slide {sIdx + 1} {sIdx === 0 ? "(First)" : ""}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            disabled={idx === 0}
+                            onClick={() => setBannerPosition(b.id, currentPos - 1)}
+                            className="px-2.5 py-1 text-[11px] font-bold bg-white hover:bg-slate-100 text-slate-700 rounded-lg border border-slate-200 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer active:scale-95 transition-all shadow-2xs"
+                            title="Move Up"
+                          >
+                            &larr; Up
+                          </button>
+                          <button
+                            type="button"
+                            disabled={idx === sortedBanners.length - 1}
+                            onClick={() => setBannerPosition(b.id, currentPos + 1)}
+                            className="px-2.5 py-1 text-[11px] font-bold bg-white hover:bg-slate-100 text-slate-700 rounded-lg border border-slate-200 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer active:scale-95 transition-all shadow-2xs"
+                            title="Move Down"
+                          >
+                            Down &rarr;
+                          </button>
+                        </div>
                       </div>
 
                       {/* Details */}
@@ -2723,7 +2795,7 @@ export default function AdminDashboard() {
                       </button>
                       <div className="flex items-center gap-1.5">
                         <button
-                          onClick={() => setEditingBanner({ ...b, imageUrl: bImg, tag: bTag, title: bTitle, targetUrl: bLink, isActive })}
+                          onClick={() => setEditingBanner({ ...b, imageUrl: bImg, tag: bTag, title: bTitle, targetUrl: bLink, isActive, displayOrder: currentPos })}
                           className="text-[11px] font-extrabold bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg px-2.5 py-1 cursor-pointer active:scale-95 transition-all"
                         >
                           ✏️ Edit
@@ -3097,17 +3169,39 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="edit_banner_active"
-                  checked={editingBanner.isActive !== false}
-                  onChange={(e) => setEditingBanner({ ...editingBanner, isActive: e.target.checked })}
-                  className="w-4 h-4 text-brand-600 rounded cursor-pointer"
-                />
-                <label htmlFor="edit_banner_active" className="text-xs font-bold text-navy-900 cursor-pointer">
-                  Active & Visible on Homepage
-                </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-slate-100">
+                <div>
+                  <label className="block text-xs font-bold text-navy-900 mb-1">
+                    Slider Position (Slide Number)
+                  </label>
+                  <select
+                    value={editingBanner.displayOrder || 1}
+                    onChange={(e) => setEditingBanner({ ...editingBanner, displayOrder: Number(e.target.value) })}
+                    className="w-full bg-slate-50 text-xs border border-slate-200 rounded-xl px-3 py-2 outline-none font-bold text-navy-900 focus:border-brand-500 cursor-pointer"
+                  >
+                    {sortedBanners.map((_, i) => (
+                      <option key={i + 1} value={i + 1}>
+                        Slide {i + 1} {i === 0 ? "(First Slide)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[10px] text-slate-500 mt-0.5">
+                    Changing position will reorder the other slides accordingly.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 sm:pt-6">
+                  <input
+                    type="checkbox"
+                    id="edit_banner_active"
+                    checked={editingBanner.isActive !== false}
+                    onChange={(e) => setEditingBanner({ ...editingBanner, isActive: e.target.checked })}
+                    className="w-4 h-4 text-brand-600 rounded cursor-pointer"
+                  />
+                  <label htmlFor="edit_banner_active" className="text-xs font-bold text-navy-900 cursor-pointer">
+                    Active & Visible on Homepage
+                  </label>
+                </div>
               </div>
 
               <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">

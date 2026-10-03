@@ -454,8 +454,8 @@ export default function Home() {
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
         >
-          {/* Main banner image container (16:9 standard ratio taaki niche ka hissa na kate) */}
-          <div className="relative aspect-[16/9] sm:aspect-[16/9] md:aspect-[1.8/1] w-full flex items-stretch cursor-grab active:cursor-grabbing touch-manipulation">
+          {/* Main banner image container (5:2 ratio) */}
+          <div className="relative aspect-[5/2] sm:aspect-[5/2] w-full flex items-stretch cursor-grab active:cursor-grabbing touch-manipulation">
             {activeSlides.map((b, i) => (
               <div
                 key={b.id || i}

@@ -2513,7 +2513,7 @@ export default function AdminDashboard() {
               <form onSubmit={handleAddBanner} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-4 animate-in fade-in duration-200">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                   <h4 className="font-bold text-navy-900 text-xs uppercase tracking-wider">Create New Homepage Banner</h4>
-                  <span className="text-[11px] text-slate-400 font-medium">Recommended: 16:9 standard landscape banner (1920×1080 / 1280×720)</span>
+                  <span className="text-[11px] text-slate-400 font-medium">Recommended: 5:2 landscape banner (e.g. 1200×480 or 1000×400)</span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -53,8 +53,10 @@ export function getOrderView(ord, districtName, now = Date.now()) {
   if (itemsSubtotal === 0) {
     itemsSubtotal = Number(ord.vendorItemsTotal || ord.totalAmount || ord.total || 0);
   }
-  const rawTotal = Number(ord.totalAmount || ord.total || itemsSubtotal);
-  const grandTotal = rawTotal > itemsSubtotal && rawTotal >= itemsSubtotal + deliveryFee ? rawTotal : itemsSubtotal + deliveryFee;
+  const discountAmount = Number(ord.discountAmount || 0);
+  const couponCode = ord.couponCode || null;
+  const rawTotal = Number(ord.totalAmount || ord.total || 0);
+  const grandTotal = rawTotal > 0 ? rawTotal : Math.max(0, itemsSubtotal + deliveryFee - discountAmount);
 
   const items = rawItems.map((it, idx) => {
     let lineTotal = pricedLine(it);
@@ -82,6 +84,8 @@ export function getOrderView(ord, districtName, now = Date.now()) {
     splitOf: allItemsCount > items.length ? allItemsCount : 0,
     itemsSubtotal,
     deliveryFee,
+    discountAmount,
+    couponCode,
     grandTotal,
   };
 }

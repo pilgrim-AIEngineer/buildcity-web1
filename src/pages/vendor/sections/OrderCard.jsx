@@ -74,11 +74,22 @@ export default function OrderCard({ order, index = 0, now, districtName, custome
             <p className={cx("text-xs", collect ? cx("font-medium", view.status === "PENDING" ? "text-coral-700" : "text-slate-700") : "text-slate-400")}>
               {collect ? "Collect" : view.payment.collect ? "Cash" : "Paid online"}
             </p>
+            {view.couponCode && (
+              <span className="inline-block text-[9.5px] font-black text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.5 rounded mt-0.5">
+                🏷️ {view.couponCode}
+              </span>
+            )}
           </div>
         </header>
 
         <OrderAddress party={view.party} />
-        <OrderItems items={view.items} deliveryFee={view.deliveryFee} splitOf={view.splitOf} />
+        <OrderItems
+          items={view.items}
+          deliveryFee={view.deliveryFee}
+          splitOf={view.splitOf}
+          discountAmount={view.discountAmount}
+          couponCode={view.couponCode}
+        />
       </div>
 
       {/* Progress + actions */}

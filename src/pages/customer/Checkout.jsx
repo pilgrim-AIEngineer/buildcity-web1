@@ -759,17 +759,7 @@ export default function Checkout() {
               </div>
               {appliedCoupon && couponDiscount > 0 && (
                 <div className="flex justify-between items-center text-emerald-700 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-200">
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-extrabold text-xs">🏷️ {appliedCoupon.code}</span>
-                    <button
-                      type="button"
-                      onClick={removeCoupon}
-                      className="text-[10px] text-red-500 hover:text-red-700 font-bold ml-1 cursor-pointer"
-                      title="Remove coupon"
-                    >
-                      (✕ Remove)
-                    </button>
-                  </div>
+                  <span className="font-extrabold text-xs">🏷️ Coupon ({appliedCoupon.code})</span>
                   <span className="font-black">− ₹{couponDiscount.toLocaleString("en-IN")}</span>
                 </div>
               )}

@@ -98,7 +98,10 @@ export default function OrderDetail() {
   }, [order?.id, currentStepIndex, isDelivered]);
 
   const orderDateStr = order.date || order.createdAt || new Date().toISOString();
-  const displayTotal = Number(order.total || order.totalAmount || 0);
+  const matSubtotal = (order.items || []).reduce((sum, it) => sum + (Number(it.totalPrice) || (Number(it.quantity || 1) * Number(it.priceAtPurchase || 100))), 0);
+  const delCharge = Number(order.deliveryFee !== undefined ? order.deliveryFee : 49);
+  const discAmount = Number(order.discountAmount || 0);
+  const displayTotal = Number(order.totalAmount || order.total) || Math.max(0, matSubtotal + delCharge - discAmount);
 
   return (
     <div className="min-h-screen bg-surface pb-20 font-sans">
@@ -285,6 +288,15 @@ export default function OrderDetail() {
               <span>District Delivery Fee</span>
               <span className="font-bold text-brand-600">₹{Number(order.deliveryFee !== undefined ? order.deliveryFee : 49).toLocaleString("en-IN")}</span>
             </div>
+            {Number(order.discountAmount) > 0 && (
+              <div className="flex justify-between items-center text-emerald-700 font-semibold bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-200">
+                <span className="font-extrabold flex items-center gap-1.5">
+                  <span>🏷️</span>
+                  <span>Coupon Discount ({order.couponCode || "Applied"})</span>
+                </span>
+                <span className="font-black">− ₹{Number(order.discountAmount).toLocaleString("en-IN")}</span>
+              </div>
+            )}
             <div className="pt-2 border-t border-slate-200/80 flex justify-between items-center text-sm font-black text-navy-950">
               <div>
                 <span>Total Amount</span>

@@ -6,7 +6,7 @@ const MAX_ROWS_UNFOLDED = 4;
 const PREVIEW_ROWS = 3;
 
 // One line per item ("50 × Name … ₹line"); tap a row for its unit rate. Delivery closes the list.
-export default function OrderItems({ items, deliveryFee, splitOf }) {
+export default function OrderItems({ items, deliveryFee, splitOf, discountAmount, couponCode }) {
   const [expanded, setExpanded] = useState(false);
   const [rateFor, setRateFor] = useState(null);
   const foldable = items.length > MAX_ROWS_UNFOLDED;
@@ -60,6 +60,13 @@ export default function OrderItems({ items, deliveryFee, splitOf }) {
           <span className="flex-1">Delivery</span>
           <span className="shrink-0 tabular-nums">{deliveryFee > 0 ? inr(deliveryFee) : "Free"}</span>
         </li>
+        {Number(discountAmount) > 0 && (
+          <li className="flex items-baseline gap-2 text-emerald-700 font-semibold bg-emerald-50/80 px-2 py-0.5 rounded border border-emerald-200/80">
+            <span className="w-7 shrink-0 text-center">🏷️</span>
+            <span className="flex-1">Coupon ({couponCode || "Promo"})</span>
+            <span className="shrink-0 tabular-nums">− {inr(discountAmount)}</span>
+          </li>
+        )}
       </ul>
     </div>
   );

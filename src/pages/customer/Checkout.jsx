@@ -1,6 +1,6 @@
 import { authFetch } from "../../config/authFetch";
-import { useState, useEffect } from "react";
-import { useNavigate, Navigate } from "react-router-dom";
+import { useState, useEffect, useMemo } from "react";
+import { useNavigate, Navigate, useLocation } from "react-router-dom";
 import Navbar from "../../components/Navbar";
 import { useCart } from "../../context/CartContext";
 import { useOrders } from "../../context/OrderContext";
@@ -19,6 +19,36 @@ export default function Checkout() {
   const { showAlert } = useAlert();
   const { addNotification } = useNotifications();
   const navigate = useNavigate();
+  const location = useLocation();
+  const directItem = location.state?.directItem;
+
+  // Agar user "Buy Now" se aaya hai toh sirf directItem lo, warna regular cart items lo
+  const checkoutItems = useMemo(() => {
+    if (directItem) {
+      return [{
+        ...directItem,
+        qty: directItem.qty || directItem.quantity || 1,
+        quantity: directItem.qty || directItem.quantity || 1,
+      }];
+    }
+    return items;
+  }, [directItem, items]);
+
+  const checkoutSubtotal = useMemo(() => {
+    if (directItem) {
+      const q = Number(directItem.qty || directItem.quantity || 1);
+      return Number(directItem.price || 0) * q;
+    }
+    return subtotal;
+  }, [directItem, subtotal]);
+
+  const checkoutMrpTotal = useMemo(() => {
+    if (directItem) {
+      const q = Number(directItem.qty || directItem.quantity || 1);
+      return Number(directItem.mrp || directItem.price || 0) * q;
+    }
+    return mrpTotal;
+  }, [directItem, mrpTotal]);
   const { user, updateProfile } = useAuth();
   const { products = [], vendors = [] } = useAdmin() || {};
   const { region } = useRegion();
@@ -126,13 +156,13 @@ export default function Checkout() {
     }
   }, [user, contextAddresses, region?.name]);
 
-  if (items.length === 0 && !successOrder) {
+  if (checkoutItems.length === 0 && !successOrder) {
     return <Navigate to="/cart" replace />;
   }
 
   const baseDeliveryFee = Number(region?.baseDeliveryCharge) || 49;
-  const deliveryCharge = subtotal >= 25000 ? 0 : baseDeliveryFee;
-  const total = subtotal + deliveryCharge;
+  const deliveryCharge = checkoutSubtotal >= 25000 ? 0 : baseDeliveryFee;
+  const total = checkoutSubtotal + deliveryCharge;
   const hasDeliverableAddress = dbAddresses.some((a) => isDeliverableInRegion(a, region?.name));
   const activeAddress = dbAddresses.find((a) => a.id === selectedAddrId && isDeliverableInRegion(a, region?.name));
 
@@ -251,7 +281,7 @@ export default function Checkout() {
     }
 
     // Check karo ki koi item suspended vendor ka ya inactive toh nahi hai
-    const hasSuspendedItems = items.some((item) => {
+    const hasSuspendedItems = checkoutItems.some((item) => {
       if (item.isVendorSuspended === true || item.inStock === false) return true;
       const matchedVendor = vendors.find(
         (v) => v.id === item.vendorId || (v.shopName && item.vendorName && v.shopName.toLowerCase() === item.vendorName.toLowerCase())
@@ -279,7 +309,7 @@ export default function Checkout() {
 
     setPlacing(true);
 
-    const orderItems = items.map((i) => {
+    const orderItems = checkoutItems.map((i) => {
       const pId = i.id || i.productId;
       const cleanName = (i.name || i.productName || "").trim().toLowerCase();
 
@@ -338,8 +368,10 @@ export default function Checkout() {
         throw new Error("Order not placed , please try again.");
       }
 
-      // Real database order confirm hone par hi cart clear karo
-      clearCart();
+      // Real database order confirm hone par hi cart clear karo (sirf agar regular cart se checkout kiya ho)
+      if (!directItem) {
+        clearCart();
+      }
       setSuccessOrder(realOrder);
 
       const customerName = targetAddr?.fullName || user?.name || "Customer";
@@ -590,10 +622,10 @@ export default function Checkout() {
             {/* Order me add kiye gaye items */}
             <div className="bg-white rounded-xl border border-slate-200 p-4">
               <h3 className="text-sm font-bold text-navy-900 mb-3">
-                Order Items ({items.length})
+                Order Items ({checkoutItems.length})
               </h3>
               <div className="space-y-3">
-                {items.map((item) => (
+                {checkoutItems.map((item) => (
                   <div key={item.id} className="flex gap-3 items-center">
                     <img
                       src={item.img}
@@ -604,10 +636,10 @@ export default function Checkout() {
                       <p className="text-sm text-navy-900 line-clamp-1">
                         {item.name}
                       </p>
-                      <p className="text-xs text-slate-400">Qty: {item.qty}</p>
+                      <p className="text-xs text-slate-400">Qty: {item.qty || item.quantity || 1}</p>
                     </div>
                     <span className="text-sm font-semibold text-navy-900">
-                      ₹{(item.price * item.qty).toLocaleString("en-IN")}
+                      ₹{((item.price || 0) * (item.qty || item.quantity || 1)).toLocaleString("en-IN")}
                     </span>
                   </div>
                 ))}
@@ -623,11 +655,11 @@ export default function Checkout() {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between text-slate-500">
                 <span>Total MRP</span>
-                <span>₹{mrpTotal.toLocaleString("en-IN")}</span>
+                <span>₹{checkoutMrpTotal.toLocaleString("en-IN")}</span>
               </div>
               <div className="flex justify-between text-success">
                 <span>Discount</span>
-                <span>− ₹{(mrpTotal - subtotal).toLocaleString("en-IN")}</span>
+                <span>− ₹{(checkoutMrpTotal - checkoutSubtotal).toLocaleString("en-IN")}</span>
               </div>
               <div className="flex justify-between text-slate-500">
                 <span>Delivery</span>

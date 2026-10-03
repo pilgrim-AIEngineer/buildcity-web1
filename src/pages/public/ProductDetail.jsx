@@ -476,25 +476,26 @@ export default function ProductDetail() {
 
   const handleBuyNow = () => {
     const isCustomPack = selectedPack && selectedPack.qty > 1;
-    buyNow(
-      {
-        id: product.id,
-        productId: product.id,
-        name: product.name,
-        brand: product.brand,
-        img: product.images?.[0] || product.image,
-        price: selectedPack ? selectedPack.price : product.price,
-        basePrice: selectedPack ? selectedPack.price : product.price,
-        mrp: selectedPack ? selectedPack.mrp : product.mrp,
-        packLabel: selectedPack ? selectedPack.label : null,
-        packQty: selectedPack ? selectedPack.qty : 1,
-        unit: selectedPack ? selectedPack.unitName : product.unit,
-        vendorId: product.vendorId,
-        vendorName: product.vendorName,
-      },
-      qty
-    );
-    navigate("/checkout");
+    const directItem = {
+      id: isCustomPack ? `${product.id}-pack-${selectedPack.qty}` : product.id,
+      productId: product.id,
+      name: isCustomPack ? `${product.name} (${selectedPack.label})` : product.name,
+      brand: product.brand,
+      img: product.images?.[0] || product.image,
+      price: selectedPack ? selectedPack.price : product.price,
+      basePrice: selectedPack ? selectedPack.price : product.price,
+      mrp: selectedPack ? selectedPack.mrp : product.mrp,
+      packLabel: selectedPack ? selectedPack.label : null,
+      packQty: selectedPack ? selectedPack.qty : 1,
+      unit: selectedPack ? selectedPack.unitName : product.unit,
+      vendorId: product.vendorId,
+      vendorName: product.vendorName,
+      qty: qty,
+      addedRegionId: region?.id || null,
+      addedRegionName: region?.name || null,
+    };
+    // Cart ke purane items ko touch kiye bina direct checkout me bhejte hain
+    navigate("/checkout", { state: { directItem } });
   };
 
   const handleAddReview = async (e) => {

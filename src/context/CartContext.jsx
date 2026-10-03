@@ -231,7 +231,7 @@ export function CartProvider({ children }) {
 
   const buyNow = (product, quantity = 1) => {
     const isCustomPack = Boolean(product.packLabel && product.packQty > 1);
-    const item = {
+    return {
       id: isCustomPack ? `${product.id}-pack-${product.packQty}` : product.id,
       productId: product.productId || product.id,
       name: isCustomPack ? `${product.name} (${product.packLabel})` : product.name,
@@ -249,25 +249,6 @@ export function CartProvider({ children }) {
       addedRegionId: region?.id || null,
       addedRegionName: region?.name || null,
     };
-
-    // Purane kisi bhi item ko hata kar sirf is item ko direct set karte hain
-    setItems([item]);
-    setLastAddedAt(Date.now());
-
-    if (cartStorageKey) {
-      try {
-        localStorage.setItem(cartStorageKey, JSON.stringify([item]));
-        localStorage.removeItem("buildcity_cart_guest");
-      } catch {}
-      if (user?.phone || user?.id) {
-        authFetch(`${API_BASE_URL}/api/v1/cart`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ items: [item] }),
-        }).catch(() => {});
-      }
-    }
-    return item;
   };
 
   const clearCart = () => {

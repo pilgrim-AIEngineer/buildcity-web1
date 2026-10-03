@@ -454,8 +454,8 @@ export default function Home() {
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
         >
-          {/* Main banner image container */}
-          <div className="relative aspect-[5/2] sm:aspect-[5/2] w-full flex items-stretch cursor-grab active:cursor-grabbing touch-manipulation">
+          {/* Main banner image container (16:9 standard ratio taaki niche ka hissa na kate) */}
+          <div className="relative aspect-[16/9] sm:aspect-[16/9] md:aspect-[1.8/1] w-full flex items-stretch cursor-grab active:cursor-grabbing touch-manipulation">
             {activeSlides.map((b, i) => (
               <div
                 key={b.id || i}
@@ -671,7 +671,7 @@ export default function Home() {
               src="/images/varanasi_delivery_banner.jpg"
               alt="Construction materials delivered in 1 day - BuildCity"
               loading="lazy"
-              className="w-full h-auto max-h-[320px] sm:max-h-[380px] lg:max-h-[420px] object-cover object-center group-hover:scale-[1.015] transition-transform duration-500 block"
+              className="w-full h-auto object-cover object-center group-hover:scale-[1.015] transition-transform duration-500 block"
             />
             <div className="absolute inset-0 ring-1 ring-inset ring-black/5 rounded-2xl sm:rounded-3xl pointer-events-none" />
           </Link>

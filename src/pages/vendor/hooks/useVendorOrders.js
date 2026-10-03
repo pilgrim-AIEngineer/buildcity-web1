@@ -293,8 +293,18 @@ export default function useVendorOrders({
         const vendorItemsTotal = myItems.reduce((acc, it) => acc + pricedLine(it), 0);
         const totalItemsInOrder = o.allOrderItemsCount || o.totalOrderItemsCount || o.items.length;
         const isSingleVendor = myItems.length === totalItemsInOrder;
-        const orderTotal =
-          o.vendorItemsTotal || (isSingleVendor && (o.totalAmount || o.total) ? Number(o.totalAmount || o.total) : vendorItemsTotal);
+        const deliveryFee = Number(o.deliveryFee ?? o.deliveryCharge ?? 49) || 0;
+        const discount = Number(o.discountAmount || 0);
+
+        // Agar single vendor order hai ya real totalAmount present hai, toh customer bill ka true total lo
+        let orderTotal;
+        if (isSingleVendor && (o.totalAmount || o.total)) {
+          orderTotal = Number(o.totalAmount || o.total);
+        } else if (o.totalAmount && Number(o.totalAmount) > 0) {
+          orderTotal = Number(o.totalAmount);
+        } else {
+          orderTotal = Math.max(0, vendorItemsTotal + (isSingleVendor ? deliveryFee : 0) - discount);
+        }
 
         return {
           ...o,

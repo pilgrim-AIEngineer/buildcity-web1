@@ -7,6 +7,7 @@ import { useCart } from "../../context/CartContext";
 import { useRegion } from "../../context/RegionContext";
 import { useAdmin } from "../../context/AdminContext";
 import { useAuth } from "../../context/AuthContext";
+import { useOrders } from "../../context/OrderContext";
 import { API_BASE_URL } from "../../config/api";
 import { authFetch } from "../../config/authFetch";
 import { generateProductPacks } from "../../utils/productPacks";
@@ -104,6 +105,7 @@ export default function ProductDetail() {
   const { addItem, buyNow } = useCart();
   const { region } = useRegion();
   const { products = [], masterProducts = [], vendors = [], productsLoading } = useAdmin();
+  const { orders = [] } = useOrders();
 
   const [directProduct, setDirectProduct] = useState(null);
   const [directLoading, setDirectLoading] = useState(false);
@@ -159,7 +161,7 @@ export default function ProductDetail() {
 
   const product = useMemo(() => {
     const decodedId = decodeURIComponent(id || "").trim();
-    const realProd =
+    const baseProd =
       products.find(
         (p) =>
           p.id === id ||
@@ -167,6 +169,62 @@ export default function ProductDetail() {
           (p.name && p.name.toLowerCase() === decodedId.toLowerCase()) ||
           (p.name && encodeURIComponent(p.name) === id)
       ) || directProduct;
+
+    // Helper: checks if a product listing belongs to the currently active customer region
+    const activeRegName = String(region?.name || "Varanasi").toLowerCase().trim();
+    const activeRegId = String(region?.id || "").toLowerCase().trim();
+
+    const isListingInRegion = (p) => {
+      if (!p) return false;
+      const pRegName = String(p.regionName || p.districtName || p.vendor?.region?.name || p.vendor?.districtName || "").toLowerCase().trim();
+      const pRegId = String(p.regionId || p.vendor?.regionId || p.vendor?.region?.id || "").toLowerCase().trim();
+      return (activeRegId && pRegId && activeRegId === pRegId) ||
+             (activeRegName && pRegName && (pRegName === activeRegName || pRegName.includes(activeRegName) || activeRegName.includes(pRegName)));
+    };
+
+    let realProd = baseProd;
+    let isDeliverable = true;
+    let switchedVendor = false;
+
+    if (baseProd) {
+      const inCurrentRegion = isListingInRegion(baseProd);
+
+      if (!inCurrentRegion) {
+        // SMART VENDOR AUTO-SWITCH (Option 3 - Blinkit Style):
+        // If current product is from another region, check if a certified vendor in THIS region sells the same item
+        const baseMasterId = baseProd.masterProductId || baseProd.masterProduct?.id;
+        const baseNormName = String(baseProd.name || "").toLowerCase().trim();
+
+        const counterpart = products.find((p) => {
+          if (!p || p.isActive === false) return false;
+          if (p.isVendorSuspended === true || p.vendor?.status === "SUSPENDED" || p.vendorStatus === "SUSPENDED") return false;
+          if (!isListingInRegion(p)) return false;
+
+          // Match 1: same master product ID
+          if (baseMasterId && (p.masterProductId === baseMasterId || p.masterProduct?.id === baseMasterId)) {
+            return true;
+          }
+          // Match 2: same exact product name
+          const pName = String(p.name || "").toLowerCase().trim();
+          if (pName && baseNormName && pName === baseNormName) {
+            return true;
+          }
+          return false;
+        });
+
+        if (counterpart) {
+          // Local vendor found in new region! Automatically switch:
+          realProd = counterpart;
+          isDeliverable = true;
+          switchedVendor = true;
+        } else {
+          // No vendor in this region carries this item -> Mark as Not Deliverable
+          realProd = baseProd;
+          isDeliverable = false;
+          switchedVendor = false;
+        }
+      }
+    }
 
     if (realProd) {
       const price = Number(realProd.price) || 100;
@@ -203,12 +261,16 @@ export default function ProductDetail() {
         vendorId: realProd.vendorId,
         vendorName: realProd.vendorName || realProd.vendor?.shopName,
         isVendorSuspended: isSuspended,
+        isDeliverable: isDeliverable && !isSuspended,
+        switchedVendor: switchedVendor,
+        deliveryRegion: region?.name || "Varanasi",
         images: extractedImages,
         mrp,
         price: Number(realProd.price) || 100,
         rating: 5.0,
         reviews: 0,
-        inStock: (realProd.stockQty || 0) > 0 && !isSuspended,
+        inStock: (realProd.stockQty || 0) > 0 && !isSuspended && isDeliverable,
+        stockQty: realProd.stockQty,
         unit: realProd.unit || "Unit",
         customPacks: (() => {
           let cp = realProd.customPacks || realProd.custom_packs;
@@ -230,12 +292,12 @@ export default function ProductDetail() {
           (masterProducts.find((m) => m.id === realProd.masterProductId || m.id === realProd.id || (m.name && realProd.name && m.name.toLowerCase() === realProd.name.toLowerCase()))?.description) ||
           `High-quality certified ${realProd.name} by ${realProd.brand || "Authorized Brand"}. Supplied directly via BuildCity Certified Delivery Network.`,
         specs: [
-          { label: "Fulfillment", value: "BuildCity Certified Network" },
+          { label: "Fulfillment", value: `BuildCity Certified Network (${region?.name || "Local"})` },
           { label: "Brand", value: realProd.brand || "Generic" },
           { label: "Grade", value: realProd.grade || "Standard" },
           { label: "Type", value: realProd.type || "Standard Type" },
           { label: "Packaging Unit", value: realProd.unit || "Unit" },
-          { label: "Available Stock", value: `${realProd.stockQty || 100} units` },
+          { label: "Available Stock", value: `${realProd.stockQty || 0} units` },
         ],
         reviewsList: [],
       };
@@ -277,95 +339,110 @@ export default function ProductDetail() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [id]);
 
-  // Similar Products / Recommended Alternatives matching logic
+  // "You May Also Like" - Cross-selling & Complementary Products matching logic
+  // STRICT RULE: Only active, approved vendor products from the CURRENT region.
+  // NO generic master catalog items, NO other regions. If only 1-2 exist, show only 1-2.
   const similarProducts = useMemo(() => {
     if (!product) return [];
 
     const currentCat = String(
       (typeof product.category === "string" ? product.category : product.category?.name) ||
       product.categoryName ||
+      product.masterProduct?.categoryName ||
       ""
     ).toLowerCase().trim();
 
     const currentId = String(product.id || id || "").toLowerCase().trim();
     const currentName = String(product.name || "").toLowerCase().trim();
 
-    const result = [];
+    // Active customer region details
+    const activeRegName = String(region?.name || "Varanasi").toLowerCase().trim();
+    const activeRegId = String(region?.id || "").toLowerCase().trim();
+
+    // Smart Cross-sell / Complementary category mapping
+    const COMPLEMENTARY_MAP = {
+      // Agar user Cement par hai -> Paints/Colors, Steel/TMT, Waterproofing, Putty, Tiles
+      cement: ["paint", "color", "steel", "waterproof", "putty", "tile"],
+      // Agar user Paint/Color par hai -> Putty, Primer, Waterproofing, Tools/Hardware, Tiles, Cement
+      paint: ["putty", "primer", "waterproof", "brush", "hardware", "tile", "cement"],
+      paints: ["putty", "primer", "waterproof", "brush", "hardware", "tile", "cement"],
+      color: ["paint", "putty", "primer", "waterproof", "brush", "hardware", "cement"],
+      // Agar user Steel par hai -> Cement, Hardware, Binding Wire, Pipes
+      steel: ["cement", "hardware", "wire", "pipe", "plumb"],
+      // Agar user Tiles par hai -> Bathware, Sanitary, Cement, Adhesive, Paints
+      tile: ["bathware", "sanitary", "cement", "adhesive", "paint"],
+      tiles: ["bathware", "sanitary", "cement", "adhesive", "paint"],
+      // Agar user Bathware/Sanitary par hai -> Tiles, Plumbing, Pipes, Paints
+      bathware: ["tile", "sanitary", "pipe", "plumb", "paint"],
+      sanitary: ["tile", "bathware", "pipe", "plumb", "hardware"],
+      // Agar user Plumbing/Pipes par hai -> Bathware, Sanitary, Hardware, Tiles
+      plumbing: ["bathware", "sanitary", "tile", "hardware", "pipe"],
+      pipe: ["plumb", "bathware", "sanitary", "hardware"],
+      pipes: ["plumb", "bathware", "sanitary", "hardware"],
+      // Agar user Electrical par hai -> Hardware, Tools, Paints
+      electrical: ["hardware", "tool", "paint", "pipe"],
+    };
+
+    // Find target complementary category keywords
+    let targetKeywords = [];
+    for (const [key, targets] of Object.entries(COMPLEMENTARY_MAP)) {
+      if (currentCat.includes(key) || currentName.includes(key)) {
+        targetKeywords = [...targetKeywords, ...targets];
+      }
+    }
+    targetKeywords = Array.from(new Set(targetKeywords));
+
     const seenIds = new Set([currentId]);
     if (id) seenIds.add(String(id).toLowerCase().trim());
 
-    // 1. Pehle live vendor listings me se same category ke active products dhoondo
-    if (Array.isArray(products) && products.length > 0) {
-      const candidates = products.filter((p) => {
-        if (!p || p.isActive === false) return false;
-        if (p.isVendorSuspended || p.vendor?.status === "SUSPENDED") return false;
-        const pId = String(p.id || "").toLowerCase().trim();
-        if (seenIds.has(pId)) return false;
-        if (currentName && String(p.name || "").toLowerCase().trim() === currentName) return false;
+    // Helper: does candidate match complementary targets?
+    const matchesTarget = (p) => {
+      const pCat = String(
+        (typeof p.category === "string" ? p.category : p.category?.name) ||
+        p.categoryName ||
+        p.masterProduct?.categoryName ||
+        ""
+      ).toLowerCase().trim();
+      const pName = String(p.name || "").toLowerCase().trim();
 
-        const pCat = String(
-          (typeof p.category === "string" ? p.category : p.category?.name) ||
-          p.categoryName ||
-          p.masterProduct?.categoryName ||
-          ""
-        ).toLowerCase().trim();
+      if (targetKeywords.length === 0) {
+        return pCat !== currentCat;
+      }
+      return targetKeywords.some((kw) => pCat.includes(kw) || pName.includes(kw));
+    };
 
-        if (!currentCat || !pCat) return false;
-        return pCat === currentCat || pCat.includes(currentCat) || currentCat.includes(pCat);
-      });
+    // Helper: candidate validity check (strict region & vendor checks)
+    const isValid = (p) => {
+      if (!p || p.isActive === false) return false;
+      if (p.isVendorSuspended === true || p.vendor?.status === "SUSPENDED" || p.vendorStatus === "SUSPENDED") return false;
+      if (p.approvalStatus !== "APPROVED" && p.approvalStatus !== undefined) return false;
 
-      // Sort: different brand ko thoda priority do taaki ACC, Ambuja, etc. variety dikhe
-      candidates.sort((a, b) => {
-        const aDiffBrand = a.brand && product.brand && a.brand.toLowerCase() !== product.brand.toLowerCase();
-        const bDiffBrand = b.brand && product.brand && b.brand.toLowerCase() !== product.brand.toLowerCase();
-        if (aDiffBrand && !bDiffBrand) return -1;
-        if (!aDiffBrand && bDiffBrand) return 1;
-        return (Number(b.stockQty) || 0) - (Number(a.stockQty) || 0);
-      });
+      const pId = String(p.id || "").toLowerCase().trim();
+      if (seenIds.has(pId)) return false;
+      if (currentName && String(p.name || "").toLowerCase().trim() === currentName) return false;
 
-      candidates.slice(0, 4).forEach((p) => {
-        seenIds.add(String(p.id || "").toLowerCase().trim());
-        result.push(p);
-      });
-    }
+      // STRICT REGION CHECK: Product MUST belong to the current active customer region
+      const pRegName = String(p.regionName || p.districtName || p.vendor?.region?.name || p.vendor?.districtName || "").toLowerCase().trim();
+      const pRegId = String(p.regionId || p.vendor?.regionId || p.vendor?.region?.id || "").toLowerCase().trim();
 
-    // 2. Agar live vendor listings me 4 se kam hain, toh masterProducts catalog se fill karo
-    if (result.length < 4 && Array.isArray(masterProducts) && masterProducts.length > 0) {
-      const masterCandidates = masterProducts.filter((mp) => {
-        if (!mp) return false;
-        const mpId = String(mp.id || "").toLowerCase().trim();
-        if (seenIds.has(mpId)) return false;
-        if (currentName && String(mp.name || "").toLowerCase().trim() === currentName) return false;
+      const matchesRegion =
+        (activeRegId && pRegId && activeRegId === pRegId) ||
+        (activeRegName && pRegName && (pRegName === activeRegName || pRegName.includes(activeRegName) || activeRegName.includes(pRegName)));
 
-        const mpCat = String(
-          (typeof mp.category === "string" ? mp.category : mp.category?.name) ||
-          mp.categoryName ||
-          ""
-        ).toLowerCase().trim();
+      return Boolean(matchesRegion);
+    };
 
-        if (!currentCat || !mpCat) return false;
-        return mpCat === currentCat || mpCat.includes(currentCat) || currentCat.includes(mpCat);
-      });
+    if (!Array.isArray(products) || products.length === 0) return [];
 
-      masterCandidates.forEach((mp) => {
-        if (result.length >= 4) return;
-        seenIds.add(String(mp.id || "").toLowerCase().trim());
-        result.push({
-          id: mp.id,
-          name: mp.name,
-          brand: mp.brand || "BuildCity Certified",
-          category: mp.categoryName || product.category || "Building Materials",
-          imageUrl: mp.imageUrl || mp.image,
-          price: Number(mp.suggestedPrice || mp.mrp || 100),
-          mrp: Number(mp.mrp || Math.round((Number(mp.suggestedPrice) || 100) * 1.2)),
-          unit: mp.unit || "Unit",
-          inStock: true,
-        });
-      });
-    }
+    // Filter ONLY valid products from the current region that match complementary targets
+    const matched = products.filter((p) => isValid(p) && matchesTarget(p));
 
-    return result.slice(0, 4);
-  }, [product, id, products, masterProducts]);
+    // Sort by stock quantity descending so in-stock items come first
+    matched.sort((a, b) => (Number(b.stockQty) || 0) - (Number(a.stockQty) || 0));
+
+    // Jitne real products is region me hain sirf wahi dikhenge (maximum 4)
+    return matched.slice(0, 4);
+  }, [product, id, products, region]);
 
   const targetProductId = useMemo(() => {
     return String(product?.id || id || "").trim();
@@ -447,11 +524,67 @@ export default function ProductDetail() {
     return (sum / reviewsList.length).toFixed(1);
   }, [reviewsList]);
 
+  // Sirf wahi customer review de sakta hai jisne yeh product purchase kiya ho
+  const hasPurchased = useMemo(() => {
+    if (!user || !orders || orders.length === 0 || !product) return false;
+
+    const currentProdId = String(product.id || id || "").toLowerCase().trim();
+    const currentProdName = String(product.name || "").toLowerCase().trim();
+    const currentMasterId = String(product.masterProductId || "").toLowerCase().trim();
+
+    return orders.some((order) => {
+      const status = String(order.status || "").toUpperCase();
+      if (status === "CANCELLED" || status === "REJECTED") return false;
+
+      const items = Array.isArray(order.items) ? order.items : [];
+      return items.some((item) => {
+        if (!item) return false;
+        const itemId = String(item.productId || item.id || "").toLowerCase().trim();
+        const itemName = String(item.name || item.productName || "").toLowerCase().trim();
+        const itemMasterId = String(item.masterProductId || "").toLowerCase().trim();
+
+        if (currentProdId && (itemId === currentProdId || itemId.startsWith(currentProdId))) return true;
+        if (currentMasterId && (itemMasterId === currentMasterId || itemId === currentMasterId)) return true;
+        if (currentProdName && (itemName === currentProdName || itemName.includes(currentProdName))) return true;
+        return false;
+      });
+    });
+  }, [user, orders, product, id]);
+
+  // Ek user ek product par sirf ek hi baar review de sakta hai
+  const hasAlreadyReviewed = useMemo(() => {
+    if (!user) return false;
+    const userName = String(user.name || "").toLowerCase().trim();
+    const userId = String(user.id || "").toLowerCase().trim();
+    const userPhone = String(user.phone || "").toLowerCase().trim();
+
+    // 1. Check in loaded reviews list
+    const inList = reviewsList.some((r) => {
+      if (!r) return false;
+      if (r.userId && userId && String(r.userId).toLowerCase().trim() === userId) return true;
+      if (r.customerId && userId && String(r.customerId).toLowerCase().trim() === userId) return true;
+      if (r.phone && userPhone && String(r.phone).toLowerCase().trim() === userPhone) return true;
+      if (r.userPhone && userPhone && String(r.userPhone).toLowerCase().trim() === userPhone) return true;
+      if (r.name && userName && String(r.name).toLowerCase().trim() === userName) return true;
+      return false;
+    });
+    if (inList) return true;
+
+    // 2. Local storage check for persistent 1-review guarantee
+    try {
+      const storageKey = `buildcity_reviewed_${user.id || user.phone || 'me'}_${targetProductId}`;
+      if (localStorage.getItem(storageKey) === "true") return true;
+    } catch {}
+
+    return false;
+  }, [user, reviewsList, targetProductId]);
+
   const currentDiscountPct = selectedPack
     ? selectedPack.discountPct
     : Math.round(((product.mrp - product.price) / product.mrp) * 100);
 
   const handleAddToCart = () => {
+    if (!product?.isDeliverable) return;
     const isCustomPack = selectedPack && selectedPack.qty > 1;
     addItem(
       {
@@ -475,6 +608,7 @@ export default function ProductDetail() {
   };
 
   const handleBuyNow = () => {
+    if (!product?.isDeliverable) return;
     const isCustomPack = selectedPack && selectedPack.qty > 1;
     const directItem = {
       id: isCustomPack ? `${product.id}-pack-${selectedPack.qty}` : product.id,
@@ -512,6 +646,16 @@ export default function ProductDetail() {
       return;
     }
 
+    if (!hasPurchased) {
+      setReviewError("Only verified customers who have purchased this product can leave a review.");
+      return;
+    }
+
+    if (hasAlreadyReviewed) {
+      setReviewError("You have already submitted a review for this product. Only one review is allowed per customer.");
+      return;
+    }
+
     if (!reviewComment.trim()) {
       setReviewError("Please enter your review comments.");
       return;
@@ -538,6 +682,11 @@ export default function ProductDetail() {
       }
 
       // Review successfully saved in Database!
+      const userKey = `buildcity_reviewed_${user.id || user.phone || 'me'}_${targetProductId}`;
+      try {
+        localStorage.setItem(userKey, "true");
+      } catch (err) {}
+
       setReviewsList((prev) => {
         const updated = [data, ...prev.filter((r) => r.id !== data.id && r.comment !== data.comment)];
         try {
@@ -625,15 +774,27 @@ export default function ProductDetail() {
             </div>
 
             <div className="mb-5">
-              {isVendorSuspended ? (
+              {!product?.isDeliverable ? (
+                <div className="px-3 py-2 rounded-xl bg-amber-50/90 border border-amber-200 text-amber-900 text-xs font-semibold inline-flex items-center gap-2 animate-fade-in shadow-2xs">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                  <span className="font-bold text-amber-800">Not Deliverable to {region?.name || "Selected Region"}</span>
+                </div>
+              ) : isVendorSuspended ? (
                 <span className="text-xs font-extrabold text-rose-700 bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-200 inline-block shadow-2xs">
                   Unavailable
                 </span>
               ) : (
-                <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  In Stock — Ready for site delivery
-                </span>
+                <div className="space-y-1">
+                  <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    In Stock — Ready for site delivery in {region?.name || "your area"}
+                  </span>
+                  {product?.switchedVendor && (
+                    <p className="text-[11px] text-slate-500 font-medium">
+                      Fulfilled by local certified vendor: <strong className="text-navy-900">{product.vendorName || "Local Partner"}</strong>
+                    </p>
+                  )}
+                </div>
               )}
             </div>
 
@@ -702,26 +863,52 @@ export default function ProductDetail() {
               <div className="flex items-center border border-slate-200 rounded-xl bg-white shadow-2xs">
                 <button
                   type="button"
-                  disabled={isVendorSuspended}
+                  disabled={!product?.isDeliverable || isVendorSuspended}
                   onClick={() => setQty((q) => Math.max(1, q - 1))}
-                  className="px-3.5 py-1.5 text-slate-600 font-bold hover:bg-slate-100 rounded-l-xl transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3.5 py-1.5 text-slate-600 font-bold hover:bg-slate-100 rounded-l-xl transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   −
                 </button>
                 <span className="px-4 text-xs font-extrabold text-navy-900">{qty}</span>
                 <button
                   type="button"
-                  disabled={isVendorSuspended}
+                  disabled={!product?.isDeliverable || isVendorSuspended}
                   onClick={() => setQty((q) => q + 1)}
-                  className="px-3.5 py-1.5 text-slate-600 font-bold hover:bg-slate-100 rounded-r-xl transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3.5 py-1.5 text-slate-600 font-bold hover:bg-slate-100 rounded-r-xl transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   +
                 </button>
               </div>
             </div>
 
-            <div className="flex gap-3 mb-8">
-              {isVendorSuspended ? (
+            <div className="mb-8">
+              {!product?.isDeliverable ? (
+                <div className="space-y-3">
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      disabled
+                      className="flex-1 rounded-xl py-3 text-xs font-bold border border-slate-300 text-slate-400 bg-slate-100 cursor-not-allowed opacity-80"
+                    >
+                      Add to Cart
+                    </button>
+                    <button
+                      type="button"
+                      disabled
+                      className="flex-1 rounded-xl py-3 text-xs font-bold bg-slate-200 text-slate-400 cursor-not-allowed opacity-80"
+                    >
+                      Buy Now
+                    </button>
+                  </div>
+                  <Link
+                    to={product.category && product.category !== "Material" ? `/categories?cat=${encodeURIComponent(product.category)}` : "/categories"}
+                    className="w-full py-3 px-4 bg-brand-500 hover:bg-brand-600 active:scale-[0.98] text-white text-xs font-extrabold rounded-xl text-center shadow-xs transition-all flex items-center justify-center gap-1.5"
+                  >
+                    <span>Browse Available {product.category && product.category !== "Material" ? product.category : "Materials"} in {region?.name || "Your Area"}</span>
+                    <span>→</span>
+                  </Link>
+                </div>
+              ) : isVendorSuspended ? (
                 <button
                   type="button"
                   disabled
@@ -730,7 +917,7 @@ export default function ProductDetail() {
                   Unavailable
                 </button>
               ) : (
-                <>
+                <div className="flex gap-3">
                   <button
                     type="button"
                     onClick={handleAddToCart}
@@ -749,7 +936,7 @@ export default function ProductDetail() {
                   >
                     Buy Now
                   </button>
-                </>
+                </div>
               )}
             </div>
 
@@ -783,24 +970,22 @@ export default function ProductDetail() {
           </div>
         </div>
 
-        {/* Similar Products / Recommended Alternatives */}
+        {/* You May Also Like / Complementary Products */}
         {similarProducts.length > 0 && (
           <section className="mt-12 bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-xs">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4 mb-5">
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-base sm:text-lg font-black text-navy-900 tracking-tight">
-                    Similar Products
+                    You May Also Like
                   </h2>
-                  
                 </div>
-             
               </div>
               <Link
-                to={`/categories?cat=${encodeURIComponent(product.category || "")}`}
+                to="/categories"
                 className="text-xs font-bold text-brand-600 hover:text-brand-700 flex items-center gap-1 group transition-colors"
               >
-                <span>View all in category</span>
+                <span>Explore all categories</span>
                 <span className="transition-transform group-hover:translate-x-0.5">→</span>
               </Link>
             </div>
@@ -822,7 +1007,7 @@ export default function ProductDetail() {
                   Customer Reviews
                 </h2>
                 <span className="bg-emerald-50 text-emerald-700 font-extrabold text-xs px-2.5 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
-                  ⭐ {avgRating} / 5.0
+                  ★ {avgRating} / 5.0
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">Verified customer ratings & real site experiences.</p>
@@ -832,15 +1017,19 @@ export default function ProductDetail() {
               <button
                 type="button"
                 onClick={() => navigate(`/login?redirect=${encodeURIComponent(location.pathname)}`)}
-                className="bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xs transition-all active:scale-[0.98] cursor-pointer shrink-0 flex items-center gap-1.5"
+                className="bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xs transition-all active:scale-[0.98] cursor-pointer shrink-0"
               >
-                <span>🔑</span> Login to Write a Review
+                Login to Write a Review
               </button>
             ) : isPartner ? (
               <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 border border-slate-200/90 px-3 py-1.5 rounded-xl shrink-0">
                 Customer Review Only
               </span>
-            ) : (
+            ) : hasAlreadyReviewed ? (
+              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl shrink-0">
+                Review Already Submitted
+              </span>
+            ) : hasPurchased ? (
               <button
                 type="button"
                 onClick={() => {
@@ -849,15 +1038,18 @@ export default function ProductDetail() {
                 }}
                 className="bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xs transition-all active:scale-[0.98] cursor-pointer shrink-0"
               >
-                {showForm ? "✕ Close Form" : "✍️ Write a Review"}
+                {showForm ? "Close Form" : "Write a Review"}
               </button>
+            ) : (
+              <span className="text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200/80 px-3 py-1.5 rounded-xl shrink-0">
+                Verified Buyers Only
+              </span>
             )}
           </div>
 
           {/* Notice if logged in as admin/dr/vendor */}
           {isPartner && (
-            <div className="mb-6 p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 text-xs font-medium flex items-center gap-2">
-              <span className="text-sm">ℹ️</span>
+            <div className="mb-6 p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 text-xs font-medium">
               <span>
                 You are logged in as <strong>{userRole.toUpperCase()}</strong>. Product reviews can only be submitted by verified customer accounts.
               </span>
@@ -866,15 +1058,14 @@ export default function ProductDetail() {
 
           {/* Review submit hone par success alert */}
           {reviewSubmitted && (
-            <div className="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2 animate-fade-in">
+            <div className="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold animate-fade-in">
               <span>Thank you! Your review has been published and saved to the database successfully.</span>
             </div>
           )}
 
           {/* Review submit error alert */}
           {reviewError && (
-            <div className="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold flex items-center gap-2 animate-fade-in">
-              <span>⚠️</span>
+            <div className="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold animate-fade-in">
               <span>{reviewError}</span>
             </div>
           )}
@@ -965,7 +1156,6 @@ export default function ProductDetail() {
           {/* Sabhi submitted reviews ki list */}
           {reviewsList.length === 0 ? (
             <div className="py-8 px-4 text-center bg-slate-50/80 rounded-2xl border border-dashed border-slate-300 flex flex-col items-center justify-center">
-              <span className="text-3xl mb-2">⭐</span>
               <h4 className="text-xs font-black text-navy-900 mb-1">No Customer Reviews Yet</h4>
               <p className="text-[11px] text-slate-500 max-w-sm mb-3">Be the first verified customer to share your experience with this product!</p>
               {!showForm && (
@@ -973,11 +1163,15 @@ export default function ProductDetail() {
                   <button
                     type="button"
                     onClick={() => navigate(`/login?redirect=${encodeURIComponent(location.pathname)}`)}
-                    className="bg-navy-900 hover:bg-brand-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all cursor-pointer shadow-2xs flex items-center gap-1.5"
+                    className="bg-navy-900 hover:bg-brand-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all cursor-pointer shadow-2xs"
                   >
-                    🔑 Login to Write First Review
+                    Login to Write First Review
                   </button>
-                ) : isCustomer ? (
+                ) : isPartner ? null : hasAlreadyReviewed ? (
+                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-3.5 py-1.5 rounded-xl border border-emerald-200">
+                    You have already reviewed this product
+                  </span>
+                ) : hasPurchased ? (
                   <button
                     type="button"
                     onClick={() => {
@@ -986,9 +1180,13 @@ export default function ProductDetail() {
                     }}
                     className="bg-navy-900 hover:bg-brand-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all cursor-pointer shadow-2xs"
                   >
-                    ✍️ Write the First Review
+                    Write the First Review
                   </button>
-                ) : null
+                ) : (
+                  <span className="text-[11px] font-bold text-amber-800 bg-amber-50 px-3.5 py-1.5 rounded-xl border border-amber-200/80">
+                    Purchase this product to write a verified review
+                  </span>
+                )
               )}
             </div>
           ) : (

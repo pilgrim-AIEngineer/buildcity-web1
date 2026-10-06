@@ -61,23 +61,14 @@ const DEMO_REVIEWS = [
 
 export default function SiteReviewsSection() {
   return (
-    <section className="space-y-3 bg-gradient-to-b from-slate-50 via-white to-slate-50/80 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-2xs overflow-hidden">
+    <div className="space-y-3 bg-gradient-to-b from-slate-50 via-white to-slate-50/80 p-3.5 sm:p-4.5 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-2xs overflow-hidden">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/70 pb-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200/80 text-amber-800 text-[10px] sm:text-[11px] font-black px-2.5 py-0.5 rounded-full shadow-2xs">
-              <span className="text-amber-500">⭐</span> 4.7 / 5 Rating
-            </span>
-            <span className="text-slate-400 text-xs hidden sm:inline">•</span>
-            <span className="text-[11px] sm:text-xs font-bold text-slate-600">
-              Over 100+ Sites Supplied in Varanasi 
-            </span>
-          </div>
-
+      <div className="flex items-center justify-between gap-2 border-b border-slate-200/70 pb-2.5">
+  
+        <div className="flex items-center  gap-1.5 text-[10px] sm:text-[11px] font-bold text-slate-600">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>100+ Sites Supplied</span>
         </div>
-
-      
       </div>
 
       {/* Horizontal Scrollable Review Cards */}
@@ -147,6 +138,6 @@ export default function SiteReviewsSection() {
           </div>
         ))}
       </div>
-    </section>
+    </div>
   );
 }

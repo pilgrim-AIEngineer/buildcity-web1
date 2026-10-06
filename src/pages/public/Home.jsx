@@ -690,7 +690,21 @@ export default function Home() {
         )}
 
         {/* 5.5 Verified Site Reviews / Builders Feedback Demo */}
-        <SiteReviewsSection />
+        <section className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <h3 className="text-base sm:text-lg font-extrabold text-navy-900 tracking-tight">
+                Customers Reviews
+              </h3>
+             
+            </div>
+            <span className="text-[11px] font-bold text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-md border border-amber-200/80">
+              ⭐ 4.7 / 5.0
+            </span>
+          </div>
+
+          <SiteReviewsSection />
+        </section>
 
         {/* 6. Popular services section */}
         <section className="space-y-3">

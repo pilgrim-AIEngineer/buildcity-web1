@@ -282,7 +282,7 @@ export default function Home() {
       [copy[i], copy[j]] = [copy[j], copy[i]];
     }
 
-    return copy.slice(0, 4);
+    return copy.slice(0, 5);
   }, [liveDisplayProducts]);
 
   const nextSlide = () => {

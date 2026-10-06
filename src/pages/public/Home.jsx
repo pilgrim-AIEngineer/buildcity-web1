@@ -10,6 +10,7 @@ import RegionPicker from "../../components/RegionPicker";
 import NotificationPanel from "../../components/NotificationPanel";
 import ProductCard from "../../components/ProductCard";
 import Footer from "../../components/Footer";
+import SiteReviewsSection from "../../components/SiteReviewsSection";
 import { Capacitor } from "@capacitor/core";
 
 const categoryTiles = [
@@ -687,6 +688,9 @@ export default function Home() {
             </div>
           </section>
         )}
+
+        {/* 5.5 Verified Site Reviews / Builders Feedback Demo */}
+        <SiteReviewsSection />
 
         {/* 6. Popular services section */}
         <section className="space-y-3">

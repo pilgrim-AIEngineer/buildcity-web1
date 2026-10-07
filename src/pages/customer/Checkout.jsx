@@ -60,6 +60,21 @@ export default function Checkout() {
   const [payment, setPayment] = useState("cod");
   const [placing, setPlacing] = useState(false);
 
+  // Wallet redemption state
+  const [walletData, setWalletData] = useState(null);
+  const [useWallet, setUseWallet] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      authFetch(`${API_BASE_URL}/api/v1/wallet`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data && data.success) setWalletData(data);
+        })
+        .catch(() => {});
+    }
+  }, [user]);
+
   // Checkout coupon input state
   const [checkoutCouponCode, setCheckoutCouponCode] = useState("");
   const [couponError, setCouponError] = useState("");
@@ -173,7 +188,23 @@ export default function Checkout() {
     if (checkoutSubtotal < minOrderVal) return 0;
     return Number(appliedCoupon.discountAmount) || 0;
   }, [appliedCoupon, checkoutSubtotal]);
-  const total = Math.max(0, checkoutSubtotal + deliveryCharge - couponDiscount);
+
+  // Wallet redemption calculation based on Super Admin safety limits
+  const walletBalance = Number(walletData?.balance || 0);
+  const walletSettings = walletData?.settings || {};
+  const walletRedeemEnabled = walletSettings.walletRedeemEnabled !== false;
+
+  const maxWalletApplicable = useMemo(() => {
+    if (!walletRedeemEnabled || walletBalance <= 0) return 0;
+    const maxPercent = Number(walletSettings.maxWalletUsagePercent || 10);
+    const maxFlat = Number(walletSettings.maxWalletUsageFlat || 500);
+    const percentLimit = (checkoutSubtotal * maxPercent) / 100;
+    const orderRemaining = Math.max(0, checkoutSubtotal + deliveryCharge - couponDiscount);
+    return Math.min(walletBalance, Math.floor(percentLimit), maxFlat, orderRemaining);
+  }, [walletRedeemEnabled, walletBalance, walletSettings, checkoutSubtotal, deliveryCharge, couponDiscount]);
+
+  const appliedWalletDiscount = useWallet ? maxWalletApplicable : 0;
+  const total = Math.max(0, checkoutSubtotal + deliveryCharge - couponDiscount - appliedWalletDiscount);
   const hasDeliverableAddress = dbAddresses.some((a) => isDeliverableInRegion(a, region?.name));
   const activeAddress = dbAddresses.find((a) => a.id === selectedAddrId && isDeliverableInRegion(a, region?.name));
 
@@ -407,6 +438,8 @@ export default function Checkout() {
           regionId: activeRegionId,
           couponCode: appliedCoupon && couponDiscount > 0 ? appliedCoupon.code : null,
           discountAmount: couponDiscount || 0,
+          useWallet: useWallet && appliedWalletDiscount > 0,
+          walletDiscount: appliedWalletDiscount || 0,
         }),
         minDelayPromise,
       ]);
@@ -748,6 +781,39 @@ export default function Checkout() {
             <h3 className="text-sm font-bold text-navy-900 mb-3">
               Order Summary
             </h3>
+
+            {/* BuildCity Wallet Redemption Option */}
+            {walletRedeemEnabled && walletBalance > 0 && maxWalletApplicable > 0 && (
+              <div className="mb-3.5 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/90 rounded-xl p-3 shadow-2xs">
+                <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={useWallet}
+                    onChange={(e) => setUseWallet(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded accent-brand-600 text-brand-600 focus:ring-brand-500 border-amber-300 cursor-pointer"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="font-extrabold text-xs text-navy-950 flex items-center gap-1">
+                        <span>💰 Use BuildCity Wallet</span>
+                      </span>
+                      <span className="text-[10px] font-black text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded-full border border-amber-200">
+                        ₹{walletBalance.toLocaleString("en-IN")} Bal
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-600 font-medium mt-0.5 leading-snug">
+                      {useWallet
+                        ? `Applying ₹${appliedWalletDiscount.toLocaleString("en-IN")} discount on this order`
+                        : `Apply ₹${maxWalletApplicable.toLocaleString("en-IN")} from your wallet`}
+                    </p>
+                    <p className="text-[9.5px] text-slate-400 mt-0.5">
+                      (Max {walletSettings.maxWalletUsagePercent || 10}% / ₹{walletSettings.maxWalletUsageFlat || 500} per order)
+                    </p>
+                  </div>
+                </label>
+              </div>
+            )}
+
             <div className="space-y-2 text-sm">
               <div className="flex justify-between text-slate-500">
                 <span>Total MRP</span>
@@ -761,6 +827,12 @@ export default function Checkout() {
                 <div className="flex justify-between items-center text-emerald-700 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-200">
                   <span className="font-extrabold text-xs">🏷️ Coupon ({appliedCoupon.code})</span>
                   <span className="font-black">− ₹{couponDiscount.toLocaleString("en-IN")}</span>
+                </div>
+              )}
+              {useWallet && appliedWalletDiscount > 0 && (
+                <div className="flex justify-between items-center text-amber-800 bg-amber-50 px-2.5 py-1.5 rounded-lg border border-amber-200">
+                  <span className="font-extrabold text-xs">💰 Wallet Balance</span>
+                  <span className="font-black">− ₹{appliedWalletDiscount.toLocaleString("en-IN")}</span>
                 </div>
               )}
               <div className="flex justify-between text-slate-500">

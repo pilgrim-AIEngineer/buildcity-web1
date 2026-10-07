@@ -128,7 +128,7 @@ export function AuthProvider({ children }) {
     const apiRes = await authFetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone: cleanPhone, otp: cleanOtp, otpToken: storedOtpToken, name }),
+      body: JSON.stringify({ phone: cleanPhone, otp: cleanOtp, otpToken: storedOtpToken, name, referralCode }),
     });
 
     const apiData = await apiRes.json().catch(() => ({}));

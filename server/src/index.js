@@ -1104,6 +1104,452 @@ app.delete("/api/v1/banners/:id", requireAuth, requireRole("ADMIN"), async (req,
   res.json({ success: true, deleted: prevCount !== bannersList.length });
 });
 
+// ==========================================
+// WALLET & REWARDS SYSTEM CONFIGURATION & APIS
+// ==========================================
+
+const DEFAULT_WALLET_SETTINGS = {
+  id: "wallet_config",
+  referralEnabled: true,
+  cashbackEnabled: true,
+  cashbackType: "PERCENTAGE", // "PERCENTAGE" or "FLAT"
+  cashbackValue: 2.0,
+  minOrderForCashback: 5000.0,
+  maxCashbackCap: 500.0,
+  referrerReward: 100.0,
+  refereeReward: 50.0,
+  walletRedeemEnabled: true,
+  maxWalletUsagePercent: 10.0,
+  maxWalletUsageFlat: 500.0,
+};
+
+// In-memory cache for wallet settings for lightning fast responses
+let cachedWalletSettings = { ...DEFAULT_WALLET_SETTINGS };
+
+// Helper to get active wallet settings
+async function getActiveWalletSettings() {
+  try {
+    let settings = await prisma.appSetting.findUnique({
+      where: { id: "wallet_config" },
+    }).catch(() => null);
+
+    if (!settings) {
+      settings = await prisma.appSetting.create({
+        data: { ...DEFAULT_WALLET_SETTINGS },
+      }).catch(() => null);
+    }
+
+    if (settings) {
+      cachedWalletSettings = {
+        ...DEFAULT_WALLET_SETTINGS,
+        ...settings,
+        cashbackValue: Number(settings.cashbackValue),
+        minOrderForCashback: Number(settings.minOrderForCashback),
+        maxCashbackCap: Number(settings.maxCashbackCap),
+        referrerReward: Number(settings.referrerReward),
+        refereeReward: Number(settings.refereeReward),
+        maxWalletUsagePercent: Number(settings.maxWalletUsagePercent),
+        maxWalletUsageFlat: Number(settings.maxWalletUsageFlat),
+      };
+    }
+  } catch (err) {
+    console.warn("Wallet settings fallback to defaults:", err.message);
+  }
+  return cachedWalletSettings;
+}
+
+// 1. Get Wallet & Rewards settings (Accessible by frontend and admin)
+app.get("/api/v1/settings/wallet", async (req, res) => {
+  try {
+    const settings = await getActiveWalletSettings();
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.json(settings);
+  } catch (err) {
+    res.json(DEFAULT_WALLET_SETTINGS);
+  }
+});
+
+// 2. Admin: Update Wallet & Rewards settings
+app.put("/api/v1/admin/wallet-settings", requireAuth, requireRole("ADMIN"), async (req, res) => {
+  try {
+    const {
+      referralEnabled,
+      cashbackEnabled,
+      cashbackType,
+      cashbackValue,
+      minOrderForCashback,
+      maxCashbackCap,
+      referrerReward,
+      refereeReward,
+      walletRedeemEnabled,
+      maxWalletUsagePercent,
+      maxWalletUsageFlat,
+    } = req.body;
+
+    const updatedData = {
+      referralEnabled: referralEnabled !== undefined ? Boolean(referralEnabled) : cachedWalletSettings.referralEnabled,
+      cashbackEnabled: cashbackEnabled !== undefined ? Boolean(cashbackEnabled) : cachedWalletSettings.cashbackEnabled,
+      cashbackType: cashbackType === "FLAT" ? "FLAT" : "PERCENTAGE",
+      cashbackValue: !isNaN(Number(cashbackValue)) ? Number(cashbackValue) : cachedWalletSettings.cashbackValue,
+      minOrderForCashback: !isNaN(Number(minOrderForCashback)) ? Math.max(0, Number(minOrderForCashback)) : cachedWalletSettings.minOrderForCashback,
+      maxCashbackCap: !isNaN(Number(maxCashbackCap)) ? Math.max(0, Number(maxCashbackCap)) : cachedWalletSettings.maxCashbackCap,
+      referrerReward: !isNaN(Number(referrerReward)) ? Math.max(0, Number(referrerReward)) : cachedWalletSettings.referrerReward,
+      refereeReward: !isNaN(Number(refereeReward)) ? Math.max(0, Number(refereeReward)) : cachedWalletSettings.refereeReward,
+      walletRedeemEnabled: walletRedeemEnabled !== undefined ? Boolean(walletRedeemEnabled) : cachedWalletSettings.walletRedeemEnabled,
+      maxWalletUsagePercent: !isNaN(Number(maxWalletUsagePercent)) ? Math.min(100, Math.max(0, Number(maxWalletUsagePercent))) : cachedWalletSettings.maxWalletUsagePercent,
+      maxWalletUsageFlat: !isNaN(Number(maxWalletUsageFlat)) ? Math.max(0, Number(maxWalletUsageFlat)) : cachedWalletSettings.maxWalletUsageFlat,
+    };
+
+    let result = null;
+    try {
+      result = await prisma.appSetting.upsert({
+        where: { id: "wallet_config" },
+        update: updatedData,
+        create: { id: "wallet_config", ...updatedData },
+      });
+    } catch (dbErr) {
+      console.warn("DB save note for appSetting:", dbErr.message);
+    }
+
+    cachedWalletSettings = {
+      ...updatedData,
+      id: "wallet_config",
+      updatedAt: new Date().toISOString(),
+    };
+
+    console.log("✅ Admin updated Wallet & Rewards Settings successfully");
+    res.json({ success: true, settings: cachedWalletSettings });
+  } catch (err) {
+    sendServerError(res, err);
+  }
+});
+
+// 3. Admin: Search Users with Wallet Balances
+app.get("/api/v1/admin/wallet-users", requireAuth, requireRole("ADMIN"), async (req, res) => {
+  try {
+    const { search = "" } = req.query;
+    const cleanSearch = String(search).trim();
+
+    let whereClause = {};
+    if (cleanSearch) {
+      whereClause = {
+        OR: [
+          { phone: { contains: cleanSearch, mode: "insensitive" } },
+          { name: { contains: cleanSearch, mode: "insensitive" } },
+          { referralCode: { contains: cleanSearch, mode: "insensitive" } },
+        ],
+      };
+    }
+
+    const users = await prisma.user.findMany({
+      where: whereClause,
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        walletBalance: true,
+        referralCode: true,
+        referredBy: true,
+        createdAt: true,
+        walletTransactions: {
+          orderBy: { createdAt: "desc" },
+          take: 5,
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    }).catch(() => []);
+
+    const formatted = users.map((u) => ({
+      ...u,
+      walletBalance: Number(u.walletBalance) || 0,
+      walletTransactions: (u.walletTransactions || []).map((t) => ({
+        ...t,
+        amount: Number(t.amount) || 0,
+      })),
+    }));
+
+    res.json(formatted);
+  } catch (err) {
+    sendServerError(res, err);
+  }
+});
+
+// 4. Admin: Manual Wallet Adjustment (+Credit / -Debit)
+app.post("/api/v1/admin/wallet-adjust", requireAuth, requireRole("ADMIN"), async (req, res) => {
+  try {
+    const { userId, amount, action = "CREDIT", reason = "Admin Manual Adjustment" } = req.body;
+    const cleanAmount = Math.abs(Number(amount));
+
+    if (!userId || isNaN(cleanAmount) || cleanAmount <= 0) {
+      return res.status(400).json({ error: "Valid userId and positive amount required" });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      return res.status(404).json({ error: "Customer not found" });
+    }
+
+    const currentBal = Number(user.walletBalance) || 0;
+    const delta = action === "DEBIT" ? -cleanAmount : cleanAmount;
+    const newBal = Math.max(0, currentBal + delta);
+
+    // Update user balance and insert audit transaction in DB
+    const [updatedUser, newTx] = await prisma.$transaction([
+      prisma.user.update({
+        where: { id: userId },
+        data: { walletBalance: newBal },
+      }),
+      prisma.walletTransaction.create({
+        data: {
+          userId,
+          amount: delta,
+          type: "ADMIN_ADJUST",
+          description: reason.trim() || `Admin ${action === "DEBIT" ? "deducted" : "credited"} ₹${cleanAmount}`,
+        },
+      }),
+    ]);
+
+    res.json({
+      success: true,
+      newBalance: Number(updatedUser.walletBalance),
+      transaction: { ...newTx, amount: Number(newTx.amount) },
+    });
+  } catch (err) {
+    sendServerError(res, err);
+  }
+});
+
+// Helper: Generate unique 6-character referral code (e.g. BC7842)
+async function generateUniqueReferralCode() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  for (let attempt = 0; attempt < 5; attempt++) {
+    let code = "BC";
+    for (let i = 0; i < 4; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    const existing = await prisma.user.findUnique({ where: { referralCode: code } }).catch(() => null);
+    if (!existing) return code;
+  }
+  return "BC" + Math.floor(1000 + Math.random() * 9000);
+}
+
+// 5. Customer: Get Own Wallet Balance & Passbook Transactions
+app.get("/api/v1/wallet", requireAuth, async (req, res) => {
+  try {
+    let user = await prisma.user.findUnique({
+      where: { id: req.auth.userId },
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        walletBalance: true,
+        referralCode: true,
+        referredBy: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Auto-generate referral code for existing user if missing
+    if (!user.referralCode) {
+      const code = await generateUniqueReferralCode();
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { referralCode: code },
+        select: {
+          id: true,
+          name: true,
+          phone: true,
+          walletBalance: true,
+          referralCode: true,
+          referredBy: true,
+        },
+      }).catch(() => user);
+    }
+
+    const transactions = await prisma.walletTransaction.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    }).catch(() => []);
+
+    const settings = await getActiveWalletSettings();
+
+    res.json({
+      success: true,
+      balance: Number(user.walletBalance) || 0,
+      referralCode: user.referralCode,
+      referredBy: user.referredBy,
+      settings: {
+        referralEnabled: settings.referralEnabled,
+        cashbackEnabled: settings.cashbackEnabled,
+        cashbackType: settings.cashbackType,
+        cashbackValue: settings.cashbackValue,
+        minOrderForCashback: settings.minOrderForCashback,
+        referrerReward: settings.referrerReward,
+        refereeReward: settings.refereeReward,
+        walletRedeemEnabled: settings.walletRedeemEnabled,
+        maxWalletUsagePercent: settings.maxWalletUsagePercent,
+        maxWalletUsageFlat: settings.maxWalletUsageFlat,
+      },
+      transactions: transactions.map((t) => ({
+        ...t,
+        amount: Number(t.amount) || 0,
+      })),
+    });
+  } catch (err) {
+    sendServerError(res, err);
+  }
+});
+
+// 6. Validate Referral Code (During Signup or Profile)
+app.post("/api/v1/wallet/validate-code", async (req, res) => {
+  try {
+    const { code } = req.body;
+    if (!code || !String(code).trim()) {
+      return res.status(400).json({ valid: false, error: "Referral code required" });
+    }
+
+    const clean = String(code).trim().toUpperCase();
+    const referrer = await prisma.user.findFirst({
+      where: { referralCode: clean },
+      select: { id: true, name: true, phone: true },
+    }).catch(() => null);
+
+    if (!referrer) {
+      return res.status(404).json({ valid: false, error: "Invalid referral code" });
+    }
+
+    const settings = await getActiveWalletSettings();
+
+    res.json({
+      valid: true,
+      code: clean,
+      referrerName: referrer.name || "BuildCity Member",
+      rewardAmount: settings.refereeReward,
+    });
+  } catch (err) {
+    sendServerError(res, err);
+  }
+});
+
+// Helper: Handle Rewards on Order DELIVERED status
+async function handleOrderDeliveredRewards(order) {
+  try {
+    if (!order || !order.customerId) return;
+    const settings = await getActiveWalletSettings();
+
+    // 1. Order Spend Cashback
+    if (settings.cashbackEnabled) {
+      const orderTotal = Number(order.totalAmount || order.total || 0);
+      const minQualifying = Number(settings.minOrderForCashback || 0);
+
+      if (orderTotal >= minQualifying) {
+        let earnedCashback = 0;
+        if (settings.cashbackType === "PERCENTAGE") {
+          const raw = (orderTotal * Number(settings.cashbackValue || 0)) / 100;
+          earnedCashback = Math.min(Number(settings.maxCashbackCap || 500), raw);
+        } else {
+          earnedCashback = Number(settings.cashbackValue || 0);
+        }
+        earnedCashback = Math.round(earnedCashback * 100) / 100;
+
+        if (earnedCashback > 0) {
+          await prisma.$transaction([
+            prisma.user.update({
+              where: { id: order.customerId },
+              data: { walletBalance: { increment: earnedCashback } },
+            }),
+            prisma.walletTransaction.create({
+              data: {
+                userId: order.customerId,
+                amount: earnedCashback,
+                type: "ORDER_CASHBACK",
+                orderId: order.id,
+                description: `Order #${order.orderNumber || order.id.slice(0, 8)} par ${
+                  settings.cashbackType === "PERCENTAGE" ? `${settings.cashbackValue}%` : "flat"
+                } Cashback`,
+              },
+            }),
+            prisma.order.update({
+              where: { id: order.id },
+              data: { cashbackEarned: earnedCashback },
+            }),
+          ]);
+
+          console.log(`✅ Credited ₹${earnedCashback} order cashback to user ${order.customerId}`);
+        }
+      }
+    }
+
+    // 2. Referral Rewards (Only on Referee's First Delivered Order)
+    if (settings.referralEnabled) {
+      const deliveredCount = await prisma.order.count({
+        where: { customerId: order.customerId, status: "DELIVERED" },
+      });
+
+      if (deliveredCount === 1) {
+        const customer = await prisma.user.findUnique({
+          where: { id: order.customerId },
+          select: { id: true, name: true, phone: true, referredBy: true },
+        });
+
+        if (customer && customer.referredBy) {
+          const referrerReward = Number(settings.referrerReward || 100);
+          const refereeReward = Number(settings.refereeReward || 50);
+
+          const txs = [];
+          if (referrerReward > 0) {
+            txs.push(
+              prisma.user.update({
+                where: { id: customer.referredBy },
+                data: { walletBalance: { increment: referrerReward } },
+              }),
+              prisma.walletTransaction.create({
+                data: {
+                  userId: customer.referredBy,
+                  amount: referrerReward,
+                  type: "REFERRAL_BONUS",
+                  orderId: order.id,
+                  description: `Referral bonus for inviting ${customer.name || customer.phone}`,
+                },
+              })
+            );
+          }
+
+          if (refereeReward > 0) {
+            txs.push(
+              prisma.user.update({
+                where: { id: customer.id },
+                data: { walletBalance: { increment: refereeReward } },
+              }),
+              prisma.walletTransaction.create({
+                data: {
+                  userId: customer.id,
+                  amount: refereeReward,
+                  type: "REFERRAL_BONUS",
+                  orderId: order.id,
+                  description: `Welcome bonus on your 1st completed order`,
+                },
+              })
+            );
+          }
+
+          if (txs.length > 0) {
+            await prisma.$transaction(txs);
+            console.log(`✅ Credited referral rewards for order ${order.id}`);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("handleOrderDeliveredRewards error note:", err.message);
+  }
+}
+
 const { sendRealSMSOTP } = require("./smsService");
 
 // 1. AUTHENTICATION & USERS ENDPOINTS (INSTANT HIGH SPEED OPTIMIZED)
@@ -1237,21 +1683,42 @@ app.post("/api/v1/auth/otp/verify", otpVerifyLimiter, async (req, res) => {
 
     if (user) {
       // If customer provided a new/updated name during registration, save it
+      const updates = {};
       if (name && name.trim().length >= 2 && user.name !== name.trim()) {
+        updates.name = name.trim();
+      }
+      if (req.body.preferredRegionId && !user.preferredRegionId) {
+        updates.preferredRegionId = req.body.preferredRegionId;
+        updates.preferredRegionName = req.body.preferredRegionName || "Varanasi";
+      }
+      if (!user.referralCode) {
+        updates.referralCode = await generateUniqueReferralCode();
+      }
+      if (Object.keys(updates).length > 0) {
         user = await prisma.user.update({
           where: { id: user.id },
-          data: {
-            name: name && name.trim() ? name.trim() : user.name,
-            ...(req.body.preferredRegionId && !user.preferredRegionId ? {
-              preferredRegionId: req.body.preferredRegionId,
-              preferredRegionName: req.body.preferredRegionName || "Varanasi",
-            } : {}),
-          },
+          data: updates,
         }).catch(() => user);
       }
     } else {
-      // Create new user in DB with exact Name and preferred region
+      // Create new user in DB with exact Name, preferred region, and referral code
       const customerName = name && name.trim().length >= 2 ? name.trim() : `Customer ${cleanPhone.slice(-4)}`;
+      const myRefCode = await generateUniqueReferralCode();
+
+      // Check if a valid referral code was passed during signup
+      let referrerId = null;
+      const cleanRefInput = req.body.referralCode ? String(req.body.referralCode).trim().toUpperCase() : null;
+      if (cleanRefInput) {
+        const referrerUser = await prisma.user.findFirst({
+          where: { referralCode: cleanRefInput },
+          select: { id: true },
+        }).catch(() => null);
+        if (referrerUser && referrerUser.id) {
+          referrerId = referrerUser.id;
+          console.log(`🤝 Linked new customer (${cleanPhone}) to referrer ${referrerId}`);
+        }
+      }
+
       user = await prisma.user.create({
         data: {
           phone: cleanPhone,
@@ -1259,6 +1726,8 @@ app.post("/api/v1/auth/otp/verify", otpVerifyLimiter, async (req, res) => {
           role: "CUSTOMER",
           preferredRegionId: req.body.preferredRegionId || null,
           preferredRegionName: req.body.preferredRegionName || null,
+          referralCode: myRefCode,
+          referredBy: referrerId,
           tokenVersion: 1,
         },
       });
@@ -2817,6 +3286,14 @@ app.patch("/api/v1/orders/:id/status", requireAuth, requireRole("VENDOR", "DR", 
 
     // Status change and stock restore succeed or fail together
     const [updatedOrder] = await prisma.$transaction(ops);
+
+    // Automatically trigger Cashback & Referral Rewards on successful delivery!
+    if (status === "DELIVERED" && previousOrder.status !== "DELIVERED") {
+      handleOrderDeliveredRewards(updatedOrder || previousOrder).catch((e) =>
+        console.warn("Delivered rewards notice:", e.message)
+      );
+    }
+
     res.json(updatedOrder);
   } catch (err) {
     sendServerError(res, err, "Order status update");
@@ -3248,6 +3725,23 @@ app.post("/api/v1/orders/checkout", requireAuth, async (req, res) => {
       }
     }
 
+    // 4c. Wallet Redemption validation & calculation
+    const settings = await getActiveWalletSettings();
+    let verifiedWalletDiscount = 0;
+    const requestedUseWallet = req.body.useWallet === true || Boolean(req.body.walletDiscount) || Boolean(req.body.walletAmount);
+
+    if (requestedUseWallet && settings.walletRedeemEnabled) {
+      const userBalance = Number(targetUser.walletBalance || 0);
+      if (userBalance > 0) {
+        const cartTotalBeforeWallet = validatedItems.reduce((sum, vi) => sum + vi.totalPrice, 0);
+        const maxPercentLimit = (cartTotalBeforeWallet * Number(settings.maxWalletUsagePercent || 10)) / 100;
+        const maxAllowed = Math.min(Number(settings.maxWalletUsageFlat || 500), maxPercentLimit, userBalance);
+        const requested = req.body.walletDiscount !== undefined ? Number(req.body.walletDiscount) : (req.body.walletAmount !== undefined ? Number(req.body.walletAmount) : userBalance);
+        verifiedWalletDiscount = Math.max(0, Math.min(requested, maxAllowed));
+        verifiedWalletDiscount = Math.round(verifiedWalletDiscount * 100) / 100;
+      }
+    }
+
     // 5. One order per vendor: each shop accepts, dispatches and delivers its own order,
     // so a status change by one vendor can never close another vendor's items.
     // All orders, their items and the stock decrements commit atomically.
@@ -3261,7 +3755,8 @@ app.post("/api/v1/orders/checkout", requireAuth, async (req, res) => {
     const orderCreates = Array.from(vendorGroups.values()).map((groupItems, idx) => {
       const groupSubtotal = groupItems.reduce((sum, vi) => sum + vi.totalPrice, 0);
       const orderDiscount = idx === 0 ? Math.min(groupSubtotal, verifiedDiscount) : 0;
-      const orderTotal = Math.max(0, groupSubtotal + calculatedDeliveryFee - orderDiscount);
+      const orderWalletPart = idx === 0 ? Math.min(Math.max(0, groupSubtotal - orderDiscount), verifiedWalletDiscount) : 0;
+      const orderTotal = Math.max(0, groupSubtotal + calculatedDeliveryFee - orderDiscount - orderWalletPart);
 
       return prisma.order.create({
         data: {
@@ -3270,6 +3765,7 @@ app.post("/api/v1/orders/checkout", requireAuth, async (req, res) => {
           totalAmount: orderTotal,
           deliveryFee: calculatedDeliveryFee,
           discountAmount: orderDiscount,
+          walletDiscount: orderWalletPart,
           couponCode: idx === 0 && verifiedCouponCode ? verifiedCouponCode : null,
           paymentMode: "COD",
           status: "PENDING",
@@ -3305,9 +3801,27 @@ app.post("/api/v1/orders/checkout", requireAuth, async (req, res) => {
         : null;
     }).filter(Boolean);
 
+    const walletOps = [];
+    if (verifiedWalletDiscount > 0) {
+      walletOps.push(
+        prisma.user.update({
+          where: { id: targetCustomerId },
+          data: { walletBalance: { decrement: verifiedWalletDiscount } },
+        }),
+        prisma.walletTransaction.create({
+          data: {
+            userId: targetCustomerId,
+            amount: -verifiedWalletDiscount,
+            type: "ORDER_REDEMPTION",
+            description: `Wallet discount applied on checkout`,
+          },
+        })
+      );
+    }
+
     let createdOrders;
     try {
-      const results = await prisma.$transaction([...orderCreates, ...stockOps]);
+      const results = await prisma.$transaction([...orderCreates, ...stockOps, ...walletOps]);
       createdOrders = results.slice(0, orderCreates.length);
     } catch (txErr) {
       // Concurrent retry with the same idempotency key: the other request won

@@ -16,6 +16,7 @@ export default function Register() {
   const [step, setStep] = useState("form"); // "form" | "otp"
   const [name, setName] = useState("");
   const [phone, setPhone] = useState(initialPhone);
+  const [referralCode, setReferralCode] = useState("");
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -116,6 +117,7 @@ export default function Register() {
         phone: cleanedMobile,
         otp: otp.trim(),
         name: name.trim(),
+        referralCode: referralCode ? referralCode.trim().toUpperCase() : undefined,
         role: "customer",
       });
 
@@ -197,6 +199,24 @@ export default function Register() {
                   className="w-full bg-slate-50 border border-slate-200 rounded-r-xl text-xs font-bold px-3.5 py-3 outline-none focus:border-brand-500 focus:bg-white transition-all"
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="flex items-center justify-between text-xs font-extrabold text-navy-900 mb-1.5">
+                <span>Referral Code</span>
+                <span className="text-[10px] text-slate-400 font-semibold">(Optional)</span>
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. BC7842"
+                maxLength={10}
+                value={referralCode}
+                onChange={(e) => setReferralCode(e.target.value.toUpperCase().trim())}
+                className="w-full bg-slate-50 border border-slate-200 text-xs font-mono font-bold rounded-xl px-3.5 py-3 uppercase tracking-wider outline-none focus:border-brand-500 focus:bg-white transition-all"
+              />
+              <p className="text-[10.5px] text-slate-400 mt-1">
+                Enter your contractor's or friend's invite code to receive welcome wallet rewards.
+              </p>
             </div>
 
             <Button

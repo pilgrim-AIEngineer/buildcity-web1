@@ -52,6 +52,9 @@ model User {
   tokenVersion        Int      @default(1)
   status       String   @default("ACTIVE")
   productCount Int      @default(0)
+  walletBalance Decimal  @default(0.00)
+  referralCode  String?  @unique
+  referredBy    String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -61,6 +64,7 @@ model User {
   orders     Order[]
   auditLogs  AuditLog[]
   notifications Notification[]
+  walletTransactions WalletTransaction[]
 
   @@index([createdAt, id])
   @@map("users")
@@ -253,6 +257,8 @@ model Order {
   totalAmount    Decimal
   deliveryFee    Decimal     @default(49.00)
   discountAmount Decimal     @default(0.00)
+  walletDiscount Decimal     @default(0.00)
+  cashbackEarned Decimal     @default(0.00)
   couponCode     String?
   paymentMode    String      @default("COD")
   status         OrderStatus @default(PENDING)
@@ -357,4 +363,51 @@ model Banner {
 
   @@map("banners")
 }
+
+// 18. Customer Wallet Transaction Entity (Passbook / Ledger)
+model WalletTransaction {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount      Decimal
+  type        String   // REFERRAL_BONUS | ORDER_CASHBACK | ORDER_REDEMPTION | ADMIN_ADJUST
+  status      String   @default("COMPLETED")
+  orderId     String?
+  description String
+  createdAt   DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@map("wallet_transactions")
+}
+
+// 19. Application Global Settings (Admin Controlled Wallet & Rewards Configuration)
+model AppSetting {
+  id                    String   @id @default("wallet_config")
+  referralEnabled       Boolean  @default(true)
+  cashbackEnabled       Boolean  @default(true)
+  cashbackType          String   @default("PERCENTAGE") // PERCENTAGE | FLAT
+  cashbackValue         Decimal  @default(2.00)
+  minOrderForCashback   Decimal  @default(5000.00)
+  maxCashbackCap        Decimal  @default(500.00)
+  referrerReward        Decimal  @default(100.00)
+  refereeReward         Decimal  @default(50.00)
+  walletRedeemEnabled   Boolean  @default(true)
+  maxWalletUsagePercent Decimal  @default(10.00)
+  maxWalletUsageFlat    Decimal  @default(500.00)
+  updatedAt             DateTime @updatedAt
+
+  @@map("app_settings")
+}
+
+// 20. Vendor FCM Tokens (Push Notifications)
+model VendorFcmToken {
+  vendorId  String   @id @map("vendor_id")
+  token     String
+  phone     String?
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("vendor_fcm_tokens")
+}
+
+
 

@@ -7,6 +7,7 @@ import { useAlert } from "../../context/AlertContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { formatShortId, formatDateTimeIST } from "../../utils/formatId";
 import LoadMoreButton from "../../components/LoadMoreButton";
+import WalletSettingsTab from "./WalletSettingsTab";
 
 const PRESET_IMAGES = [
   { label: "Cement Bag", url: "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&w=400&q=80" },
@@ -28,6 +29,7 @@ const TABS = [
   { id: "Regions", label: "🗺️ Regions" },
   { id: "Coupons", label: "🎟️ Coupons" },
   { id: "Banners", label: "🖼️ Banners" },
+  { id: "Wallet & Rewards", label: "💰 Wallet & Rewards" },
   { id: "Notifications", label: "📢 Send Notifications" },
 ];
 
@@ -3025,6 +3027,9 @@ export default function AdminDashboard() {
             </div>
           </div>
         )}
+
+        {/* WALLET & REWARDS CONTROL TAB */}
+        {tab === "Wallet & Rewards" && <WalletSettingsTab />}
       </main>
 
       {/* EDIT MODAL: COUPON */}

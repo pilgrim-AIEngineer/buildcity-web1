@@ -255,6 +255,22 @@ export function AdminProvider({ children }) {
   const [masterProducts, setMasterProducts] = useState(loadInitialMasterProducts);
   const [products, setProducts] = useState(loadInitialProducts);
   const [productsLoading, setProductsLoading] = useState(true);
+  const [walletSettings, setWalletSettings] = useState({
+    id: "wallet_config",
+    referralEnabled: true,
+    cashbackEnabled: true,
+    cashbackType: "PERCENTAGE",
+    cashbackValue: 2.0,
+    minOrderForCashback: 5000.0,
+    maxCashbackCap: 500.0,
+    referrerReward: 100.0,
+    refereeReward: 50.0,
+    walletRedeemEnabled: true,
+    maxWalletUsagePercent: 10.0,
+    maxWalletUsageFlat: 500.0,
+  });
+  const [walletUsers, setWalletUsers] = useState([]);
+  const [loadingWalletSettings, setLoadingWalletSettings] = useState(false);
   const isFetchingRef = useRef(false);
   // agar public catalog fetch chal raha ho aur beech me login ho jaye toh sync drop nahi hoga
   const syncQueuedRef = useRef(false);
@@ -1773,6 +1789,80 @@ export function AdminProvider({ children }) {
     }
   };
 
+  const fetchWalletSettings = async () => {
+    try {
+      setLoadingWalletSettings(true);
+      const res = await authFetch(`${API_BASE_URL}/api/v1/settings/wallet`);
+      if (res.ok) {
+        const data = await res.json();
+        setWalletSettings(data);
+        return data;
+      }
+    } catch (err) {
+      console.warn("fetchWalletSettings note:", err.message);
+    } finally {
+      setLoadingWalletSettings(false);
+    }
+  };
+
+  const updateWalletSettings = async (newSettings) => {
+    try {
+      setWalletSettings((prev) => ({ ...prev, ...newSettings }));
+      const res = await authFetch(`${API_BASE_URL}/api/v1/admin/wallet-settings`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newSettings),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.settings) {
+          setWalletSettings(data.settings);
+          return data.settings;
+        }
+      }
+    } catch (err) {
+      console.error("updateWalletSettings error:", err);
+      throw err;
+    }
+  };
+
+  const fetchWalletUsers = async (search = "") => {
+    try {
+      const res = await authFetch(`${API_BASE_URL}/api/v1/admin/wallet-users?search=${encodeURIComponent(search)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setWalletUsers(Array.isArray(data) ? data : []);
+        return data;
+      }
+    } catch (err) {
+      console.warn("fetchWalletUsers note:", err.message);
+    }
+    return [];
+  };
+
+  const adjustUserWallet = async ({ userId, amount, action, reason }) => {
+    try {
+      const res = await authFetch(`${API_BASE_URL}/api/v1/admin/wallet-adjust`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, amount, action, reason }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setWalletUsers((prev) =>
+          prev.map((u) => (u.id === userId ? { ...u, walletBalance: data.newBalance } : u))
+        );
+        return data;
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || "Failed to adjust wallet");
+      }
+    } catch (err) {
+      console.error("adjustUserWallet error:", err);
+      throw err;
+    }
+  };
+
   const addMasterProduct = async (mpData) => {
     const catObj = categories.find((c) => c.id === mpData.categoryId) || {};
     const catName = catObj.name || mpData.categoryName || "General";
@@ -2185,6 +2275,13 @@ export function AdminProvider({ children }) {
         updateOrderStatus,
         fetchCloudData,
         markRecentEdit,
+        walletSettings,
+        loadingWalletSettings,
+        fetchWalletSettings,
+        updateWalletSettings,
+        walletUsers,
+        fetchWalletUsers,
+        adjustUserWallet,
       }}
     >
       {children}

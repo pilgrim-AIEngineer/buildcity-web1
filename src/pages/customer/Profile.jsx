@@ -69,10 +69,33 @@ export default function Profile() {
   const [showCouponsModal, setShowCouponsModal] = useState(false);
   const [copiedCode, setCopiedCode] = useState("");
 
+  // Wallet & Referral State
+  const [walletData, setWalletData] = useState(null);
+  const [showPassbookModal, setShowPassbookModal] = useState(false);
+  const [copiedReferral, setCopiedReferral] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      authFetch(`${API_BASE_URL}/api/v1/wallet`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data && data.success) setWalletData(data);
+        })
+        .catch(() => {});
+    }
+  }, [user]);
+
   const handleCopyCode = (code) => {
     navigator.clipboard?.writeText(code);
     setCopiedCode(code);
     setTimeout(() => setCopiedCode(""), 2500);
+  };
+
+  const handleCopyReferral = (code) => {
+    if (!code) return;
+    navigator.clipboard?.writeText(code);
+    setCopiedReferral(true);
+    setTimeout(() => setCopiedReferral(false), 2500);
   };
 
   const [editing, setEditing] = useState(false);
@@ -203,7 +226,44 @@ export default function Profile() {
           </form>
         )}
 
-        {/* 2 Simple Stat Cards: Active Coupons & Total Orders (Wallet Removed) */}
+        {/* BuildCity Wallet Balance Card */}
+        {!editing && (
+          <div className="bg-gradient-to-br from-amber-500 via-amber-600 to-orange-600 rounded-2xl sm:rounded-3xl p-4.5 sm:p-5 text-white shadow-md relative overflow-hidden">
+            <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-white/10 rounded-full blur-xl pointer-events-none" />
+            <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">💰</span>
+                  <span className="text-[11px] font-black tracking-wider uppercase text-amber-100 bg-white/20 px-2.5 py-0.5 rounded-full backdrop-blur-xs">
+                    BuildCity Wallet
+                  </span>
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-2xl sm:text-3xl font-black tracking-tight tabular-nums">
+                    ₹{Number(walletData?.balance || 0).toLocaleString("en-IN")}
+                  </span>
+                  <span className="text-[11px] font-medium text-amber-100">Available Balance</span>
+                </div>
+                <p className="text-[11px] text-amber-100/90 mt-0.5">
+                  {walletData?.settings?.walletRedeemEnabled
+                    ? `Redeemable up to ₹${walletData?.settings?.maxWalletUsageFlat || 500} on checkout`
+                    : "Cashback earned on delivered orders"}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowPassbookModal(true)}
+                className="bg-white/95 hover:bg-white text-amber-900 active:scale-95 text-xs font-black px-4 py-2.5 rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 self-start sm:self-auto shrink-0"
+              >
+                <span>📜 Passbook History</span>
+                <span>→</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 2 Simple Stat Cards: Active Coupons & Total Orders */}
         {!editing && (
           <div className="grid grid-cols-2 gap-2.5 sm:gap-3.5">
             {/* 1. Active Coupons (Click to view active coupons) */}
@@ -241,6 +301,81 @@ export default function Profile() {
                 <span className="text-navy-950 font-bold group-hover:translate-x-0.5 transition-transform">→</span>
               </p>
             </button>
+          </div>
+        )}
+
+        {/* Refer & Earn Card (Referral Code Only, Strictly No Dynamic Links) */}
+        {!editing && (
+          <div className="bg-white rounded-2xl border border-slate-200/90 p-4.5 sm:p-5 shadow-xs space-y-3.5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">🎁</span>
+                  <h3 className="text-sm font-extrabold text-navy-950">
+                    Refer & Earn Rewards
+                  </h3>
+                  <span className="text-[10px] font-black text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full border border-brand-200/60">
+                    Bonus ₹{walletData?.settings?.referrerReward || 100}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  Invite friends & contractors to BuildCity. When they register with your referral code and their 1st order is delivered, both of you earn wallet rewards!
+                </p>
+              </div>
+            </div>
+
+            {/* Referral Code Box */}
+            <div className="bg-slate-50 border border-slate-200/90 rounded-xl p-3 sm:p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Your Referral Code
+                </span>
+                <span className="font-mono text-xl font-black text-brand-600 tracking-widest select-all">
+                  {walletData?.referralCode || user?.referralCode || "BC----"}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleCopyReferral(walletData?.referralCode || user?.referralCode)}
+                  className={`flex-1 sm:flex-none text-xs font-black px-4 py-2.5 rounded-xl active:scale-95 transition-all cursor-pointer shadow-xs flex items-center justify-center gap-1.5 ${
+                    copiedReferral
+                      ? "bg-emerald-600 text-white"
+                      : "bg-brand-500 hover:bg-brand-600 text-white"
+                  }`}
+                >
+                  <span>{copiedReferral ? "✓ Copied!" : "📋 Copy Code"}</span>
+                </button>
+
+                <a
+                  href={`https://wa.me/?text=${encodeURIComponent(
+                    `BuildCity पर अपने घर और कंस्ट्रक्शन मटेरियल के आर्डर पर कैशबैक पाएं! रजिस्टर करते समय मेरा रेफरल कोड "${walletData?.referralCode || user?.referralCode}" डालें और वॉलेट रिवॉर्ड पाएं।\n\nReferral Code: ${walletData?.referralCode || user?.referralCode}`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 sm:flex-none bg-[#25D366] hover:bg-[#20ba5a] text-white active:scale-95 text-xs font-black px-4 py-2.5 rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <span>💬 WhatsApp</span>
+                </a>
+              </div>
+            </div>
+
+            {/* 3 Step Flow */}
+            <div className="grid grid-cols-3 gap-2 pt-1 text-center">
+              <div className="bg-slate-50/60 rounded-xl p-2 border border-slate-100">
+                <span className="text-xs font-black text-brand-600">1</span>
+                <p className="text-[10px] font-bold text-slate-600 mt-0.5">Share Code</p>
+              </div>
+              <div className="bg-slate-50/60 rounded-xl p-2 border border-slate-100">
+                <span className="text-xs font-black text-brand-600">2</span>
+                <p className="text-[10px] font-bold text-slate-600 mt-0.5">Friend Registers</p>
+              </div>
+              <div className="bg-slate-50/60 rounded-xl p-2 border border-slate-100">
+                <span className="text-xs font-black text-emerald-600">3</span>
+                <p className="text-[10px] font-bold text-slate-600 mt-0.5">Earn on Delivery</p>
+              </div>
+            </div>
           </div>
         )}
 
@@ -407,6 +542,121 @@ export default function Profile() {
                 className="w-full bg-brand-500 hover:bg-brand-600 active:scale-[0.98] text-white text-xs font-black py-2.5 rounded-xl transition-all cursor-pointer shadow-xs text-center"
               >
                 Shop Materials with Coupon →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* WALLET PASSBOOK MODAL */}
+      {showPassbookModal && (
+        <div
+          onClick={() => setShowPassbookModal(false)}
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl max-w-sm sm:max-w-md w-full p-4.5 sm:p-5 shadow-2xl border border-slate-100 flex flex-col max-h-[85vh] space-y-3 animate-modal-pop"
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">📜</span>
+                <h3 className="font-extrabold text-navy-950 text-sm sm:text-base">
+                  Wallet Passbook
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowPassbookModal(false)}
+                className="text-slate-400 hover:text-navy-950 p-1.5 rounded-full hover:bg-slate-100 transition-colors text-sm cursor-pointer"
+                title="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 rounded-2xl p-3 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                  Current Balance
+                </span>
+                <span className="text-xl font-black text-amber-900 tabular-nums">
+                  ₹{Number(walletData?.balance || 0).toLocaleString("en-IN")}
+                </span>
+              </div>
+              <span className="text-xs font-black text-amber-700 bg-white px-2.5 py-1 rounded-xl shadow-2xs border border-amber-200">
+                BuildCity Cash
+              </span>
+            </div>
+
+            <div className="space-y-2 overflow-y-auto flex-1 pr-0.5 max-h-[50vh]">
+              {!walletData?.transactions || walletData.transactions.length === 0 ? (
+                <div className="text-center py-8 text-slate-400">
+                  <p className="text-3xl mb-1.5">💳</p>
+                  <p className="text-xs font-bold text-slate-600">No transactions yet</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">
+                    Cashback and referral bonuses will appear here once your orders are delivered!
+                  </p>
+                </div>
+              ) : (
+                walletData.transactions.map((t) => {
+                  const isPositive = Number(t.amount) > 0;
+                  return (
+                    <div
+                      key={t.id}
+                      className="bg-slate-50/70 border border-slate-200/80 rounded-xl p-3 flex items-center justify-between gap-3 hover:border-slate-300 transition-colors"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div
+                          className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-bold text-xs ${
+                            isPositive
+                              ? "bg-emerald-100 text-emerald-700"
+                              : "bg-rose-100 text-rose-700"
+                          }`}
+                        >
+                          {isPositive ? "↓" : "↑"}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-navy-950 truncate">
+                            {t.description || t.type}
+                          </p>
+                          <p className="text-[10px] text-slate-400 font-medium">
+                            {t.createdAt
+                              ? new Date(t.createdAt).toLocaleString("en-IN", {
+                                  day: "numeric",
+                                  month: "short",
+                                  year: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })
+                              : "Recent"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <span
+                          className={`text-xs sm:text-sm font-black tabular-nums ${
+                            isPositive ? "text-emerald-600" : "text-rose-600"
+                          }`}
+                        >
+                          {isPositive ? `+ ₹${Number(t.amount).toLocaleString("en-IN")}` : `− ₹${Math.abs(Number(t.amount)).toLocaleString("en-IN")}`}
+                        </span>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                          {t.type}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <div className="pt-2 border-t border-slate-100 shrink-0">
+              <button
+                onClick={() => setShowPassbookModal(false)}
+                className="w-full bg-slate-100 hover:bg-slate-200 text-navy-950 text-xs font-bold py-2.5 rounded-xl transition-all cursor-pointer text-center"
+              >
+                Close Passbook
               </button>
             </div>
           </div>

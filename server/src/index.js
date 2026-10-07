@@ -1230,9 +1230,10 @@ app.get("/api/v1/admin/wallet-users", requireAuth, requireRole("ADMIN"), async (
     const { search = "" } = req.query;
     const cleanSearch = String(search).trim();
 
-    let whereClause = {};
+    let whereClause = { role: "CUSTOMER" };
     if (cleanSearch) {
       whereClause = {
+        role: "CUSTOMER",
         OR: [
           { phone: { contains: cleanSearch, mode: "insensitive" } },
           { name: { contains: cleanSearch, mode: "insensitive" } },
@@ -1337,23 +1338,28 @@ async function generateUniqueReferralCode() {
 // 5. Customer: Get Own Wallet Balance & Passbook Transactions
 app.get("/api/v1/wallet", requireAuth, async (req, res) => {
   try {
+    if (req.auth.role !== "CUSTOMER") {
+      return res.status(403).json({ error: "BuildCity Wallet is exclusively for Customer accounts." });
+    }
+
     let user = await prisma.user.findUnique({
       where: { id: req.auth.userId },
       select: {
         id: true,
         name: true,
         phone: true,
+        role: true,
         walletBalance: true,
         referralCode: true,
         referredBy: true,
       },
     });
 
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
+    if (!user || user.role !== "CUSTOMER") {
+      return res.status(404).json({ error: "Customer account not found" });
     }
 
-    // Auto-generate referral code for existing user if missing
+    // Auto-generate referral code for existing customer if missing
     if (!user.referralCode) {
       const code = await generateUniqueReferralCode();
       user = await prisma.user.update({

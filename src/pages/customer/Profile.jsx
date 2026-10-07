@@ -361,19 +361,28 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* 3 Step Flow */}
+            {/* How It Works - Step by Step Guide */}
             <div className="grid grid-cols-3 gap-2 pt-1 text-center">
-              <div className="bg-slate-50/60 rounded-xl p-2 border border-slate-100">
-                <span className="text-xs font-black text-brand-600">1</span>
-                <p className="text-[10px] font-bold text-slate-600 mt-0.5">Share Code</p>
+              <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-2.5">
+                <span className="inline-block text-[10px] font-black text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full border border-brand-200">
+                  Step 1
+                </span>
+                <p className="text-[11px] font-extrabold text-navy-950 mt-1">Share Code</p>
+                <p className="text-[9.5px] text-slate-400 mt-0.5">Dost ko code bhejein</p>
               </div>
-              <div className="bg-slate-50/60 rounded-xl p-2 border border-slate-100">
-                <span className="text-xs font-black text-brand-600">2</span>
-                <p className="text-[10px] font-bold text-slate-600 mt-0.5">Friend Registers</p>
+              <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-2.5">
+                <span className="inline-block text-[10px] font-black text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full border border-brand-200">
+                  Step 2
+                </span>
+                <p className="text-[11px] font-extrabold text-navy-950 mt-1">Friend Registers</p>
+                <p className="text-[9.5px] text-slate-400 mt-0.5">Signup par code daalein</p>
               </div>
-              <div className="bg-slate-50/60 rounded-xl p-2 border border-slate-100">
-                <span className="text-xs font-black text-emerald-600">3</span>
-                <p className="text-[10px] font-bold text-slate-600 mt-0.5">Earn on Delivery</p>
+              <div className="bg-emerald-50/60 border border-emerald-200/80 rounded-xl p-2.5">
+                <span className="inline-block text-[10px] font-black text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full border border-emerald-200">
+                  Step 3
+                </span>
+                <p className="text-[11px] font-extrabold text-emerald-900 mt-1">Earn on Delivery</p>
+                <p className="text-[9.5px] text-emerald-600 mt-0.5">1st order delivery par reward</p>
               </div>
             </div>
           </div>

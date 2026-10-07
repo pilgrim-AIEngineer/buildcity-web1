@@ -1748,8 +1748,17 @@ app.post("/api/v1/auth/otp/verify", otpVerifyLimiter, async (req, res) => {
 // Fetch Current Authenticated User Profile (Zero PII in URL)
 app.get("/api/v1/users/me", requireAuth, async (req, res) => {
   try {
-    const user = await prisma.user.findUnique({ where: { id: req.auth.userId } }).catch(() => null);
+    let user = await prisma.user.findUnique({ where: { id: req.auth.userId } }).catch(() => null);
     if (!user) return res.status(404).json({ error: "User not found", invalidSession: true });
+
+    if (!user.referralCode) {
+      const code = await generateUniqueReferralCode();
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { referralCode: code },
+      }).catch(() => user);
+    }
+
     const { password, ...safeUser } = user;
     res.json(safeUser);
   } catch (err) {

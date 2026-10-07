@@ -37,6 +37,8 @@ export function AuthProvider({ children }) {
                 email: dbUser.email || parsed.email,
                 preferredRegionId: dbUser.preferredRegionId || parsed.preferredRegionId,
                 preferredRegionName: dbUser.preferredRegionName || parsed.preferredRegionName,
+                referralCode: dbUser.referralCode || parsed.referralCode || null,
+                walletBalance: dbUser.walletBalance !== undefined ? Number(dbUser.walletBalance) : (parsed.walletBalance || 0),
               };
               setUser(refreshed);
               localStorage.setItem(STORAGE_KEY, JSON.stringify(refreshed));

@@ -102,7 +102,7 @@ export function AuthProvider({ children }) {
     return data;
   };
 
-  const verifyOtp = async ({ phone, otp, role = "customer", name }) => {
+  const verifyOtp = async ({ phone, otp, role = "customer", name, referralCode = null }) => {
     const cleanPhone = phone.trim().replace(/\D/g, "").slice(-10);
     const cleanOtp = otp.trim();
     let storedOtpToken = currentOtpToken;

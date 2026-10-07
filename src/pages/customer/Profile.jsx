@@ -69,19 +69,34 @@ export default function Profile() {
   const [showCouponsModal, setShowCouponsModal] = useState(false);
   const [copiedCode, setCopiedCode] = useState("");
 
-  // Wallet & Referral State
-  const [walletData, setWalletData] = useState(null);
+  // Wallet & Referral State (Instant Local Cache to avoid loading delay & text flicker)
+  const [walletData, setWalletData] = useState(() => {
+    try {
+      const cached = localStorage.getItem(`buildcity_wallet_${user?.id || "guest"}`);
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [loadingWallet, setLoadingWallet] = useState(!walletData);
   const [showPassbookModal, setShowPassbookModal] = useState(false);
   const [copiedReferral, setCopiedReferral] = useState(false);
 
   useEffect(() => {
     if (user) {
+      if (!walletData) setLoadingWallet(true);
       authFetch(`${API_BASE_URL}/api/v1/wallet`)
         .then((r) => r.json())
         .then((data) => {
-          if (data && data.success) setWalletData(data);
+          if (data && data.success) {
+            setWalletData(data);
+            try {
+              localStorage.setItem(`buildcity_wallet_${user.id || "guest"}`, JSON.stringify(data));
+            } catch {}
+          }
         })
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => setLoadingWallet(false));
     }
   }, [user]);
 
@@ -240,9 +255,13 @@ export default function Profile() {
                   Wallet
                 </span>
               </div>
-              <p className="text-base sm:text-xl font-black text-brand-600 group-hover:text-brand-700 transition-colors tabular-nums">
-                ₹{Number(walletData?.balance ?? user?.walletBalance ?? 0).toLocaleString("en-IN")}
-              </p>
+              {loadingWallet && !walletData ? (
+                <div className="h-6 w-16 mx-auto bg-slate-200 animate-pulse rounded-md my-0.5" />
+              ) : (
+                <p className="text-base sm:text-xl font-black text-brand-600 group-hover:text-brand-700 transition-colors tabular-nums">
+                  ₹{Number(walletData?.balance ?? user?.walletBalance ?? 0).toLocaleString("en-IN")}
+                </p>
+              )}
               <p className="text-[10px] font-bold text-slate-500 mt-0.5 flex items-center justify-center gap-1">
                 <span>Passbook</span>
                 <span className="text-brand-600 font-bold group-hover:translate-x-0.5 transition-transform">→</span>
@@ -281,7 +300,7 @@ export default function Profile() {
                 </span>
               </div>
               <p className="text-base sm:text-xl font-black text-navy-950 group-hover:text-brand-600 transition-colors tabular-nums">
-                {Math.max(ordersSummary?.totalOrders || 0, myOrders.length)}
+                {(ordersSummary?.totalOrders ?? myOrders.length) || 0}
               </p>
               <p className="text-[10px] font-bold text-slate-500 mt-0.5 flex items-center justify-center gap-1">
                 <span>Orders</span>
@@ -296,14 +315,19 @@ export default function Profile() {
           <div className="bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-5 shadow-xs space-y-3.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-lg">🎁</span>
                 <h3 className="text-sm font-extrabold text-navy-950">
                   Refer & Earn Rewards
                 </h3>
               </div>
-              <span className="text-[10px] font-black text-brand-700 bg-brand-50 px-2.5 py-0.5 rounded-full border border-brand-200/60">
-                Bonus ₹{walletData?.settings?.referrerReward || 100}
-              </span>
+              {walletData?.settings ? (
+                <span className="text-[10px] font-black text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200/80">
+                  {walletData.settings.referralRewardType === "PERCENTAGE"
+                    ? `Bonus ${walletData.settings.referrerReward}% Lifetime`
+                    : `Bonus ₹${walletData.settings.referrerReward}`}
+                </span>
+              ) : (
+                <span className="inline-block w-28 h-5 bg-emerald-100/70 animate-pulse rounded-full" />
+              )}
             </div>
 
             {/* Referral Code Box */}
@@ -312,7 +336,7 @@ export default function Profile() {
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                   Your Referral Code
                 </span>
-                <span className="font-mono text-xl font-black text-brand-600 tracking-widest select-all">
+                <span className="font-mono text-xl font-black text-navy-950 tracking-widest select-all">
                   {walletData?.referralCode || user?.referralCode || "BC----"}
                 </span>
               </div>
@@ -324,10 +348,10 @@ export default function Profile() {
                   className={`flex-1 sm:flex-none text-xs font-black px-4 py-2.5 rounded-xl active:scale-95 transition-all cursor-pointer shadow-xs flex items-center justify-center gap-1.5 ${
                     copiedReferral
                       ? "bg-emerald-600 text-white"
-                      : "bg-brand-500 hover:bg-brand-600 text-white"
+                      : "bg-slate-900 hover:bg-slate-800 text-white"
                   }`}
                 >
-                  <span>{copiedReferral ? "✓ Copied!" : "📋 Copy Code"}</span>
+                  <span>{copiedReferral ? "✓ Copied" : "Copy Code"}</span>
                 </button>
 
                 <a
@@ -336,35 +360,39 @@ export default function Profile() {
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 sm:flex-none bg-[#25D366] hover:bg-[#20ba5a] text-white active:scale-95 text-xs font-black px-4 py-2.5 rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="flex-1 sm:flex-none bg-[#128C7E] hover:bg-[#075E54] text-white active:scale-95 text-xs font-black px-4 py-2.5 rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 >
-                  <span>💬 WhatsApp</span>
+                  <span>WhatsApp</span>
                 </a>
               </div>
             </div>
 
-            {/* How It Works - Step by Step Guide (Clean English) */}
-            <div className="grid grid-cols-3 gap-2 pt-1 text-center">
-              <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-2.5">
-                <span className="inline-block text-[10px] font-black text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full border border-brand-200">
+            {/* How It Works - Step by Step Guide (Clean Monochrome & Minimalist) */}
+            <div className="grid grid-cols-3 gap-2 sm:gap-2.5 pt-1 text-center">
+              <div className="bg-slate-50 border border-slate-200/90 rounded-xl p-2.5 sm:p-3 shadow-2xs hover:border-slate-300 transition-colors">
+                <span className="inline-block text-[9.5px] font-extrabold text-slate-600 bg-white border border-slate-200/90 px-2.5 py-0.5 rounded-full shadow-2xs">
                   Step 1
                 </span>
-                <p className="text-[11px] font-extrabold text-navy-950 mt-1">Share Code</p>
-                <p className="text-[9.5px] text-slate-400 mt-0.5">Send code to friends</p>
+                <p className="text-[11px] sm:text-xs font-black text-navy-950 mt-1.5">Share Code</p>
+                <p className="text-[9.5px] sm:text-[10px] font-medium text-slate-500 mt-0.5">Send code to friends</p>
               </div>
-              <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-2.5">
-                <span className="inline-block text-[10px] font-black text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full border border-brand-200">
+              <div className="bg-slate-50 border border-slate-200/90 rounded-xl p-2.5 sm:p-3 shadow-2xs hover:border-slate-300 transition-colors">
+                <span className="inline-block text-[9.5px] font-extrabold text-slate-600 bg-white border border-slate-200/90 px-2.5 py-0.5 rounded-full shadow-2xs">
                   Step 2
                 </span>
-                <p className="text-[11px] font-extrabold text-navy-950 mt-1">Friend Registers</p>
-                <p className="text-[9.5px] text-slate-400 mt-0.5">Enter code on signup</p>
+                <p className="text-[11px] sm:text-xs font-black text-navy-950 mt-1.5">Friend Registers</p>
+                <p className="text-[9.5px] sm:text-[10px] font-medium text-slate-500 mt-0.5">Enter code on signup</p>
               </div>
-              <div className="bg-emerald-50/60 border border-emerald-200/80 rounded-xl p-2.5">
-                <span className="inline-block text-[10px] font-black text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full border border-emerald-200">
+              <div className="bg-slate-50 border border-slate-200/90 rounded-xl p-2.5 sm:p-3 shadow-2xs hover:border-slate-300 transition-colors">
+                <span className="inline-block text-[9.5px] font-extrabold text-slate-600 bg-white border border-slate-200/90 px-2.5 py-0.5 rounded-full shadow-2xs">
                   Step 3
                 </span>
-                <p className="text-[11px] font-extrabold text-emerald-900 mt-1">Earn on Delivery</p>
-                <p className="text-[9.5px] text-emerald-600 mt-0.5">Reward on 1st order</p>
+                <p className="text-[11px] sm:text-xs font-black text-navy-950 mt-1.5">Earn on Delivery</p>
+                <p className="text-[9.5px] sm:text-[10px] font-medium text-slate-500 mt-0.5">
+                  {walletData?.settings?.referralRewardType === "PERCENTAGE"
+                    ? `${walletData?.settings?.referrerReward || 2}% on every qualifying order`
+                    : "Reward on qualifying orders"}
+                </p>
               </div>
             </div>
           </div>
@@ -570,9 +598,13 @@ export default function Profile() {
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                   Available Wallet Balance
                 </span>
-                <span className="text-2xl font-black text-navy-950 tabular-nums">
-                  ₹{Number(walletData?.balance || 0).toLocaleString("en-IN")}
-                </span>
+                {loadingWallet && !walletData ? (
+                  <div className="h-7 w-24 bg-slate-200 animate-pulse rounded-md mt-1" />
+                ) : (
+                  <span className="text-2xl font-black text-navy-950 tabular-nums">
+                    ₹{Number(walletData?.balance || user?.walletBalance || 0).toLocaleString("en-IN")}
+                  </span>
+                )}
               </div>
               <span className="text-[11px] font-black text-brand-700 bg-brand-50 px-3 py-1 rounded-xl shadow-2xs border border-brand-200/80">
                 BuildCity Wallet
@@ -580,7 +612,25 @@ export default function Profile() {
             </div>
 
             <div className="space-y-2 overflow-y-auto flex-1 pr-0.5 max-h-[50vh]">
-              {!walletData?.transactions || walletData.transactions.length === 0 ? (
+              {loadingWallet && (!walletData || !walletData.transactions) ? (
+                <div className="space-y-2 py-1">
+                  {[1, 2, 3].map((idx) => (
+                    <div
+                      key={idx}
+                      className="bg-slate-50 border border-slate-200/70 rounded-xl p-3 flex items-center justify-between gap-3 animate-pulse"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-slate-200" />
+                        <div className="space-y-1.5">
+                          <div className="h-3 w-28 bg-slate-200 rounded" />
+                          <div className="h-2 w-16 bg-slate-200 rounded" />
+                        </div>
+                      </div>
+                      <div className="h-4 w-12 bg-slate-200 rounded" />
+                    </div>
+                  ))}
+                </div>
+              ) : !walletData?.transactions || walletData.transactions.length === 0 ? (
                 <div className="text-center py-8 text-slate-400">
                   <p className="text-3xl mb-1.5">💳</p>
                   <p className="text-xs font-bold text-slate-600">No transactions yet</p>

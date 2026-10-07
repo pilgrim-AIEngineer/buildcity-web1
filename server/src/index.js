@@ -1116,11 +1116,16 @@ const DEFAULT_WALLET_SETTINGS = {
   cashbackValue: 2.0,
   minOrderForCashback: 5000.0,
   maxCashbackCap: 500.0,
-  referrerReward: 100.0,
+  referralRewardType: "PERCENTAGE", // "PERCENTAGE" or "FLAT"
+  referrerReward: 2.0, // 2% of first delivered order value in PERCENTAGE mode, or flat ₹ amount
+  maxReferralRewardCap: 1000.0,
+  refereeRewardType: "FLAT", // "FLAT" or "PERCENTAGE"
   refereeReward: 50.0,
   walletRedeemEnabled: true,
   maxWalletUsagePercent: 10.0,
   maxWalletUsageFlat: 500.0,
+  freeDeliveryEnabled: true,
+  freeDeliveryMinAmount: 25000.0,
 };
 
 // In-memory cache for wallet settings for lightning fast responses
@@ -1146,10 +1151,15 @@ async function getActiveWalletSettings() {
         cashbackValue: Number(settings.cashbackValue),
         minOrderForCashback: Number(settings.minOrderForCashback),
         maxCashbackCap: Number(settings.maxCashbackCap),
+        referralRewardType: settings.referralRewardType || "PERCENTAGE",
         referrerReward: Number(settings.referrerReward),
+        maxReferralRewardCap: Number(settings.maxReferralRewardCap ?? 1000),
+        refereeRewardType: settings.refereeRewardType || "FLAT",
         refereeReward: Number(settings.refereeReward),
         maxWalletUsagePercent: Number(settings.maxWalletUsagePercent),
         maxWalletUsageFlat: Number(settings.maxWalletUsageFlat),
+        freeDeliveryEnabled: settings.freeDeliveryEnabled !== undefined ? Boolean(settings.freeDeliveryEnabled) : true,
+        freeDeliveryMinAmount: !isNaN(Number(settings.freeDeliveryMinAmount)) ? Number(settings.freeDeliveryMinAmount) : 25000.0,
       };
     }
   } catch (err) {
@@ -1179,25 +1189,35 @@ app.put("/api/v1/admin/wallet-settings", requireAuth, requireRole("ADMIN"), asyn
       cashbackValue,
       minOrderForCashback,
       maxCashbackCap,
+      referralRewardType,
       referrerReward,
+      maxReferralRewardCap,
+      refereeRewardType,
       refereeReward,
       walletRedeemEnabled,
       maxWalletUsagePercent,
       maxWalletUsageFlat,
+      freeDeliveryEnabled,
+      freeDeliveryMinAmount,
     } = req.body;
 
     const updatedData = {
       referralEnabled: referralEnabled !== undefined ? Boolean(referralEnabled) : cachedWalletSettings.referralEnabled,
       cashbackEnabled: cashbackEnabled !== undefined ? Boolean(cashbackEnabled) : cachedWalletSettings.cashbackEnabled,
-      cashbackType: cashbackType === "FLAT" ? "FLAT" : "PERCENTAGE",
+      cashbackType: "PERCENTAGE",
       cashbackValue: !isNaN(Number(cashbackValue)) ? Number(cashbackValue) : cachedWalletSettings.cashbackValue,
       minOrderForCashback: !isNaN(Number(minOrderForCashback)) ? Math.max(0, Number(minOrderForCashback)) : cachedWalletSettings.minOrderForCashback,
       maxCashbackCap: !isNaN(Number(maxCashbackCap)) ? Math.max(0, Number(maxCashbackCap)) : cachedWalletSettings.maxCashbackCap,
+      referralRewardType: "PERCENTAGE",
       referrerReward: !isNaN(Number(referrerReward)) ? Math.max(0, Number(referrerReward)) : cachedWalletSettings.referrerReward,
+      maxReferralRewardCap: !isNaN(Number(maxReferralRewardCap)) ? Math.max(0, Number(maxReferralRewardCap)) : cachedWalletSettings.maxReferralRewardCap,
+      refereeRewardType: refereeRewardType === "PERCENTAGE" ? "PERCENTAGE" : "FLAT",
       refereeReward: !isNaN(Number(refereeReward)) ? Math.max(0, Number(refereeReward)) : cachedWalletSettings.refereeReward,
       walletRedeemEnabled: walletRedeemEnabled !== undefined ? Boolean(walletRedeemEnabled) : cachedWalletSettings.walletRedeemEnabled,
       maxWalletUsagePercent: !isNaN(Number(maxWalletUsagePercent)) ? Math.min(100, Math.max(0, Number(maxWalletUsagePercent))) : cachedWalletSettings.maxWalletUsagePercent,
       maxWalletUsageFlat: !isNaN(Number(maxWalletUsageFlat)) ? Math.max(0, Number(maxWalletUsageFlat)) : cachedWalletSettings.maxWalletUsageFlat,
+      freeDeliveryEnabled: freeDeliveryEnabled !== undefined ? Boolean(freeDeliveryEnabled) : cachedWalletSettings.freeDeliveryEnabled,
+      freeDeliveryMinAmount: !isNaN(Number(freeDeliveryMinAmount)) ? Math.max(0, Number(freeDeliveryMinAmount)) : cachedWalletSettings.freeDeliveryMinAmount,
     };
 
     let result = null;
@@ -1217,7 +1237,7 @@ app.put("/api/v1/admin/wallet-settings", requireAuth, requireRole("ADMIN"), asyn
       updatedAt: new Date().toISOString(),
     };
 
-    console.log("✅ Admin updated Wallet & Rewards Settings successfully");
+    console.log("✅ Admin updated Wallet & Rewards Settings successfully (Referral % active)");
     res.json({ success: true, settings: cachedWalletSettings });
   } catch (err) {
     sendServerError(res, err);
@@ -1395,11 +1415,16 @@ app.get("/api/v1/wallet", requireAuth, async (req, res) => {
         cashbackType: settings.cashbackType,
         cashbackValue: settings.cashbackValue,
         minOrderForCashback: settings.minOrderForCashback,
+        referralRewardType: settings.referralRewardType,
         referrerReward: settings.referrerReward,
+        maxReferralRewardCap: settings.maxReferralRewardCap,
+        refereeRewardType: settings.refereeRewardType,
         refereeReward: settings.refereeReward,
         walletRedeemEnabled: settings.walletRedeemEnabled,
         maxWalletUsagePercent: settings.maxWalletUsagePercent,
         maxWalletUsageFlat: settings.maxWalletUsageFlat,
+        freeDeliveryEnabled: settings.freeDeliveryEnabled !== false,
+        freeDeliveryMinAmount: Number(settings.freeDeliveryMinAmount || 25000),
       },
       transactions: transactions.map((t) => ({
         ...t,
@@ -1448,16 +1473,39 @@ async function handleOrderDeliveredRewards(order) {
     if (!order || !order.customerId) return;
     const settings = await getActiveWalletSettings();
 
-    // 1. Order Spend Cashback
-    if (settings.cashbackEnabled) {
-      const orderTotal = Number(order.totalAmount || order.total || 0);
-      const minQualifying = Number(settings.minOrderForCashback || 0);
+    // Fetch full order with items if not present to ensure accurate calculation
+    let fullOrder = order;
+    if (!order.items || order.deliveryFee === undefined) {
+      fullOrder = await prisma.order.findUnique({
+        where: { id: order.id },
+        include: { items: true },
+      }).catch(() => order);
+    }
 
-      if (orderTotal >= minQualifying) {
+    const deliveryFee = Number(fullOrder.deliveryFee || 0);
+    // Net materials amount: delivery charge is subtracted, wallet discount (BuildCity Due) is already subtracted from totalAmount
+    const eligibleMaterialsAmount = Math.max(0, Math.round((Number(fullOrder.totalAmount || 0) - deliveryFee) * 100) / 100);
+
+    // Calculate raw items subtotal to verify minimum qualifying cart threshold
+    const rawItemsSubtotal = Array.isArray(fullOrder.items) && fullOrder.items.length > 0
+      ? fullOrder.items.reduce((sum, it) => sum + (Number(it.totalPrice) || (Number(it.quantity || 1) * Number(it.price || it.unitPrice || 0))), 0)
+      : (Number(fullOrder.totalAmount || 0) + Number(fullOrder.walletDiscount || 0) + Number(fullOrder.discountAmount || 0) - deliveryFee);
+
+    const minQualifying = Number(settings.minOrderForCashback || 0);
+    const qualifiesForCashback = rawItemsSubtotal >= minQualifying || eligibleMaterialsAmount >= minQualifying;
+
+    // 1. Order Spend Cashback (Calculated strictly on net materials final price)
+    if (settings.cashbackEnabled && qualifiesForCashback && eligibleMaterialsAmount > 0) {
+      const existingCashback = await prisma.walletTransaction.findFirst({
+        where: { orderId: fullOrder.id, type: "ORDER_CASHBACK" },
+      }).catch(() => null);
+
+      if (!existingCashback) {
         let earnedCashback = 0;
-        if (settings.cashbackType === "PERCENTAGE") {
-          const raw = (orderTotal * Number(settings.cashbackValue || 0)) / 100;
-          earnedCashback = Math.min(Number(settings.maxCashbackCap || 500), raw);
+        if (settings.cashbackType === "PERCENTAGE" || !settings.cashbackType) {
+          const raw = (eligibleMaterialsAmount * Number(settings.cashbackValue || 0)) / 100;
+          const cap = Number(settings.maxCashbackCap || 0);
+          earnedCashback = cap > 0 ? Math.min(cap, raw) : raw;
         } else {
           earnedCashback = Number(settings.cashbackValue || 0);
         }
@@ -1466,50 +1514,56 @@ async function handleOrderDeliveredRewards(order) {
         if (earnedCashback > 0) {
           await prisma.$transaction([
             prisma.user.update({
-              where: { id: order.customerId },
+              where: { id: fullOrder.customerId },
               data: { walletBalance: { increment: earnedCashback } },
             }),
             prisma.walletTransaction.create({
               data: {
-                userId: order.customerId,
+                userId: fullOrder.customerId,
                 amount: earnedCashback,
                 type: "ORDER_CASHBACK",
-                orderId: order.id,
-                description: `Order #${order.orderNumber || order.id.slice(0, 8)} par ${
-                  settings.cashbackType === "PERCENTAGE" ? `${settings.cashbackValue}%` : "flat"
-                } Cashback`,
+                orderId: fullOrder.id,
+                description: `Order #${fullOrder.orderNumber || fullOrder.id.slice(0, 8)} par ${settings.cashbackValue}% Cashback (Net Materials: ₹${eligibleMaterialsAmount.toLocaleString("en-IN")})`,
               },
             }),
             prisma.order.update({
-              where: { id: order.id },
+              where: { id: fullOrder.id },
               data: { cashbackEarned: earnedCashback },
             }),
           ]);
 
-          console.log(`✅ Credited ₹${earnedCashback} order cashback to user ${order.customerId}`);
+          console.log(`✅ Credited ₹${earnedCashback} (${settings.cashbackValue}%) cashback on net materials ₹${eligibleMaterialsAmount} (Order Total: ₹${fullOrder.totalAmount}, Delivery: ₹${deliveryFee}) to user ${fullOrder.customerId}`);
         }
       }
     }
 
-    // 2. Referral Rewards (Only on Referee's First Delivered Order)
-    if (settings.referralEnabled) {
-      const deliveredCount = await prisma.order.count({
-        where: { customerId: order.customerId, status: "DELIVERED" },
-      });
+    // 2. Referral Rewards (Lifetime commission on EVERY qualifying delivered order!)
+    if (settings.referralEnabled && qualifiesForCashback && eligibleMaterialsAmount > 0) {
+      const existingRefBonus = await prisma.walletTransaction.findFirst({
+        where: { orderId: fullOrder.id, type: "REFERRAL_BONUS" },
+      }).catch(() => null);
 
-      if (deliveredCount === 1) {
+      if (!existingRefBonus) {
         const customer = await prisma.user.findUnique({
-          where: { id: order.customerId },
+          where: { id: fullOrder.customerId },
           select: { id: true, name: true, phone: true, referredBy: true },
-        });
+        }).catch(() => null);
 
         if (customer && customer.referredBy) {
-          const referrerReward = Number(settings.referrerReward || 100);
-          const refereeReward = Number(settings.refereeReward || 50);
+          let referrerReward = 0;
+          if (settings.referralRewardType === "PERCENTAGE" || !settings.referralRewardType) {
+            const raw = (eligibleMaterialsAmount * Number(settings.referrerReward || 2)) / 100;
+            const cap = Number(settings.maxReferralRewardCap || 0);
+            referrerReward = cap > 0 ? Math.min(cap, raw) : raw;
+          } else {
+            referrerReward = Number(settings.referrerReward || 100);
+          }
+          referrerReward = Math.round(referrerReward * 100) / 100;
 
-          const txs = [];
           if (referrerReward > 0) {
-            txs.push(
+            const desc = `Referral commission (${settings.referrerReward}% of net materials ₹${eligibleMaterialsAmount.toLocaleString("en-IN")}) for order by ${customer.name || customer.phone}`;
+
+            await prisma.$transaction([
               prisma.user.update({
                 where: { id: customer.referredBy },
                 data: { walletBalance: { increment: referrerReward } },
@@ -1519,34 +1573,13 @@ async function handleOrderDeliveredRewards(order) {
                   userId: customer.referredBy,
                   amount: referrerReward,
                   type: "REFERRAL_BONUS",
-                  orderId: order.id,
-                  description: `Referral bonus for inviting ${customer.name || customer.phone}`,
+                  orderId: fullOrder.id,
+                  description: desc,
                 },
-              })
-            );
-          }
-
-          if (refereeReward > 0) {
-            txs.push(
-              prisma.user.update({
-                where: { id: customer.id },
-                data: { walletBalance: { increment: refereeReward } },
               }),
-              prisma.walletTransaction.create({
-                data: {
-                  userId: customer.id,
-                  amount: refereeReward,
-                  type: "REFERRAL_BONUS",
-                  orderId: order.id,
-                  description: `Welcome bonus on your 1st completed order`,
-                },
-              })
-            );
-          }
+            ]);
 
-          if (txs.length > 0) {
-            await prisma.$transaction(txs);
-            console.log(`✅ Credited referral rewards for order ${order.id}`);
+            console.log(`✅ Credited ₹${referrerReward} (${settings.referrerReward}%) lifetime referral commission on net materials ₹${eligibleMaterialsAmount} to ${customer.referredBy} for order ${fullOrder.id}`);
           }
         }
       }
@@ -3211,6 +3244,8 @@ app.get("/api/v1/orders/vendor/:vendorId", requireAuth, requireRole("VENDOR", "D
         totalAmount: vendorTotal,
         total: vendorTotal,
         vendorItemsTotal: vendorSubtotal,
+        walletDiscount: Number(o.walletDiscount || 0),
+        discountAmount: Number(o.discountAmount || 0),
         isPartialOrder: !isFullOrder,
         allOrderItemsCount: allItemsCount,
       };
@@ -3709,7 +3744,12 @@ app.post("/api/v1/orders/checkout", requireAuth, async (req, res) => {
       }
     }
 
-    const calculatedDeliveryFee = reg ? Number(reg.baseDeliveryCharge || 49) : 49;
+    const clientDeliveryFee = req.body.deliveryFee !== undefined && !isNaN(Number(req.body.deliveryFee))
+      ? Number(req.body.deliveryFee)
+      : null;
+    let calculatedDeliveryFee = clientDeliveryFee !== null && clientDeliveryFee >= 0
+      ? clientDeliveryFee
+      : (reg ? Number(reg.baseDeliveryCharge || 49) : 49);
 
     // 4b. Coupon validation and discount verification
     const cleanCouponCode = couponCode ? String(couponCode).trim().toUpperCase() : null;
@@ -3742,13 +3782,19 @@ app.post("/api/v1/orders/checkout", requireAuth, async (req, res) => {
 
     // 4c. Wallet Redemption validation & calculation
     const settings = await getActiveWalletSettings();
+    const cartTotalBeforeWallet = validatedItems.reduce((sum, vi) => sum + vi.totalPrice, 0);
+
+    // Apply free delivery threshold if qualified
+    if (settings.freeDeliveryEnabled !== false && cartTotalBeforeWallet >= (Number(settings.freeDeliveryMinAmount) || 25000)) {
+      calculatedDeliveryFee = 0;
+    }
+
     let verifiedWalletDiscount = 0;
     const requestedUseWallet = req.body.useWallet === true || Boolean(req.body.walletDiscount) || Boolean(req.body.walletAmount);
 
     if (requestedUseWallet && settings.walletRedeemEnabled) {
       const userBalance = Number(targetUser.walletBalance || 0);
       if (userBalance > 0) {
-        const cartTotalBeforeWallet = validatedItems.reduce((sum, vi) => sum + vi.totalPrice, 0);
         const maxPercentLimit = (cartTotalBeforeWallet * Number(settings.maxWalletUsagePercent || 10)) / 100;
         const maxAllowed = Math.min(Number(settings.maxWalletUsageFlat || 500), maxPercentLimit, userBalance);
         const requested = req.body.walletDiscount !== undefined ? Number(req.body.walletDiscount) : (req.body.walletAmount !== undefined ? Number(req.body.walletAmount) : userBalance);
@@ -3771,7 +3817,7 @@ app.post("/api/v1/orders/checkout", requireAuth, async (req, res) => {
       const groupSubtotal = groupItems.reduce((sum, vi) => sum + vi.totalPrice, 0);
       const orderDiscount = idx === 0 ? Math.min(groupSubtotal, verifiedDiscount) : 0;
       const orderWalletPart = idx === 0 ? Math.min(Math.max(0, groupSubtotal - orderDiscount), verifiedWalletDiscount) : 0;
-      const orderTotal = Math.max(0, groupSubtotal + calculatedDeliveryFee - orderDiscount - orderWalletPart);
+      const orderTotal = Math.round(Math.max(0, groupSubtotal + calculatedDeliveryFee - orderDiscount - orderWalletPart) * 100) / 100;
 
       return prisma.order.create({
         data: {

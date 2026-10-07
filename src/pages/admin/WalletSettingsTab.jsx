@@ -20,11 +20,16 @@ export default function WalletSettingsTab() {
     cashbackValue: 2.0,
     minOrderForCashback: 5000.0,
     maxCashbackCap: 500.0,
-    referrerReward: 100.0,
+    referralRewardType: "PERCENTAGE",
+    referrerReward: 2.0,
+    maxReferralRewardCap: 1000.0,
+    refereeRewardType: "FLAT",
     refereeReward: 50.0,
     walletRedeemEnabled: true,
     maxWalletUsagePercent: 10.0,
     maxWalletUsageFlat: 500.0,
+    freeDeliveryEnabled: true,
+    freeDeliveryMinAmount: 25000.0,
   });
 
   const [saving, setSaving] = useState(false);
@@ -54,11 +59,16 @@ export default function WalletSettingsTab() {
         cashbackValue: Number(walletSettings.cashbackValue) || 2.0,
         minOrderForCashback: Number(walletSettings.minOrderForCashback) || 5000.0,
         maxCashbackCap: Number(walletSettings.maxCashbackCap) || 500.0,
-        referrerReward: Number(walletSettings.referrerReward) || 100.0,
+        referralRewardType: walletSettings.referralRewardType || "PERCENTAGE",
+        referrerReward: Number(walletSettings.referrerReward) || 2.0,
+        maxReferralRewardCap: Number(walletSettings.maxReferralRewardCap ?? 1000.0),
+        refereeRewardType: walletSettings.refereeRewardType || "FLAT",
         refereeReward: Number(walletSettings.refereeReward) || 50.0,
         walletRedeemEnabled: walletSettings.walletRedeemEnabled ?? true,
         maxWalletUsagePercent: Number(walletSettings.maxWalletUsagePercent) || 10.0,
         maxWalletUsageFlat: Number(walletSettings.maxWalletUsageFlat) || 500.0,
+        freeDeliveryEnabled: walletSettings.freeDeliveryEnabled !== false,
+        freeDeliveryMinAmount: Number(walletSettings.freeDeliveryMinAmount ?? 25000.0),
       });
     }
   }, [walletSettings]);
@@ -130,7 +140,6 @@ export default function WalletSettingsTab() {
       <div className="bg-gradient-to-r from-navy-950 via-slate-900 to-[#0A1A3A] rounded-2xl p-5 sm:p-6 text-white shadow-md border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-2xl">💰</span>
             <h2 className="text-lg sm:text-xl font-black tracking-tight text-white">
               Wallet, Referral & Cashback Control Hub
             </h2>
@@ -290,64 +299,46 @@ export default function WalletSettingsTab() {
         {/* Left Column: Cashback Rate & Limits */}
         <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">🎯</span>
+            <div>
               <h3 className="text-sm font-black text-navy-950">Order Cashback Configuration</h3>
+              <p className="text-[10px] text-slate-500">Calculated strictly on net materials price</p>
             </div>
             <span className="text-[11px] font-bold text-slate-400">Delivered Orders Only</span>
           </div>
 
           <div className="space-y-3.5 text-xs">
-            {/* Mode: Percentage vs Flat */}
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+            {/* Mode: Pure Percentage */}
+            <div className="flex items-center justify-between bg-slate-50 p-2.5 rounded-xl border border-slate-200/80">
+              <span className="text-[11px] font-bold text-slate-700 uppercase">
                 Cashback Mode
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setForm({ ...form, cashbackType: "PERCENTAGE" })}
-                  className={`py-2 px-3 rounded-xl font-bold text-xs border transition-all ${
-                    form.cashbackType === "PERCENTAGE"
-                      ? "bg-navy-900 text-white border-navy-900 shadow-xs"
-                      : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
-                  }`}
-                >
-                  Percentage (%) Mode
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setForm({ ...form, cashbackType: "FLAT" })}
-                  className={`py-2 px-3 rounded-xl font-bold text-xs border transition-all ${
-                    form.cashbackType === "FLAT"
-                      ? "bg-navy-900 text-white border-navy-900 shadow-xs"
-                      : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
-                  }`}
-                >
-                  Flat Amount (₹) Mode
-                </button>
-              </div>
+              </span>
+              <span className="text-[10.5px] font-black text-brand-700 bg-brand-50 px-2.5 py-0.5 rounded-full border border-brand-200">
+                Percentage (%) Mode
+              </span>
             </div>
 
             {/* Rate Value */}
             <div>
               <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
-                {form.cashbackType === "PERCENTAGE" ? "Cashback Rate (%)" : "Flat Cashback Amount (₹)"}
+                Cashback Rate (%)
               </label>
               <div className="relative">
                 <input
                   type="number"
                   step="0.5"
                   min="0"
-                  max={form.cashbackType === "PERCENTAGE" ? "100" : "10000"}
+                  max="100"
                   value={form.cashbackValue}
                   onChange={(e) => setForm({ ...form, cashbackValue: Number(e.target.value) })}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-black text-navy-950 focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none"
                 />
                 <span className="absolute right-3 top-2 text-xs font-bold text-slate-400">
-                  {form.cashbackType === "PERCENTAGE" ? "%" : "₹"}
+                  %
                 </span>
               </div>
+              <p className="text-[10px] text-slate-400 mt-1">
+                Cashback net materials price par banta hai (Delivery fee aur BuildCity Due wallet discount hatane ke baad).
+              </p>
             </div>
 
             {/* Minimum Order Value */}
@@ -370,34 +361,32 @@ export default function WalletSettingsTab() {
             </div>
 
             {/* Maximum Cap per Order */}
-            {form.cashbackType === "PERCENTAGE" && (
-              <div>
-                <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
-                  Maximum Cashback Cap per Order (₹)
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    step="50"
-                    min="0"
-                    value={form.maxCashbackCap}
-                    onChange={(e) => setForm({ ...form, maxCashbackCap: Number(e.target.value) })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-black text-navy-950 focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none"
-                  />
-                  <span className="absolute right-3 top-2 text-xs font-bold text-slate-400">₹</span>
-                </div>
-                <p className="text-[10px] text-slate-400 mt-1">
-                  Protects margin on bulk orders (e.g. ₹1,00,000 order gets capped at ₹{form.maxCashbackCap}).
-                </p>
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                Maximum Cashback Cap per Order (₹)
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  step="50"
+                  min="0"
+                  value={form.maxCashbackCap}
+                  onChange={(e) => setForm({ ...form, maxCashbackCap: Number(e.target.value) })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-black text-navy-950 focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none"
+                />
+                <span className="absolute right-3 top-2 text-xs font-bold text-slate-400">₹</span>
               </div>
-            )}
+              <p className="text-[10px] text-slate-400 mt-1">
+                Protects margin on bulk orders (e.g. ₹1,00,000 order gets capped at ₹{form.maxCashbackCap}).
+              </p>
+            </div>
 
             {/* Live Calculation Example */}
             <div className="bg-slate-50 rounded-xl p-3 border border-slate-200/70 text-[11px] space-y-1">
-              <span className="font-bold text-navy-950 block">💡 Live Calculator Example:</span>
+              <span className="font-bold text-navy-950 block">Live Calculator Example:</span>
               <p className="text-slate-600">
-                Agar customer <strong className="text-navy-900">₹{previewOrderAmount.toLocaleString("en-IN")}</strong> ka order karta hai, toh uske wallet mein{" "}
-                <strong className="text-emerald-700 font-black">₹{calculatedCashback}</strong> credit hoga.
+                Agar customer <strong className="text-navy-900">₹{previewOrderAmount.toLocaleString("en-IN")}</strong> net materials ka order karta hai, toh uske wallet mein{" "}
+                <strong className="text-emerald-700 font-black">₹{calculatedCashback}</strong> credit hoga. (Delivery charges excluded).
               </p>
             </div>
           </div>
@@ -408,61 +397,91 @@ export default function WalletSettingsTab() {
           {/* Referral Reward Settings */}
           <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-lg">🤝</span>
+              <div>
                 <h3 className="text-sm font-black text-navy-950">Referral Reward Payouts</h3>
+                <p className="text-[10px] text-slate-500">Lifetime commission on all qualifying orders</p>
               </div>
-              <span className="text-[11px] font-bold text-slate-400">Both Parties Benefit</span>
+              <span className="text-[11px] font-bold text-slate-400">Lifetime Commission</span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div className="space-y-3.5 text-xs">
+              {/* Pure Percentage Mode */}
+              <div className="flex items-center justify-between bg-slate-50 p-2.5 rounded-xl border border-slate-200/80">
+                <span className="text-[11px] font-bold text-slate-700 uppercase">
+                  Referral Reward Mode
+                </span>
+                <span className="text-[10.5px] font-black text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                  Lifetime Percentage (%) Mode
+                </span>
+              </div>
+
+              {/* Referrer Reward Input */}
               <div>
                 <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
-                  Referrer Reward (₹)
+                  Referrer Commission Rate (%)
                 </label>
                 <div className="relative">
                   <input
                     type="number"
-                    step="10"
+                    step="0.5"
                     min="0"
+                    max="100"
                     value={form.referrerReward}
                     onChange={(e) => setForm({ ...form, referrerReward: Number(e.target.value) })}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-black text-navy-950 focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none"
                   />
-                  <span className="absolute right-3 top-2 text-xs font-bold text-slate-400">₹</span>
+                  <span className="absolute right-3 top-2 text-xs font-bold text-slate-400">
+                    %
+                  </span>
                 </div>
-                <p className="text-[10px] text-slate-400 mt-1">Given to user who invited.</p>
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Referee ke har qualifying delivered order par net materials price ka ye % referrer ke wallet me credit hoga (Lifetime Commission).
+                </p>
               </div>
 
-              <div>
-                <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
-                  Referee Bonus (₹)
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    step="10"
-                    min="0"
-                    value={form.refereeReward}
-                    onChange={(e) => setForm({ ...form, refereeReward: Number(e.target.value) })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-black text-navy-950 focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none"
-                  />
-                  <span className="absolute right-3 top-2 text-xs font-bold text-slate-400">₹</span>
+              {/* Live Calculator Preview Box (Accurate & Clear) */}
+              <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200/80 text-[11px] space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold text-navy-950">Live Referral Calculator:</span>
+                  <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/80">
+                    {form.referrerReward}% Lifetime on Every Qualifying Order
+                  </span>
                 </div>
-                <p className="text-[10px] text-slate-400 mt-1">Given to new user who joined.</p>
-              </div>
-            </div>
 
-            <div className="p-2.5 rounded-xl bg-amber-50/80 border border-amber-200/60 text-[10.5px] text-amber-900 leading-relaxed">
-              🛡️ <strong>Safety Condition:</strong> Referral rewards are strictly credited when the referee's first order is marked <strong>DELIVERED</strong>.
+                <div className="bg-white rounded-lg p-2.5 border border-slate-200/90 space-y-1">
+                  <div className="flex justify-between text-slate-500 text-[10.5px]">
+                    <span>Sample Net Materials Order:</span>
+                    <strong className="text-navy-900 font-bold">₹1,00,000</strong>
+                  </div>
+                  <div className="flex justify-between text-slate-500 text-[10.5px]">
+                    <span>Commission Rate:</span>
+                    <strong className="text-navy-900 font-bold">{form.referrerReward}%</strong>
+                  </div>
+                  <div className="flex justify-between text-navy-950 font-black text-xs pt-1 border-t border-slate-100">
+                    <span>Referrer ko Milega:</span>
+                    <span className="text-emerald-600 font-extrabold text-sm">
+                      ₹{((100000 * Number(form.referrerReward || 0)) / 100).toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                </div>
+
+                <p className="text-[10px] text-slate-500 leading-relaxed">
+                  ✓ Referee ko uske order ka normal Cashback net materials price par milega.<br />
+                  ✓ Referrer ko referee ke <strong>har qualifying delivered order</strong> par lifetime commission seedha wallet me milega.<br />
+                  ✓ Delivery fee aur BuildCity Due wallet discount hatane ke baad strictly final materials price par commission calculate hota hai.
+                </p>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-slate-100 border border-slate-200/80 text-[10.5px] text-slate-700 leading-relaxed">
+                <strong>Safety Condition:</strong> Referral rewards are strictly credited in the background when the order status is updated to <strong>DELIVERED</strong>.
+              </div>
             </div>
           </div>
 
           {/* Checkout Redemption Limits */}
           <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-lg">🛡️</span>
+              <div>
                 <h3 className="text-sm font-black text-navy-950">Checkout Redemption Limits</h3>
               </div>
               <span className="text-[11px] font-bold text-slate-400">Anti-Abuse Cap</span>
@@ -507,6 +526,56 @@ export default function WalletSettingsTab() {
               </div>
             </div>
           </div>
+
+          {/* Free Delivery Threshold Rules */}
+          <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="text-sm font-black text-navy-950">Free Delivery Rules & Threshold</h3>
+              </div>
+              <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${form.freeDeliveryEnabled ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-100 text-slate-500 border-slate-200"}`}>
+                {form.freeDeliveryEnabled ? "Active" : "Disabled"}
+              </span>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <label className="flex items-center gap-2.5 cursor-pointer bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 hover:bg-slate-100/70 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={form.freeDeliveryEnabled}
+                  onChange={(e) => setForm({ ...form, freeDeliveryEnabled: e.target.checked })}
+                  className="w-4 h-4 rounded text-emerald-600 accent-emerald-600 cursor-pointer"
+                />
+                <div>
+                  <p className="text-xs font-black text-navy-950">Enable Free Delivery Program</p>
+                  <p className="text-[10px] text-slate-500">Qualifying high-value cart orders will get 100% Free District Delivery.</p>
+                </div>
+              </label>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                  Minimum Qualifying Order Value (₹)
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="500"
+                    min="0"
+                    disabled={!form.freeDeliveryEnabled}
+                    value={form.freeDeliveryMinAmount}
+                    onChange={(e) => setForm({ ...form, freeDeliveryMinAmount: Number(e.target.value) })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-black text-navy-950 focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none disabled:opacity-40"
+                  />
+                  <span className="absolute right-3 top-2 text-xs font-bold text-slate-400">₹</span>
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1">
+                  {form.freeDeliveryEnabled
+                    ? `Cart subtotal at or above ₹${Number(form.freeDeliveryMinAmount || 0).toLocaleString("en-IN")} gets Free Delivery (₹0). Below this, district fee applies.`
+                    : "Free delivery disabled. District base fee will always apply on all orders."}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -515,7 +584,6 @@ export default function WalletSettingsTab() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-lg">🔍</span>
               <h3 className="text-sm font-black text-navy-950">Customer Wallet Inspector</h3>
             </div>
             <p className="text-[11px] text-slate-500">
@@ -581,7 +649,7 @@ export default function WalletSettingsTab() {
                         onClick={() => handleOpenAdjust(u)}
                         className="bg-slate-100 hover:bg-slate-200 text-navy-950 font-bold text-[11px] px-2.5 py-1 rounded-lg border border-slate-200 transition-colors active:scale-95"
                       >
-                        ⚡ Adjust
+                        Adjust
                       </button>
                     </td>
                   </tr>

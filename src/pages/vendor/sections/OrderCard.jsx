@@ -70,13 +70,10 @@ export default function OrderCard({ order, index = 0, now, districtName, custome
             </p>
           </div>
           <div className="shrink-0 text-right">
-            <p className="text-lg font-semibold leading-tight tracking-tight tabular-nums text-slate-900">{inr(view.grandTotal)}</p>
-            <p className={cx("text-xs", collect ? cx("font-medium", view.status === "PENDING" ? "text-coral-700" : "text-slate-700") : "text-slate-400")}>
-              {collect ? "Collect" : view.payment.collect ? "Cash" : "Paid online"}
-            </p>
+            <p className="text-lg font-bold leading-tight tracking-tight tabular-nums text-slate-900">{inr(view.grandTotal)}</p>
             {view.couponCode && (
-              <span className="inline-block text-[9.5px] font-black text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.5 rounded mt-0.5">
-                🏷️ {view.couponCode}
+              <span className="inline-block text-[9.5px] font-black text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.5 rounded mt-0.5 block">
+                Coupon: {view.couponCode}
               </span>
             )}
           </div>
@@ -88,7 +85,11 @@ export default function OrderCard({ order, index = 0, now, districtName, custome
           deliveryFee={view.deliveryFee}
           splitOf={view.splitOf}
           discountAmount={view.discountAmount}
+          walletDiscount={view.walletDiscount}
           couponCode={view.couponCode}
+          status={view.status}
+          collect={collect}
+          grandTotal={view.grandTotal}
         />
       </div>
 

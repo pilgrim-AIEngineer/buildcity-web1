@@ -20,7 +20,14 @@ export function OrderProvider({ children }) {
   const [ordersCursor, setOrdersCursor] = useState(null);
   const [hasMoreOrders, setHasMoreOrders] = useState(false);
   const [loadingMoreOrders, setLoadingMoreOrders] = useState(false);
-  const [ordersSummary, setOrdersSummary] = useState(null);
+  const [ordersSummary, setOrdersSummary] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`${getRoleStorageKey()}_summary`);
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
   const olderPagesLoadedRef = useRef(false);
   const identityKeyRef = useRef(null);
 
@@ -64,6 +71,8 @@ export function OrderProvider({ children }) {
       regionId: resolvedRegionId,
       total: Number(ord.totalAmount) || Number(ord.total) || 0,
       totalAmount: Number(ord.totalAmount) || Number(ord.total) || 0,
+      walletDiscount: Number(ord.walletDiscount || 0),
+      discountAmount: Number(ord.discountAmount || 0),
       items: Array.isArray(ord.items) ? ord.items : [],
     };
   };
@@ -144,7 +153,12 @@ export function OrderProvider({ children }) {
       if (!isDr) {
         authFetch(`${API_BASE_URL}/api/v1/orders/summary`)
           .then((r) => (r.ok ? r.json() : null))
-          .then((summary) => { if (summary) setOrdersSummary(summary); })
+          .then((summary) => {
+            if (summary) {
+              setOrdersSummary(summary);
+              try { localStorage.setItem(`${currentStorageKey}_summary`, JSON.stringify(summary)); } catch {}
+            }
+          })
           .catch(() => {});
       }
 
@@ -181,7 +195,12 @@ export function OrderProvider({ children }) {
       olderPagesLoadedRef.current = false;
       setOrdersCursor(null);
       setHasMoreOrders(false);
-      setOrdersSummary(null);
+      try {
+        const savedSummary = localStorage.getItem(`${currentStorageKey}_summary`);
+        setOrdersSummary(savedSummary ? JSON.parse(savedSummary) : null);
+      } catch {
+        setOrdersSummary(null);
+      }
     }
     const saved = localStorage.getItem(currentStorageKey);
     if (saved) {
@@ -284,12 +303,12 @@ export function OrderProvider({ children }) {
         (sum, it) => sum + Number(it.price || 0) * (Number(it.quantity || 1)),
         0
       );
-      // Free delivery check aur delivery fee calculate karo
-      const groupDeliveryFee = Number(total) >= 2000 ? 0 : Number(deliveryFee || 49);
+      // Delivery fee direct checkout charge se respect karo
+      const groupDeliveryFee = deliveryFee !== undefined && deliveryFee !== null ? Number(deliveryFee) : 0;
       const groupDiscount = i === 0 ? Number(discountAmount || 0) : 0;
       const groupWalletDiscount = i === 0 ? Number(walletDiscount || 0) : 0;
       const groupCouponCode = i === 0 && couponCode ? String(couponCode).toUpperCase() : null;
-      const groupTotal = Math.max(0, groupSubtotal + groupDeliveryFee - groupDiscount - groupWalletDiscount);
+      const groupTotal = Math.round(Math.max(0, groupSubtotal + groupDeliveryFee - groupDiscount - groupWalletDiscount) * 100) / 100;
       const groupVendorName = groupItems[0]?.vendorName || "District Vendor";
       const groupVendorId = groupItems[0]?.vendorId || "v1";
 
@@ -342,10 +361,11 @@ export function OrderProvider({ children }) {
             items: so.items && so.items.length > 0 ? so.items : groupItems,
             address: so.address || address,
             customer: so.customer,
-            total: Number(so.totalAmount) || groupTotal,
-            totalAmount: Number(so.totalAmount) || groupTotal,
-            deliveryFee: Number(so.deliveryFee) || groupDeliveryFee,
-            discountAmount: Number(so.discountAmount) || groupDiscount,
+            total: Number(so.totalAmount !== undefined ? so.totalAmount : groupTotal),
+            totalAmount: Number(so.totalAmount !== undefined ? so.totalAmount : groupTotal),
+            deliveryFee: Number(so.deliveryFee !== undefined ? so.deliveryFee : groupDeliveryFee),
+            discountAmount: Number(so.discountAmount !== undefined ? so.discountAmount : groupDiscount),
+            walletDiscount: Number(so.walletDiscount !== undefined ? so.walletDiscount : groupWalletDiscount),
             couponCode: so.couponCode || groupCouponCode,
           }));
         } else {

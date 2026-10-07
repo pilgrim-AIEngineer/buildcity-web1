@@ -99,6 +99,9 @@ export default function AdminDashboard() {
     updateListingApprovalStatus,
     updateOrderStatus,
     fetchCloudData,
+    walletSettings,
+    fetchWalletSettings,
+    updateWalletSettings,
   } = useAdmin();
 
   const {
@@ -207,6 +210,52 @@ export default function AdminDashboard() {
   const [vendorForm, setVendorForm] = useState({ shopName: "", ownerName: "", phone: "", password: "", regionId: "", commissionRate: 10 });
   const [catForm, setCatForm] = useState({ name: "" });
   const [regionForm, setRegionForm] = useState({ name: "", state: "Uttar Pradesh", baseDeliveryCharge: 49 });
+  const [deliverySettings, setDeliverySettings] = useState({
+    freeDeliveryEnabled: true,
+    freeDeliveryMinAmount: 25000,
+  });
+  const [savingDeliverySettings, setSavingDeliverySettings] = useState(false);
+  const [deliverySaveSuccess, setDeliverySaveSuccess] = useState(false);
+
+  useEffect(() => {
+    if (fetchWalletSettings) fetchWalletSettings();
+  }, [fetchWalletSettings]);
+
+  useEffect(() => {
+    if (walletSettings) {
+      setDeliverySettings({
+        freeDeliveryEnabled: walletSettings.freeDeliveryEnabled !== false,
+        freeDeliveryMinAmount: Number(walletSettings.freeDeliveryMinAmount ?? 25000),
+      });
+    }
+  }, [walletSettings]);
+
+  const handleSaveDeliverySettings = async (e) => {
+    e?.preventDefault?.();
+    if (!updateWalletSettings) return;
+    setSavingDeliverySettings(true);
+    try {
+      await updateWalletSettings({
+        freeDeliveryEnabled: Boolean(deliverySettings.freeDeliveryEnabled),
+        freeDeliveryMinAmount: Number(deliverySettings.freeDeliveryMinAmount) || 0,
+      });
+      setDeliverySaveSuccess(true);
+      setTimeout(() => setDeliverySaveSuccess(false), 3000);
+      showAlert({
+        title: "Free Delivery Settings Saved",
+        message: "Delivery rules have been successfully updated across the storefront.",
+        type: "success",
+      });
+    } catch (err) {
+      showAlert({
+        title: "Update Failed",
+        message: err.message || "Could not save delivery settings",
+        type: "error",
+      });
+    } finally {
+      setSavingDeliverySettings(false);
+    }
+  };
   const [couponForm, setCouponForm] = useState({
     code: "",
     title: "",
@@ -2240,6 +2289,64 @@ export default function AdminDashboard() {
         {/* REGIONS TAB */}
         {tab === "Regions" && (
           <div className="space-y-4">
+            {/* Free Delivery Control Hub */}
+            <div className="bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent border border-emerald-200/90 rounded-2xl p-5 shadow-xs">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base font-extrabold text-navy-950">Free Delivery Rules & Threshold</h2>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${deliverySettings.freeDeliveryEnabled ? "bg-emerald-100 text-emerald-800 border-emerald-300" : "bg-slate-100 text-slate-600 border-slate-200"}`}>
+                      {deliverySettings.freeDeliveryEnabled ? "FREE DELIVERY ACTIVE" : "DISABLED (ALWAYS CHARGE)"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-600 mt-1">
+                    Decide whether orders get 100% Free Delivery above a minimum qualifying cart value or if district fee always applies.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3 flex-wrap">
+                  <label className="flex items-center gap-2 cursor-pointer bg-white border border-slate-200 px-3 py-2 rounded-xl shadow-2xs hover:bg-slate-50 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={deliverySettings.freeDeliveryEnabled}
+                      onChange={(e) => setDeliverySettings({ ...deliverySettings, freeDeliveryEnabled: e.target.checked })}
+                      className="w-4 h-4 rounded text-emerald-600 accent-emerald-600 cursor-pointer"
+                    />
+                    <span className="text-xs font-bold text-navy-900">Enable Free Delivery</span>
+                  </label>
+
+                  <div className="flex items-center gap-1.5 bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-2xs">
+                    <span className="text-xs font-bold text-slate-500">Above ₹</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="500"
+                      disabled={!deliverySettings.freeDeliveryEnabled}
+                      value={deliverySettings.freeDeliveryMinAmount}
+                      onChange={(e) => setDeliverySettings({ ...deliverySettings, freeDeliveryMinAmount: e.target.value })}
+                      className="w-24 text-xs font-black text-navy-900 outline-none disabled:opacity-40"
+                      placeholder="25000"
+                    />
+                  </div>
+
+                  <button
+                    onClick={handleSaveDeliverySettings}
+                    disabled={savingDeliverySettings}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black px-4 py-2.5 rounded-xl shadow-xs cursor-pointer active:scale-95 disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    {savingDeliverySettings ? (
+                      <>
+                        <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      <span>Save Delivery Rule</span>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <div className="flex items-center justify-between bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
               <div>
                 <h2 className="text-base font-extrabold text-navy-900">Covered Districts & Delivery Charges</h2>

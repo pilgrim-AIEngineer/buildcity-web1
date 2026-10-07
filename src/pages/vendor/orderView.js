@@ -54,15 +54,16 @@ export function getOrderView(ord, districtName, now = Date.now()) {
     itemsSubtotal = Number(ord.vendorItemsTotal || ord.totalAmount || ord.total || 0);
   }
   const discountAmount = Number(ord.discountAmount || 0);
+  const walletDiscount = Number(ord.walletDiscount || 0);
   const couponCode = ord.couponCode || null;
   const rawTotal = Number(ord.totalAmount || ord.total || 0);
 
-  // Expected collect total accounting for subtotal, delivery fee, and coupon discount
-  const expectedGrandTotal = Math.max(0, itemsSubtotal + deliveryFee - discountAmount);
+  // Expected collect total accounting for subtotal, delivery fee, coupon discount, AND wallet discount
+  const expectedGrandTotal = Math.max(0, itemsSubtotal + deliveryFee - discountAmount - walletDiscount);
   let grandTotal = expectedGrandTotal;
   if (rawTotal > 0) {
-    if (discountAmount > 0 && (rawTotal >= itemsSubtotal || rawTotal >= itemsSubtotal + deliveryFee)) {
-      // rawTotal did not deduct the coupon discount; enforce expectedGrandTotal
+    if ((discountAmount > 0 || walletDiscount > 0) && (rawTotal >= itemsSubtotal || rawTotal >= itemsSubtotal + deliveryFee)) {
+      // rawTotal did not deduct discounts; enforce expectedGrandTotal
       grandTotal = expectedGrandTotal;
     } else {
       grandTotal = rawTotal;
@@ -96,6 +97,7 @@ export function getOrderView(ord, districtName, now = Date.now()) {
     itemsSubtotal,
     deliveryFee,
     discountAmount,
+    walletDiscount,
     couponCode,
     grandTotal,
   };

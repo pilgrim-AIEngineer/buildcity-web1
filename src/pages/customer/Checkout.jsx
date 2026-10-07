@@ -51,7 +51,7 @@ export default function Checkout() {
   }, [directItem, mrpTotal]);
 
   const { user, updateProfile } = useAuth();
-  const { products = [], vendors = [], coupons = [] } = useAdmin() || {};
+  const { products = [], vendors = [], coupons = [], walletSettings: adminWalletSettings } = useAdmin() || {};
   const { region } = useRegion();
   const { addresses: contextAddresses = [], addAddress: addContextAddress } = useAddresses();
 
@@ -60,8 +60,15 @@ export default function Checkout() {
   const [payment, setPayment] = useState("cod");
   const [placing, setPlacing] = useState(false);
 
-  // Wallet redemption state
-  const [walletData, setWalletData] = useState(null);
+  // Wallet redemption state (with instant local cache)
+  const [walletData, setWalletData] = useState(() => {
+    try {
+      const cached = localStorage.getItem(`buildcity_wallet_${user?.id || "guest"}`);
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
   const [useWallet, setUseWallet] = useState(false);
 
   useEffect(() => {
@@ -69,7 +76,12 @@ export default function Checkout() {
       authFetch(`${API_BASE_URL}/api/v1/wallet`)
         .then((r) => r.json())
         .then((data) => {
-          if (data && data.success) setWalletData(data);
+          if (data && data.success) {
+            setWalletData(data);
+            try {
+              localStorage.setItem(`buildcity_wallet_${user.id || "guest"}`, JSON.stringify(data));
+            } catch {}
+          }
         })
         .catch(() => {});
     }
@@ -181,7 +193,10 @@ export default function Checkout() {
   }
 
   const baseDeliveryFee = Number(region?.baseDeliveryCharge) || 49;
-  const deliveryCharge = checkoutSubtotal >= 25000 ? 0 : baseDeliveryFee;
+  const activeWalletSettings = walletData?.settings || adminWalletSettings || {};
+  const isFreeDelivery = activeWalletSettings.freeDeliveryEnabled !== false && checkoutSubtotal >= (Number(activeWalletSettings.freeDeliveryMinAmount) || 25000);
+  const deliveryCharge = isFreeDelivery ? 0 : baseDeliveryFee;
+
   const couponDiscount = useMemo(() => {
     if (!appliedCoupon) return 0;
     const minOrderVal = Number(appliedCoupon.minOrder) || 0;
@@ -191,7 +206,7 @@ export default function Checkout() {
 
   // Wallet redemption calculation based on Super Admin safety limits
   const walletBalance = Number(walletData?.balance || 0);
-  const walletSettings = walletData?.settings || {};
+  const walletSettings = activeWalletSettings;
   const walletRedeemEnabled = walletSettings.walletRedeemEnabled !== false;
 
   const maxWalletApplicable = useMemo(() => {
@@ -434,6 +449,7 @@ export default function Checkout() {
           items: orderItems,
           address: targetAddr,
           total,
+          deliveryFee: deliveryCharge,
           districtName: activeRegionName,
           regionId: activeRegionId,
           couponCode: appliedCoupon && couponDiscount > 0 ? appliedCoupon.code : null,
@@ -456,10 +472,11 @@ export default function Checkout() {
 
       const customerName = targetAddr?.fullName || user?.name || "Customer";
       const displayId = formatShortId(realOrder.orderNumber || realOrder.id, "ORD");
+      const orderConfirmedTotal = Number(realOrder.totalAmount || realOrder.total || total);
       addNotification({
         id: `order_confirmed_${Date.now()}`,
         title: `Order ${displayId} Confirmed!`,
-        message: `Thank you ${customerName}! Your order of ₹${Number(total).toLocaleString("en-IN")} is placed and sent for dispatch.`,
+        message: `Thank you ${customerName}! Your order of ₹${orderConfirmedTotal.toLocaleString("en-IN")} is placed and sent for dispatch.`,
         type: "order",
         link: `/orders`,
       });

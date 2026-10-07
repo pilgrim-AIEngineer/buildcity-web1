@@ -290,11 +290,14 @@ export default function OrderDetail() {
             </div>
             {Number(order.discountAmount) > 0 && (
               <div className="flex justify-between items-center text-emerald-700 font-semibold bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-200">
-                <span className="font-extrabold flex items-center gap-1.5">
-                  <span>🏷️</span>
-                  <span>Coupon Discount ({order.couponCode || "Applied"})</span>
-                </span>
+                <span className="font-extrabold">Coupon Discount ({order.couponCode || "Applied"})</span>
                 <span className="font-black">− ₹{Number(order.discountAmount).toLocaleString("en-IN")}</span>
+              </div>
+            )}
+            {Number(order.walletDiscount) > 0 && (
+              <div className="flex justify-between items-center text-amber-800 font-semibold bg-amber-50 px-2.5 py-1.5 rounded-lg border border-amber-200">
+                <span className="font-extrabold">Wallet Paid (Deducted)</span>
+                <span className="font-black">− ₹{Number(order.walletDiscount).toLocaleString("en-IN")}</span>
               </div>
             )}
             <div className="pt-2 border-t border-slate-200/80 flex justify-between items-center text-sm font-black text-navy-950">

@@ -389,11 +389,16 @@ model AppSetting {
   cashbackValue         Decimal  @default(2.00)
   minOrderForCashback   Decimal  @default(5000.00)
   maxCashbackCap        Decimal  @default(500.00)
-  referrerReward        Decimal  @default(100.00)
+  referralRewardType    String   @default("PERCENTAGE") // PERCENTAGE | FLAT
+  referrerReward        Decimal  @default(2.00) // 2% in percentage mode or ₹ in flat mode
+  maxReferralRewardCap  Decimal  @default(1000.00)
+  refereeRewardType     String   @default("FLAT") // FLAT | PERCENTAGE
   refereeReward         Decimal  @default(50.00)
   walletRedeemEnabled   Boolean  @default(true)
   maxWalletUsagePercent Decimal  @default(10.00)
   maxWalletUsageFlat    Decimal  @default(500.00)
+  freeDeliveryEnabled   Boolean  @default(true)
+  freeDeliveryMinAmount Decimal  @default(25000.00)
   updatedAt             DateTime @updatedAt
 
   @@map("app_settings")

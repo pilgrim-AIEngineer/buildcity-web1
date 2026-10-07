@@ -296,7 +296,12 @@ export default function Orders() {
                             </span>
                             {order.couponCode && (
                               <span className="text-[10px] font-extrabold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
-                                🏷️ {order.couponCode} {Number(order.discountAmount) > 0 ? `(-₹${Number(order.discountAmount).toLocaleString("en-IN")})` : ""}
+                                Coupon: {order.couponCode} {Number(order.discountAmount) > 0 ? `(-₹${Number(order.discountAmount).toLocaleString("en-IN")})` : ""}
+                              </span>
+                            )}
+                            {Number(order.walletDiscount) > 0 && (
+                              <span className="text-[10px] font-extrabold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                                Wallet (-₹{Number(order.walletDiscount).toLocaleString("en-IN")})
                               </span>
                             )}
                           </div>

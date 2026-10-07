@@ -32,10 +32,16 @@ export default function Cart() {
     applyCoupon,
     removeCoupon,
   } = useCart();
-  const { coupons: adminCoupons = [], products = [], vendors = [] } = useAdmin();
+  const { coupons: adminCoupons = [], products = [], vendors = [], walletSettings, fetchWalletSettings } = useAdmin();
   const { region } = useRegion();
   const { showAlert } = useAlert();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!walletSettings && fetchWalletSettings) {
+      fetchWalletSettings();
+    }
+  }, [walletSettings, fetchWalletSettings]);
 
   // Database se aane wale coupons ka state
   const [dbCoupons, setDbCoupons] = useState(adminCoupons);
@@ -248,7 +254,8 @@ export default function Cart() {
   };
 
   const baseDeliveryFee = Number(region?.baseDeliveryCharge) || 49;
-  const deliveryCharge = subtotal >= 25000 ? 0 : baseDeliveryFee;
+  const isFreeDelivery = walletSettings?.freeDeliveryEnabled !== false && subtotal >= (Number(walletSettings?.freeDeliveryMinAmount) || 25000);
+  const deliveryCharge = isFreeDelivery ? 0 : baseDeliveryFee;
   const couponDiscount = appliedCoupon ? Number(appliedCoupon.discountAmount) || 0 : 0;
   const total = Math.max(0, subtotal + deliveryCharge - couponDiscount);
   const mrpDiscount = Math.max(0, Number(mrpTotal || 0) - Number(subtotal || 0));

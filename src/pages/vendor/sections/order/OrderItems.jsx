@@ -6,7 +6,7 @@ const MAX_ROWS_UNFOLDED = 4;
 const PREVIEW_ROWS = 3;
 
 // One line per item ("50 × Name … ₹line"); tap a row for its unit rate. Delivery closes the list.
-export default function OrderItems({ items, deliveryFee, splitOf, discountAmount, couponCode }) {
+export default function OrderItems({ items, deliveryFee, splitOf, discountAmount, walletDiscount, couponCode, status, collect, grandTotal }) {
   const [expanded, setExpanded] = useState(false);
   const [rateFor, setRateFor] = useState(null);
   const foldable = items.length > MAX_ROWS_UNFOLDED;
@@ -62,11 +62,27 @@ export default function OrderItems({ items, deliveryFee, splitOf, discountAmount
         </li>
         {Number(discountAmount) > 0 && (
           <li className="flex items-baseline gap-2 text-emerald-700 font-semibold bg-emerald-50/80 px-2 py-0.5 rounded border border-emerald-200/80">
-            <span className="w-7 shrink-0 text-center">🏷️</span>
+            <span className="w-9 shrink-0" />
             <span className="flex-1">Coupon ({couponCode || "Promo"})</span>
             <span className="shrink-0 tabular-nums">− {inr(discountAmount)}</span>
           </li>
         )}
+        {Number(walletDiscount) > 0 && (
+          <li className="flex items-baseline gap-2 text-slate-400">
+            <span className="w-9 shrink-0" />
+            <span className="flex-1">BuildCity Due</span>
+            <span className="shrink-0 tabular-nums text-slate-600">− {inr(walletDiscount)}</span>
+          </li>
+        )}
+        <li className="flex items-baseline gap-2 pt-2 border-t border-slate-100 text-slate-900">
+          <span className="w-9 shrink-0" />
+          <span className="flex-1 text-xs font-black text-slate-900">
+            {status === "DELIVERED" ? "Total Collected" : (collect ? "Total Collect" : "Total Amount")}
+          </span>
+          <span className="shrink-0 tabular-nums text-sm font-black text-slate-900">
+            {inr(grandTotal)}
+          </span>
+        </li>
       </ul>
     </div>
   );

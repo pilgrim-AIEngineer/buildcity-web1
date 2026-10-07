@@ -226,78 +226,65 @@ export default function Profile() {
           </form>
         )}
 
-        {/* BuildCity Wallet Balance Card */}
+        {/* 3 Matching Stat Cards: Wallet, Active Coupons, Total Orders */}
         {!editing && (
-          <div className="bg-gradient-to-br from-amber-500 via-amber-600 to-orange-600 rounded-2xl sm:rounded-3xl p-4.5 sm:p-5 text-white shadow-md relative overflow-hidden">
-            <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-white/10 rounded-full blur-xl pointer-events-none" />
-            <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">💰</span>
-                  <span className="text-[11px] font-black tracking-wider uppercase text-amber-100 bg-white/20 px-2.5 py-0.5 rounded-full backdrop-blur-xs">
-                    BuildCity Wallet
-                  </span>
-                </div>
-                <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-2xl sm:text-3xl font-black tracking-tight tabular-nums">
-                    ₹{Number(walletData?.balance || 0).toLocaleString("en-IN")}
-                  </span>
-                  <span className="text-[11px] font-medium text-amber-100">Available Balance</span>
-                </div>
-                <p className="text-[11px] text-amber-100/90 mt-0.5">
-                  {walletData?.settings?.walletRedeemEnabled
-                    ? `Redeemable up to ₹${walletData?.settings?.maxWalletUsageFlat || 500} on checkout`
-                    : "Cashback earned on delivered orders"}
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setShowPassbookModal(true)}
-                className="bg-white/95 hover:bg-white text-amber-900 active:scale-95 text-xs font-black px-4 py-2.5 rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 self-start sm:self-auto shrink-0"
-              >
-                <span>📜 Passbook History</span>
-                <span>→</span>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* 2 Simple Stat Cards: Active Coupons & Total Orders */}
-        {!editing && (
-          <div className="grid grid-cols-2 gap-2.5 sm:gap-3.5">
-            {/* 1. Active Coupons (Click to view active coupons) */}
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
+            {/* 1. BuildCity Wallet (Click to open Passbook) */}
             <button
               type="button"
-              onClick={() => setShowCouponsModal(true)}
-              className="bg-white rounded-xl border border-slate-200/90 py-2.5 px-3 sm:py-3.5 sm:px-4 text-center shadow-xs hover:shadow-md hover:border-brand-400 active:scale-[0.98] transition-all cursor-pointer group block"
+              onClick={() => setShowPassbookModal(true)}
+              className="bg-white rounded-xl border border-slate-200/90 py-2.5 px-2 sm:py-3.5 sm:px-3 text-center shadow-xs hover:shadow-md hover:border-brand-400 active:scale-[0.98] transition-all cursor-pointer group block"
             >
               <div className="flex items-center justify-center mb-1">
-                <span className="text-[9.5px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/80">Active</span>
+                <span className="text-[9.5px] font-black text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full border border-brand-200/70">
+                  Wallet
+                </span>
               </div>
-              <p className="text-lg sm:text-xl font-black text-brand-600 group-hover:text-brand-700 transition-colors tabular-nums">
-                {activeCouponsCount} Active
+              <p className="text-base sm:text-xl font-black text-brand-600 group-hover:text-brand-700 transition-colors tabular-nums">
+                ₹{Number(walletData?.balance ?? user?.walletBalance ?? 0).toLocaleString("en-IN")}
               </p>
               <p className="text-[10px] font-bold text-slate-500 mt-0.5 flex items-center justify-center gap-1">
-                <span>{activeCouponsCount === 1 ? "Coupon Available" : "Coupons Available"}</span>
+                <span>Passbook</span>
                 <span className="text-brand-600 font-bold group-hover:translate-x-0.5 transition-transform">→</span>
               </p>
             </button>
 
-            {/* 2. Total Orders (Click to go to /orders) */}
+            {/* 2. Active Coupons (Click to view active coupons) */}
+            <button
+              type="button"
+              onClick={() => setShowCouponsModal(true)}
+              className="bg-white rounded-xl border border-slate-200/90 py-2.5 px-2 sm:py-3.5 sm:px-3 text-center shadow-xs hover:shadow-md hover:border-emerald-400 active:scale-[0.98] transition-all cursor-pointer group block"
+            >
+              <div className="flex items-center justify-center mb-1">
+                <span className="text-[9.5px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/80">
+                  Active
+                </span>
+              </div>
+              <p className="text-base sm:text-xl font-black text-emerald-600 group-hover:text-emerald-700 transition-colors tabular-nums">
+                {activeCouponsCount} Active
+              </p>
+              <p className="text-[10px] font-bold text-slate-500 mt-0.5 flex items-center justify-center gap-1">
+                <span>Coupons</span>
+                <span className="text-emerald-600 font-bold group-hover:translate-x-0.5 transition-transform">→</span>
+              </p>
+            </button>
+
+            {/* 3. Total Orders (Click to go to /orders) */}
             <button
               type="button"
               onClick={() => navigate("/orders")}
-              className="bg-white rounded-xl border border-slate-200/90 py-2.5 px-3 sm:py-3.5 sm:px-4 text-center shadow-xs hover:shadow-md hover:border-navy-400 active:scale-[0.98] transition-all cursor-pointer group block"
+              className="bg-white rounded-xl border border-slate-200/90 py-2.5 px-2 sm:py-3.5 sm:px-3 text-center shadow-xs hover:shadow-md hover:border-navy-400 active:scale-[0.98] transition-all cursor-pointer group block"
             >
               <div className="flex items-center justify-center mb-1">
-                <span className="text-[9.5px] font-black text-navy-800 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">History</span>
+                <span className="text-[9.5px] font-black text-navy-800 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
+                  History
+                </span>
               </div>
-              <p className="text-lg sm:text-xl font-black text-navy-950 group-hover:text-brand-600 transition-colors tabular-nums">
+              <p className="text-base sm:text-xl font-black text-navy-950 group-hover:text-brand-600 transition-colors tabular-nums">
                 {Math.max(ordersSummary?.totalOrders || 0, myOrders.length)}
               </p>
               <p className="text-[10px] font-bold text-slate-500 mt-0.5 flex items-center justify-center gap-1">
-                <span>Total Orders</span>
+                <span>Orders</span>
                 <span className="text-navy-950 font-bold group-hover:translate-x-0.5 transition-transform">→</span>
               </p>
             </button>
@@ -306,22 +293,17 @@ export default function Profile() {
 
         {/* Refer & Earn Card (Referral Code Only, Strictly No Dynamic Links) */}
         {!editing && (
-          <div className="bg-white rounded-2xl border border-slate-200/90 p-4.5 sm:p-5 shadow-xs space-y-3.5">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">🎁</span>
-                  <h3 className="text-sm font-extrabold text-navy-950">
-                    Refer & Earn Rewards
-                  </h3>
-                  <span className="text-[10px] font-black text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full border border-brand-200/60">
-                    Bonus ₹{walletData?.settings?.referrerReward || 100}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 mt-1">
-                  Invite friends & contractors to BuildCity. When they register with your referral code and their 1st order is delivered, both of you earn wallet rewards!
-                </p>
+          <div className="bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-5 shadow-xs space-y-3.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🎁</span>
+                <h3 className="text-sm font-extrabold text-navy-950">
+                  Refer & Earn Rewards
+                </h3>
               </div>
+              <span className="text-[10px] font-black text-brand-700 bg-brand-50 px-2.5 py-0.5 rounded-full border border-brand-200/60">
+                Bonus ₹{walletData?.settings?.referrerReward || 100}
+              </span>
             </div>
 
             {/* Referral Code Box */}
@@ -350,7 +332,7 @@ export default function Profile() {
 
                 <a
                   href={`https://wa.me/?text=${encodeURIComponent(
-                    `BuildCity पर अपने घर और कंस्ट्रक्शन मटेरियल के आर्डर पर कैशबैक पाएं! रजिस्टर करते समय मेरा रेफरल कोड "${walletData?.referralCode || user?.referralCode}" डालें और वॉलेट रिवॉर्ड पाएं।\n\nReferral Code: ${walletData?.referralCode || user?.referralCode}`
+                    `Join BuildCity for construction & building materials! Use my Referral Code: ${walletData?.referralCode || user?.referralCode} when registering to get wallet rewards on your orders.\n\nReferral Code: ${walletData?.referralCode || user?.referralCode}`
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -361,28 +343,28 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* How It Works - Step by Step Guide */}
+            {/* How It Works - Step by Step Guide (Clean English) */}
             <div className="grid grid-cols-3 gap-2 pt-1 text-center">
               <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-2.5">
                 <span className="inline-block text-[10px] font-black text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full border border-brand-200">
                   Step 1
                 </span>
                 <p className="text-[11px] font-extrabold text-navy-950 mt-1">Share Code</p>
-                <p className="text-[9.5px] text-slate-400 mt-0.5">Dost ko code bhejein</p>
+                <p className="text-[9.5px] text-slate-400 mt-0.5">Send code to friends</p>
               </div>
               <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-2.5">
                 <span className="inline-block text-[10px] font-black text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full border border-brand-200">
                   Step 2
                 </span>
                 <p className="text-[11px] font-extrabold text-navy-950 mt-1">Friend Registers</p>
-                <p className="text-[9.5px] text-slate-400 mt-0.5">Signup par code daalein</p>
+                <p className="text-[9.5px] text-slate-400 mt-0.5">Enter code on signup</p>
               </div>
               <div className="bg-emerald-50/60 border border-emerald-200/80 rounded-xl p-2.5">
                 <span className="inline-block text-[10px] font-black text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full border border-emerald-200">
                   Step 3
                 </span>
                 <p className="text-[11px] font-extrabold text-emerald-900 mt-1">Earn on Delivery</p>
-                <p className="text-[9.5px] text-emerald-600 mt-0.5">1st order delivery par reward</p>
+                <p className="text-[9.5px] text-emerald-600 mt-0.5">Reward on 1st order</p>
               </div>
             </div>
           </div>
@@ -583,17 +565,17 @@ export default function Profile() {
               </button>
             </div>
 
-            <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 rounded-2xl p-3 flex items-center justify-between">
+            <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-3.5 flex items-center justify-between">
               <div>
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-                  Current Balance
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Available Wallet Balance
                 </span>
-                <span className="text-xl font-black text-amber-900 tabular-nums">
+                <span className="text-2xl font-black text-navy-950 tabular-nums">
                   ₹{Number(walletData?.balance || 0).toLocaleString("en-IN")}
                 </span>
               </div>
-              <span className="text-xs font-black text-amber-700 bg-white px-2.5 py-1 rounded-xl shadow-2xs border border-amber-200">
-                BuildCity Cash
+              <span className="text-[11px] font-black text-brand-700 bg-brand-50 px-3 py-1 rounded-xl shadow-2xs border border-brand-200/80">
+                BuildCity Wallet
               </span>
             </div>
 
